@@ -37,3 +37,8 @@ Padanan istilah domain (Bahasa Indonesia, dipakai di UI dan percakapan) dengan n
 | Pengingat | `reminder` | |
 | Undangan | `invite` | |
 | Prospek (form landing page) | `lead` | |
+| Paket | `plan` | Gratis, Plus, Starter, Growth, Enterprise |
+| Langganan | `subscription` | |
+| Kuota | `quota` / `limits` | Anggota, formulir aktif, laporan per bulan |
+| Perorangan / Organisasi | `personal` / `organization` | Tipe workspace |
+| Formulir (di halaman Upgrade) | `form` | Sama dengan struktur data |

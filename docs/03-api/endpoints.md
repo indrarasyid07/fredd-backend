@@ -8,6 +8,11 @@ Kolom "Peran" = peran minimum: `reviewer` < `form_editor` < `admin`.
 
 | Method | Path | Peran | Keterangan |
 |---|---|---|---|
+| POST | `/auth/register` | publik | Email, nama, instansi, kata sandi; kirim email verifikasi |
+| POST | `/auth/login` | publik | Email + kata sandi; rate limit |
+| POST | `/auth/verify-email` | publik | Token dari email |
+| POST | `/auth/password/forgot` | publik | Selalu 202 (tidak membocorkan email terdaftar) |
+| POST | `/auth/password/reset` | publik | Token 30 menit + kata sandi baru; cabut semua sesi |
 | GET | `/auth/google/login` | publik | Redirect ke Google |
 | GET | `/auth/google/callback` | publik | Buat sesi, set cookie |
 | POST | `/auth/logout` | login | Cabut sesi saat ini |
@@ -109,6 +114,17 @@ Kolom "Peran" = peran minimum: `reviewer` < `form_editor` < `admin`.
 | GET | `/webhooks/whatsapp` | Verifikasi `hub.challenge` dari Meta |
 | POST | `/webhooks/whatsapp` | Pesan masuk + status; wajib `X-Hub-Signature-256` |
 | POST | `/webhooks/telegram/{channel_id}` | Wajib header `X-Telegram-Bot-Api-Secret-Token` |
+
+## Paket dan tagihan
+
+Rincian: [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#endpoint).
+
+| Method | Path | Peran |
+|---|---|---|
+| GET | `/billing/plans?type=personal\|organization` | publik |
+| GET | `/billing/subscription`, `/billing/usage` | login |
+| POST | `/billing/checkout`, `/billing/cancel` | admin |
+| POST | `/webhooks/payments/{provider}` (tanpa `/api/v1`) | penyedia pembayaran, tanda tangan wajib |
 
 ## Publik (untuk website)
 

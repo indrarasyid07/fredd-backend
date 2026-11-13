@@ -15,3 +15,7 @@ Format: satu baris per keputusan; keputusan yang diganti ditandai, tidak dihapus
 | B-009 | 2026-11-13 | Satu job antrean per percakapan | Menjamin urutan pesan tanpa kunci terpisah | Diusulkan |
 | B-010 | 2026-11-13 | Satu domain berbasis path (`/api` → FastAPI, sisanya → Next.js) | Cookie sesi bersama tanpa CORS | Diusulkan |
 | B-011 | 2026-11-13 | Prefix API `/api/v1` | Murah sekarang, mahal ditambahkan belakangan | Diusulkan |
+| B-012 | 2026-11-13 | Multi-tenant SaaS: workspace Perorangan/Organisasi dengan paket dan kuota | Halaman Upgrade di desain | Diterima |
+| B-013 | 2026-11-13 | Masuk dengan email + kata sandi (argon2id) dan Google; wajib SSO opsi per workspace | Pendaftaran mandiri untuk paket Gratis | Diusulkan |
+| B-014 | 2026-11-13 | Checkout hosted penyedia pembayaran; status langganan hanya dari webhook bertanda tangan | Tidak menyimpan data kartu; redirect browser bisa dipalsukan | Diusulkan |
+| B-015 | 2026-11-13 | Laporan di atas kuota tetap disimpan, ditandai `over_quota` | Data lapangan tidak boleh hilang | Diusulkan |

@@ -15,8 +15,8 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 
 | Tabel | Kolom penting | Catatan |
 |---|---|---|
-| `workspaces` | name, timezone (`Asia/Jakarta`), operating_hours, quiet_hours, retention_conversations_months, retention_photos_months | |
-| `users` | email, name, google_sub | |
+| `workspaces` | name, type (`personal`/`organization`), timezone (`Asia/Jakarta`), operating_hours, quiet_hours, retention_conversations_months, retention_photos_months, require_sso | |
+| `users` | email, name, password_hash (null bila hanya Google), email_verified_at, google_sub | |
 | `members` | workspace_id, user_id, role (`admin`, `form_editor`, `reviewer`), approved_at | |
 | `sessions` | user_id, token_hash, user_agent, ip, city, expires_at, revoked_at | Token mentah hanya di cookie |
 | `channels` | workspace_id, type (`whatsapp`, `telegram`), credentials_encrypted, status, display_name, phone_number_id / bot_username | |
@@ -33,7 +33,9 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `report_follow_ups` | report_id, assignee_member_id, priority, status, note | |
 | `activity_events` | workspace_id, occurred_at, extension_worker_id, channel, type, details JSONB, status | Log Aktivitas Agent |
 | `audit_logs` | workspace_id, actor_user_id, action, target, metadata JSONB | Ekspor, ubah peran, publikasi, takeover, hapus |
-| `leads` | name, email, organization, message, source | Dari form landing page |
+| `leads` | name, email, organization, message, source | Dari form landing page dan "Hubungi kami" Enterprise |
+| `plans`, `subscriptions`, `payments`, `usage_counters` | lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#model-data) | Paket, langganan, kuota |
+| `auth_tokens` | user_id, purpose (`verify_email`, `reset_password`), token_hash, expires_at, used_at | Token sekali pakai |
 
 ## Detail penting
 

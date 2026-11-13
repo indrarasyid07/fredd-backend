@@ -2,6 +2,9 @@
 
 ## Login dashboard
 
+- Email + kata sandi: hash argon2id, minimal 8 karakter dengan huruf dan angka, email wajib diverifikasi sebelum bisa membuat workspace. Token verifikasi dan reset (30 menit) disimpan sebagai hash dan hanya sekali pakai. Reset kata sandi mencabut semua sesi lain.
+- Endpoint login, daftar, dan lupa kata sandi diberi rate limit per IP dan per email; pesan error tidak membedakan "email tidak terdaftar" dan "kata sandi salah".
+- Workspace Organisasi bisa mewajibkan SSO Google (`require_sso`); anggotanya tidak bisa masuk dengan kata sandi.
 - Google OAuth (authlib). Domain email yang diizinkan diatur per workspace; anggota baru dari domain itu menunggu persetujuan admin.
 - Setelah callback, backend membuat baris `sessions` dan mengirim cookie:
   `fredd_session=<token acak 32 byte>; HttpOnly; Secure; SameSite=Lax; Path=/`
@@ -52,6 +55,11 @@ Diterapkan sebagai dependency FastAPI (`require_role("admin")`). Frontend menyem
 - Nama petani dan nomor HP penyuluh bisa disamarkan saat ekspor.
 - Retensi: percakapan 12 bulan, foto 24 bulan (dapat diatur per workspace), dijalankan cron.
 - Log audit untuk ekspor, ubah peran, publikasi struktur, ambil alih, hapus workspace.
+
+## Pembayaran
+
+- Checkout di halaman hosted penyedia; Fredd tidak menerima atau menyimpan data kartu.
+- Status langganan hanya berubah dari webhook penyedia yang tanda tangannya terverifikasi; idempoten per ID transaksi.
 
 ## Rate limit
 

@@ -2,6 +2,12 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-13 · Paket dan desain V.1
+
+- Acuan desain: Login Register V.1, Dashboard V.1, Struktur Data Baru V.1, Penyuluh V.1, Upgrade.
+- Halaman Upgrade: Fredd menjadi SaaS multi-tenant dengan paket dan kuota; dokumen baru `06-domain-guides/billing-and-plans.md`.
+- Auth: email + kata sandi ditambah di samping Google; model data, endpoint, model keamanan, glosarium, dan roadmap diperbarui.
+
 ## 2026-11-13 · Docker
 
 - `Dockerfile` dan `.dockerignore`; backend bisa dijalankan native (uv) atau sebagai image lewat `infra` profile `app`.
