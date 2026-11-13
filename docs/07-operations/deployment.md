@@ -1,0 +1,48 @@
+# Deployment
+
+Layanan, reverse proxy, database, backup, dan observabilitas diatur di [infra/docs](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/README.md):
+
+- Topologi dan layanan: [infrastructure-architecture.md](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/02-architecture/infrastructure-architecture.md)
+- Deploy, Caddy, observabilitas: [infra deployment](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/07-operations/deployment.md)
+- Postgres, Redis, backup, restore: [database-operations.md](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/04-database/database-operations.md)
+- Development lokal: [local-development.md](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/06-domain-guides/local-development.md)
+
+Dokumen ini hanya berisi hal yang khusus aplikasi backend.
+
+## Proses
+
+| Proses | Perintah |
+|---|---|
+| API | `uvicorn fredd.main:app --proxy-headers` |
+| Worker | `arq fredd.worker.WorkerSettings` |
+| Migrasi (sekali per deploy) | `alembic upgrade head` |
+
+## Konfigurasi (env)
+
+| Variabel | Keterangan |
+|---|---|
+| `DATABASE_URL` | `postgresql+asyncpg://…` |
+| `REDIS_URL` | |
+| `APP_BASE_URL` | `https://fredd.id` (untuk Origin check, callback OAuth, webhook) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | |
+| `ENCRYPTION_KEYS` | Daftar kunci Fernet dipisah koma, terbaru di depan |
+| `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | WhatsApp Cloud API |
+| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | |
+| `LLM_*`, `STT_*` | Menunggu pilihan penyedia |
+| `ENVIRONMENT` | `development` / `staging` / `production` |
+
+## Waktu dan zona waktu
+
+- Server dan database berjalan di UTC; semua kolom `timestamptz`.
+- Jam tenang, jam operasional, dan jadwal dihitung dengan `ZoneInfo(workspace.timezone)` (default `Asia/Jakarta`).
+- Cron arq tidak memakai jam lokal: berjalan tiap 5 menit dan memproses yang sudah jatuh tempo.
+
+## Migrasi
+
+`alembic upgrade head` dijalankan sebagai job `migrate` sebelum `api` dan `worker` start (satu kali per deploy, bukan oleh setiap replika). Migrasi yang menghapus kolom atau tabel ditulis dua tahap agar rollback aplikasi tetap aman.
+
+## Observabilitas aplikasi
+
+- Log JSON ke stdout; jangan mencatat token, kredensial kanal, atau isi pesan lengkap.
+- `GET /api/v1/health` memeriksa Postgres dan Redis (200 / 503).
+- Metrik yang diekspos worker: panjang antrean arq, umur job tertua, pesan keluar gagal per jam.

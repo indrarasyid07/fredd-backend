@@ -1,0 +1,15 @@
+# Roadmap
+
+Urutan pengerjaan backend. Frontend berjalan paralel (lihat `frontend/docs/10-roadmap/roadmap.md`).
+
+| Fase | Isi | Selesai bila |
+|---|---|---|
+| 0. Fondasi | Scaffold FastAPI, Postgres, Alembic, arq, Docker Compose, CI; login Google, workspace, anggota, peran | Admin bisa login dan mengundang anggota |
+| 1. Telegram + mesin percakapan | Adapter Telegram, webhook, mesin percakapan dengan satu struktur dari seed, draf, pengingat | Penyuluh uji mengisi laporan lengkap di Telegram |
+| 2. Struktur data | Penyusun struktur berversi, data rujukan, validasi, uji, pilot, publikasi | Struktur dibuat dari dashboard dan dipakai di Telegram |
+| 3. Data lapangan | Laporan, foto ke S3, filter, peta, detail, tindak lanjut, ekspor Excel | Dashboard menampilkan data nyata |
+| 4. WhatsApp | Cloud API, Embedded Signup, template, jendela 24 jam | Alur sama berjalan di WhatsApp |
+| 5. Pemantauan | Aktivitas agen, SSE, takeover, analitik | Admin bisa ambil alih percakapan |
+| 6. Fitur AI & tambahan | STT, insight, Tanya Fredd, laporan terjadwal | Sesuai kesepakatan scope |
+
+Proses verifikasi bisnis Meta dimulai di Fase 0 karena bisa memakan waktu berminggu-minggu.
