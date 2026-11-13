@@ -218,7 +218,7 @@ Kode umum di bawah dipakai semua domain. Kode khusus domain ditambahkan di dokum
 | `internal_error` | 500 | Error tak terduga | `null` |
 | `service_unavailable` | 503 | Database/Redis tidak tersedia | `null` |
 
-Pemetaan validasi Pydantic ke kode di atas dilakukan di satu tempat (`core/errors.py`); pesan Bahasa Indonesia untuk tiap kode juga ditulis di sana.
+Pemetaan validasi Pydantic ke kode di atas dilakukan di satu tempat (`app/api/errors.py`), termasuk pesan Bahasa Indonesia untuk kode umum. Kode khusus fitur didefinisikan sebagai kelas di `app/modules/<fitur>/errors.py`.
 
 ## Header
 

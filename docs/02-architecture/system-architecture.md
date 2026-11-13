@@ -36,113 +36,278 @@ Alasan lengkap tiap pilihan ada di [decision log](../11-decisions/decision-log.m
 
 ## Struktur kode
 
-Satu folder per domain bisnis, dengan nama file yang sama di setiap domain. Folder domain baru dibuat saat domainnya mulai dikerjakan, bukan lebih awal.
+> **Status:** struktur target (keputusan B-021 s.d. B-026). Scaffold saat ini masih di `src/fredd/` dan dipindah ke struktur ini pada awal implementasi irisan 1 auth.
+
+### Pohon folder
 
 ```
 backend/
-├── src/fredd/
-│   ├── main.py              # buat app: middleware, exception handler, router /api/v1
-│   ├── config.py            # Settings (pydantic-settings, dari env)
-│   ├── database.py          # engine, Base (naming convention), get_session
-│   ├── cli.py               # perintah CLI (mis. create-user)
-│   ├── worker.py            # WorkerSettings arq: job + cron (saat antrean dipakai)
-│   ├── core/                # lintas domain, tanpa logika bisnis
-│   │   ├── responses.py     # ApiResponse[T], ApiErrorResponse, ok()
-│   │   ├── errors.py        # AppError + semua exception handler
-│   │   ├── request_id.py    # middleware X-Request-ID
-│   │   ├── csrf.py          # middleware cek Origin
-│   │   ├── rate_limit.py    # rate limit berbasis Redis
-│   │   ├── security.py      # hash kata sandi, token
-│   │   └── redis.py         # klien Redis bersama
-│   ├── system/              # health, info versi
-│   ├── auth/                # login, sesi, daftar, reset, Google
-│   ├── workspaces/          # workspace, anggota, undangan anggota, audit log
-│   ├── billing/             # paket, langganan, kuota, pembayaran
-│   ├── forms/               # struktur data, versi, isian, aturan, pilot
-│   ├── reference_data/      # wilayah, komoditas, kelompok tani, satuan
-│   ├── extension_workers/   # penyuluh, undangan, verifikasi
-│   ├── channels/            # adapter whatsapp.py, telegram.py, router webhook
-│   ├── conversations/       # mesin percakapan, draf, ambil alih
-│   ├── reports/             # laporan, foto, tindak lanjut, ekspor
-│   ├── analytics/           # agregat dashboard
-│   ├── ai/                  # LLM, speech-to-text, cek foto
-│   └── events/              # SSE + Redis pub/sub
-├── migrations/
-│   └── versions/            # YYYY-MM-DD_<slug>_<rev>.py
-└── tests/
-    ├── conftest.py          # client tes, database per tes (rollback), user/sesi siap pakai
-    ├── core/                # tes format respons, error handler, CSRF
-    └── <domain>/            # satu folder per domain, cermin struktur src
+├── app/
+│   ├── main.py                      # buat app: middleware, exception handler, pasang router
+│   ├── worker.py                    # entry worker arq: daftar job + cron dari modules/*/jobs.py
+│   │
+│   ├── api/                         # SEMUA yang berbau HTTP; tidak ada logika bisnis
+│   │   ├── router.py                # merangkai v1, webhooks, (devtools) ke app
+│   │   ├── deps.py                  # dependency HTTP bersama: get_db, get_current_user, require_role, require_feature
+│   │   ├── responses.py             # ApiResponse[T], ApiErrorResponse, ok()
+│   │   ├── errors.py                # exception handler → format respons standar
+│   │   ├── middleware/
+│   │   │   ├── request_id.py
+│   │   │   └── csrf.py
+│   │   ├── v1/                      # API untuk dashboard & website (cookie sesi), berversi
+│   │   │   ├── router.py            # include semua folder fitur di bawah /api/v1
+│   │   │   ├── system/              # /health
+│   │   │   ├── auth/                # /auth/*
+│   │   │   ├── workspaces/          # /workspace, /members, /audit-logs
+│   │   │   ├── billing/             # /billing/*
+│   │   │   ├── forms/               # /forms/*, /form-templates
+│   │   │   ├── reference_data/      # /reference-data/*
+│   │   │   ├── extension_workers/   # /extension-workers/*
+│   │   │   ├── reports/             # /reports/*
+│   │   │   ├── conversations/       # /conversations/*, /activity, /agent/*
+│   │   │   ├── channels/            # /channels/*
+│   │   │   ├── analytics/           # /analytics/* (baca saja)
+│   │   │   ├── exports/             # /exports/* (job ekspor Excel/PDF)
+│   │   │   ├── events/              # /events (SSE)
+│   │   │   └── public/              # /public/leads (website tanpa login)
+│   │   └── webhooks/                # pihak luar, tanpa versi, auth = tanda tangan
+│   │       ├── router.py            # /webhooks/*
+│   │       ├── whatsapp.py
+│   │       ├── telegram.py
+│   │       └── payments.py
+│   │
+│   ├── modules/                     # logika bisnis per fitur; TIDAK mengenal HTTP
+│   │   ├── auth/
+│   │   ├── workspaces/
+│   │   ├── billing/
+│   │   ├── forms/
+│   │   ├── reference_data/
+│   │   ├── extension_workers/
+│   │   ├── reports/
+│   │   ├── conversations/           # mesin percakapan
+│   │   ├── channels/                # adapter WhatsApp/Telegram (klien keluar)
+│   │   ├── analytics/
+│   │   ├── exports/
+│   │   ├── leads/
+│   │   └── ai/                      # LLM, speech-to-text, cek foto
+│   │
+│   ├── core/                        # dipakai semua lapisan; tanpa logika bisnis, tanpa HTTP
+│   │   ├── config.py                # Settings dari env
+│   │   ├── security.py              # hash kata sandi, token
+│   │   ├── logging.py               # log JSON + request_id
+│   │   ├── redis.py                 # klien Redis bersama
+│   │   ├── rate_limit.py
+│   │   ├── storage.py               # object storage (S3) saat dipakai
+│   │   └── time.py                  # now_utc(), konversi zona waktu workspace
+│   │
+│   ├── db/
+│   │   ├── base.py                  # Base + naming convention + mixin (id UUID v7, timestamps)
+│   │   ├── session.py               # engine, sessionmaker, get_session
+│   │   └── models.py                # import semua modules/*/models.py (dipakai Alembic autogenerate)
+│   │
+│   └── devtools/                    # hanya development: Developer Test Console & halaman prototipe
+│       ├── router.py                # dipasang di /devtools bila ENVIRONMENT=development
+│       └── templates/
+│
+├── alembic/
+│   ├── env.py
+│   └── versions/                    # YYYY-MM-DD_<slug>_<rev>.py
+├── fixtures/                        # data statis (JSON/CSV): wilayah, komoditas, template, demo
+├── scripts/                         # seed.py, create_user.py, export_openapi.py
+├── tests/
+│   ├── conftest.py
+│   ├── unit/                        # cermin app/: modules/, core/ — tanpa database/HTTP
+│   ├── api/                         # cermin app/api/: v1/<fitur>/, webhooks/ — lewat httpx + database tes
+│   └── integration/                 # alur lintas fitur: webhook → percakapan → laporan → analitik
+├── docs/
+├── pyproject.toml
+└── Dockerfile
 ```
 
-Padanan nama Indonesia ↔ Inggris ada di [glosarium](../06-domain-guides/glossary.md).
+Folder fitur dibuat saat fiturnya mulai dikerjakan, bukan lebih awal. Pohon di atas adalah peta lengkap tujuannya.
 
-### Isi folder domain
+### Kenapa `api/v1/` dibagi per fitur, bukan per role
 
-| File | Isi | Wajib |
+Pilihan yang dipertimbangkan:
+
+| Opsi | Contoh | Masalah untuk Fredd |
 |---|---|---|
-| `router.py` | Endpoint FastAPI (`APIRouter`) | Bila domain punya endpoint |
-| `schemas.py` | Model Pydantic untuk request dan respons | Bila ada router |
-| `models.py` | Model SQLAlchemy (tabel) | Bila domain punya tabel |
-| `service.py` | Logika bisnis dan query | Ya |
-| `dependencies.py` | Dependency FastAPI yang dipakai domain lain (mis. `get_current_user`) | Hanya bila ada |
-| `constants.py` | Nilai tetap domain (enum, batas) | Hanya bila ada |
+| Per role | `v1/admin/`, `v1/editor/`, `v1/reviewer/` | Ketiga peran memakai endpoint yang **sama** dengan izin berbeda (`GET /reports` dipakai semua peran). Endpoint harus diduplikasi atau dipisah secara sembarang. Peran juga berubah per paket (Gratis hanya 1 pengguna, Growth punya "beberapa admin") |
+| Per aktor | `v1/dashboard/`, `v1/penyuluh/` | Penyuluh **tidak memakai REST API**; mereka lewat WhatsApp/Telegram yang masuk sebagai webhook. Folder `penyuluh/` akan kosong atau salah tempat |
+| **Per fitur** (dipilih) | `v1/forms/`, `v1/reports/` | Satu fitur = satu folder, cermin 1:1 dengan `modules/`. Peran ditegakkan lewat dependency, bukan lewat folder |
 
-Domain yang membesar boleh memecah `service.py` per subtopik (mis. `forms/versions.py`, `forms/rules.py`), tetapi router tetap satu per domain.
+Pembagian berdasarkan **siapa pemanggilnya** tetap ada, tetapi di tingkat atas, karena di sana kontrak dan cara autentikasinya memang berbeda:
 
-### Aturan lapisan
+| Folder | Pemanggil | Autentikasi | Versi |
+|---|---|---|---|
+| `api/v1/` | Frontend (dashboard dan website) | Cookie sesi; `public/` dan sebagian `billing/` tanpa login | Ya, `/api/v1` |
+| `api/webhooks/` | Meta, Telegram, penyedia pembayaran | Tanda tangan per penyedia | Tidak, URL didaftarkan ke pihak luar |
+| `devtools/` | Developer | Hanya aktif di development | Tidak |
 
-| Lapisan | Boleh | Tidak boleh |
+Peran pengguna (`admin`, `form_editor`, `reviewer`) dan fitur paket ditegakkan di endpoint:
+
+```python
+@router.post("/{form_id}/publish", dependencies=[Depends(require_role("admin"))])
+@router.get("/export", dependencies=[Depends(require_role("form_editor")), Depends(require_feature("export"))])
+```
+
+### Isi folder fitur di `api/v1/`
+
+```
+api/v1/forms/
+├── __init__.py          # from .router import router
+├── router.py            # APIRouter fitur; include sub-router bila ada
+├── versions.py          # (opsional) sub-resource: /forms/{id}/versions
+├── pilots.py            # (opsional) sub-resource: /forms/{id}/pilot
+└── deps.py              # (opsional) dependency khusus fitur, mis. get_form_or_404
+```
+
+| Aturan | Isi |
+|---|---|
+| Isi file endpoint | Hanya: baca input, panggil `modules.<fitur>.service`, atur cookie/header, kembalikan `ok(...)` |
+| Memecah file | Bila `router.py` melewati ~300 baris atau ada sub-resource yang jelas (`versions`, `rules`, `pilot`), pecah per sub-resource. Satu fitur tetap satu folder |
+| Prefix & tag | Ditulis di `api/v1/router.py` saat include, bukan di file fitur, agar peta URL terlihat di satu tempat |
+| Schema | Tidak ada `schemas.py` di `api/`; request/response memakai `modules/<fitur>/schemas.py` agar bentuk data tidak dobel |
+
+### Isi folder fitur di `modules/`
+
+```
+modules/forms/
+├── __init__.py          # __all__ = ["service", "schemas", "errors"]: antarmuka publik modul
+├── models.py            # tabel SQLAlchemy
+├── schemas.py           # Pydantic: request, response, DTO
+├── repository.py        # SEMUA query database modul ini
+├── service.py           # logika bisnis + batas transaksi
+├── errors.py            # kode error modul (AppError) + pesan Indonesia
+├── constants.py         # (opsional) enum, batas
+├── jobs.py              # (opsional) job/cron arq untuk modul ini
+└── engine/              # (opsional) sub-paket untuk logika besar, mis. conversations/engine/
+```
+
+| File | Boleh | Tidak boleh |
 |---|---|---|
-| `router.py` | Membaca request (body, query, cookie, header), memanggil `service`, mengatur cookie/header, membungkus hasil dengan `ok()` | Query database, logika bisnis, menyusun format respons sendiri |
-| `service.py` | Logika bisnis, query lewat `AsyncSession`, memanggil service domain lain, melempar `AppError` | Mengenal objek HTTP (`Request`, `Response`, cookie) |
-| `models.py` | Definisi tabel dan relasi | Logika bisnis |
-| `schemas.py` | Bentuk input/output API, validasi field | Akses database |
-| `dependencies.py` | Mengambil sesi, user, workspace dari request | Logika bisnis selain otorisasi |
-| `core/` | Utilitas lintas domain | Import dari folder domain mana pun |
+| `models.py` | Definisi tabel, relasi, index | Logika bisnis, query |
+| `schemas.py` | Bentuk data dan validasi field | Akses database |
+| `repository.py` | Query `select/insert/update` lewat `AsyncSession`, termasuk SQL eksplisit untuk agregasi | `commit()`, logika bisnis, memanggil modul lain |
+| `service.py` | Logika bisnis, memanggil repository modul sendiri dan **service** modul lain, `commit()`/`rollback()`, melempar `AppError` | Query langsung, objek HTTP (`Request`, cookie) |
+| `jobs.py` | Fungsi job arq tipis yang memanggil service | Logika bisnis sendiri |
 
-Arah import: `router → service → models`; domain boleh memakai `service` atau `dependencies` domain lain, tidak boleh memakai `router` domain lain. Siklus import antar domain diselesaikan dengan memindahkan bagian bersama ke domain yang lebih dasar (mis. `auth` → `workspaces`, bukan sebaliknya).
+**Repository wajib** untuk semua akses database (B-023). Alasannya: query untuk dashboard, peta, dan analitik dipakai ulang di banyak tempat; service bisa dites dengan repository palsu; dan semua SQL yang berat ada di satu tempat yang mudah dioptimasi.
+
+**Batas transaksi di service.** Satu panggilan service = satu unit kerja. Repository tidak pernah `commit()`. Pola:
+
+```python
+# app/modules/auth/service.py
+async def login(db: AsyncSession, email: str, password: str, *, ip: str, user_agent: str | None) -> tuple[str, MeResponse]:
+    user = await repository.get_user_by_email(db, email.strip().lower())
+    if user is None or not verify_password(password, user.password_hash):
+        raise errors.InvalidCredentials()
+    token = new_token()
+    await repository.create_session(db, user_id=user.id, token_hash=hash_token(token), ip=ip, user_agent=user_agent)
+    await db.commit()
+    return token, await build_me(db, user)
+```
+
+### Aturan lapisan dan arah import
+
+```
+api/       ──▶ modules/ ──▶ db/, core/
+devtools/  ──▶ modules/
+worker.py  ──▶ modules/*/jobs.py ──▶ modules/*/service.py
+```
+
+| Dari | Boleh import | Tidak boleh import |
+|---|---|---|
+| `api/` | `modules/*` (service, schemas, errors), `api/*`, `core/` | `modules/*/repository` atau `models` secara langsung |
+| `modules/<a>/` | Isi modulnya sendiri, `service`/`schemas` modul lain, `db/`, `core/` | `api/`, `repository`/`models` modul lain |
+| `core/`, `db/` | Library pihak ketiga, `core/` | `api/`, `modules/` (kecuali `db/models.py` yang hanya mengumpulkan model untuk Alembic) |
+
+Siklus import antar modul diselesaikan dengan memindahkan bagian bersama ke modul yang lebih dasar. Urutan dasar → atas: `auth` → `workspaces` → `billing` → `forms` / `reference_data` / `extension_workers` → `conversations` / `reports` → `analytics` / `exports`. Modul atas boleh memanggil modul bawah, tidak sebaliknya. Kebutuhan sebaliknya diselesaikan lewat event/job, bukan import.
+
+### Konvensi Python
+
+| Hal | Aturan |
+|---|---|
+| Paket | `app` (bukan library; `pyproject.toml` memakai `[tool.uv] package = false`) |
+| Import | Absolut: `from app.modules.forms import service as forms_service`; tidak memakai import relatif lintas folder |
+| Antarmuka modul | `__init__.py` modul mendefinisikan `__all__`; yang tidak ada di `__all__` dianggap internal |
+| Ukuran file | Pecah file di atas ~300–500 baris berdasarkan tanggung jawab, bukan sekadar panjang |
+| Async | Semua I/O async (`AsyncSession`, httpx, redis.asyncio); library sinkron (openpyxl, Pillow) lewat `run_in_threadpool` atau di worker |
+| Tipe | Semua fungsi publik bertipe; pyright mode standar tanpa error |
+| Tanggal dan waktu | Selalu timezone-aware UTC (`core.time.now_utc()`); konversi ke zona workspace hanya untuk tampilan dan jadwal |
 
 ### Penamaan
 
 | Hal | Aturan | Contoh |
 |---|---|---|
+| Folder fitur | `snake_case` jamak, sama di `api/v1/` dan `modules/` | `extension_workers`, `reference_data` |
+| URL | `kebab-case` jamak | `/api/v1/extension-workers` |
 | Schema request | `<Aksi><Resource>Request` | `LoginRequest`, `CreateFormRequest` |
-| Schema respons / bagian respons | `<Resource>Response`, `<Resource>Out` | `MeResponse`, `UserOut` |
-| Fungsi router | Nama aksi, `snake_case` | `login`, `get_me`, `list_reports`, `publish_form` |
-| Fungsi service | Kata kerja + objek | `authenticate`, `create_session`, `publish_form_version` |
-| Model SQLAlchemy | Tunggal, PascalCase; tabel jamak `snake_case` | `class Session` → `sessions` |
-| Kode error | `snake_case` Inggris | `invalid_credentials` |
-| Pesan untuk pengguna | Bahasa Indonesia, kalimat lengkap dengan titik | "Email atau kata sandi salah." |
+| Schema respons | `<Resource>Response`, bagian kecil `<Resource>Out` | `MeResponse`, `UserOut` |
+| Fungsi endpoint | Nama aksi | `login`, `get_me`, `list_reports`, `publish_form` |
+| Fungsi service | Kata kerja + objek | `publish_form_version`, `create_session` |
+| Fungsi repository | `get_*`, `list_*`, `create_*`, `update_*`, `delete_*`, `count_*` | `get_user_by_email`, `list_reports_for_map` |
+| Job arq | `<kata kerja>_<objek>_job` | `process_conversation_job`, `send_reminders_job` |
+| Model / tabel | Kelas tunggal PascalCase; tabel jamak `snake_case` | `class Session` → `sessions` |
+| Kode error | `snake_case` Inggris; kelas `PascalCase` di `errors.py` | `InvalidCredentials` → `invalid_credentials` |
 
 ### Merangkai router
 
 ```python
-# main.py
-api = APIRouter(prefix="/api/v1")
-api.include_router(system_router)                                    # /api/v1/health
-api.include_router(auth_router, prefix="/auth", tags=["auth"])       # /api/v1/auth/...
-api.include_router(forms_router, prefix="/forms", tags=["forms"])    # /api/v1/forms/...
+# app/api/v1/router.py
+from fastapi import APIRouter
+from app.api.v1 import auth, system   # tiap folder fitur mengekspor `router`
 
-app.include_router(api)
-app.include_router(webhooks_router, prefix="/webhooks")              # tanpa /api/v1
+router = APIRouter(prefix="/api/v1")
+router.include_router(system.router, tags=["system"])
+router.include_router(auth.router, prefix="/auth", tags=["auth"])
+# router.include_router(forms.router, prefix="/forms", tags=["forms"])
+
+
+# app/api/router.py
+def mount(app: FastAPI, settings: Settings) -> None:
+    app.include_router(v1.router)
+    app.include_router(webhooks.router, prefix="/webhooks")
+    if settings.environment == "development":
+        app.include_router(devtools.router, prefix="/devtools", include_in_schema=False)
 ```
 
-Prefix dan tag ditulis di `main.py`, bukan di router domain, supaya seluruh peta URL terlihat di satu tempat.
+### Versi API
 
-### Contoh endpoint
+- `api/v1/` dibekukan setelah ada klien di produksi. Perubahan yang merusak kontrak dibuat di `api/v2/` hanya untuk folder fitur yang berubah; `api/v2/router.py` meng-include router v1 untuk fitur yang tidak berubah.
+- `modules/` tidak berversi: v1 dan v2 memakai service yang sama, perbedaan bentuk diselesaikan di schema respons.
+- Menambah field baru di respons atau endpoint baru **bukan** perubahan yang merusak dan tetap di v1.
 
-```python
-# auth/router.py
-@router.post("/login", response_model=ApiResponse[MeResponse],
-             responses={401: {"model": ApiErrorResponse}, 429: {"model": ApiErrorResponse}})
-async def login(body: LoginRequest, request: Request, response: Response,
-                db: AsyncSession = Depends(get_session)) -> ApiResponse[MeResponse]:
-    token, me = await service.login(db, body.email, body.password,
-                                    ip=client_ip(request), user_agent=request.headers.get("user-agent"))
-    set_session_cookie(response, token)
-    return ok(me, message="Berhasil masuk.")
-```
+### Devtools
+
+- Isi: Developer Test Console (mencoba endpoint dan alur chat penyuluh tanpa WhatsApp/Telegram sungguhan) dan halaman prototipe.
+- Dipasang hanya bila `ENVIRONMENT=development`, di `/devtools`, tidak masuk OpenAPI.
+- Hanya memanggil `modules/*/service`, tidak punya logika bisnis sendiri.
+- Tes `tests/api/test_devtools_disabled.py` memastikan `/devtools` mengembalikan 404 di `staging` dan `production`.
+
+### Pertimbangan data (data engineering)
+
+Fredd pada dasarnya pipeline data: pesan chat masuk → jawaban terstruktur → laporan → agregat dashboard dan ekspor. Struktur di atas memisahkan tahap-tahapnya:
+
+| Tahap | Tempat | Aturan |
+|---|---|---|
+| Ingest mentah | `api/webhooks/` → `modules/conversations` (`messages`) | Disimpan apa adanya sebelum diproses; idempoten per `external_id`; tidak pernah diubah (append-only) |
+| Normalisasi | `modules/conversations` → `modules/reports` | Jawaban divalidasi dan disalin ke kolom terstruktur (kondisi, wilayah, lokasi); `form_version_id` dicatat agar data lama tetap bisa ditafsirkan |
+| Agregasi | `modules/analytics` | **Hanya membaca**; query agregat di `analytics/repository.py`. Bila berat, pakai materialized view yang di-refresh job (`analytics/jobs.py`) |
+| Ekspor | `modules/exports` | Diproses di worker sebagai job (`POST /exports` → id job, `GET /exports/{id}` → status + URL file), bukan di request HTTP |
+| Kejadian | `activity_events`, `audit_logs` | Append-only, untuk log aktivitas dan jejak audit |
+
+Konsekuensi untuk kode: modul analitik dan ekspor tidak menulis ke tabel fitur lain; perubahan definisi struktur tidak mengubah laporan lama; dan setiap angka di dashboard bisa ditelusuri ke laporan sumbernya.
+
+### Tes
+
+| Folder | Isi | Butuh |
+|---|---|---|
+| `tests/unit/modules/<fitur>/` | Service dengan repository palsu, parser, aturan | Tidak ada database |
+| `tests/unit/core/` | Hash kata sandi, token, rate limit (Redis palsu) | – |
+| `tests/api/v1/<fitur>/` | Endpoint lewat `httpx.AsyncClient`: status, format respons, izin per peran | Postgres + Redis tes |
+| `tests/api/webhooks/` | Tanda tangan, idempotensi | Postgres + Redis tes |
+| `tests/integration/` | Alur lintas fitur | Postgres + Redis tes |
 
 Format respons dan katalog error: [api-conventions.md](../03-api/api-conventions.md#format-respons).
 

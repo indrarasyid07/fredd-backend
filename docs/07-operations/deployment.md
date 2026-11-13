@@ -11,10 +11,12 @@ Dokumen ini hanya berisi hal yang khusus aplikasi backend.
 
 ## Proses
 
+Perintah di bawah memakai [struktur target](../02-architecture/system-architecture.md#struktur-kode) `app/`. Sampai scaffold dipindah, kode masih di `src/fredd/` (`uvicorn fredd.main:app`).
+
 | Proses | Perintah |
 |---|---|
-| API | `uvicorn fredd.main:app --proxy-headers` |
-| Worker | `arq fredd.worker.WorkerSettings` |
+| API | `uvicorn app.main:app --proxy-headers` |
+| Worker | `arq app.worker.WorkerSettings` |
 | Migrasi (sekali per deploy) | `alembic upgrade head` |
 
 ## Image Docker

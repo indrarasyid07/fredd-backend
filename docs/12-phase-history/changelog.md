@@ -2,6 +2,12 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-14 · Struktur folder backend
+
+- Struktur target `app/` (api, modules, core, db, devtools) + `alembic/`, `fixtures/`, `scripts/` menggantikan `src/fredd/` per domain (B-021).
+- `api/v1/` dikelompokkan per fitur, bukan per role; alasan, isi folder, aturan lapisan, konvensi Python, penamaan, versi API, devtools, pertimbangan data engineering, dan susunan tes ditulis di `02-architecture/system-architecture.md` (B-022 s.d. B-026).
+- Auth guide, API conventions, testing, deployment, seeding, dan agent guide memakai path baru. Kode belum dipindah.
+
 ## 2026-11-14 · Rancangan auth dan format respons
 
 - Format respons standar untuk semua endpoint (`success`, `message`, `data`, `errors[]`, `meta`) dan katalog kode error di `03-api/api-conventions.md`.

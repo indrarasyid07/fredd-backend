@@ -1,6 +1,6 @@
 # Auth
 
-Modul `auth/`. Masuk, keluar, sesi, daftar, verifikasi email, reset kata sandi, dan Google. Desain layar: [frontend ui/auth.md](https://gitlab.com/databiota-fredd/frontend/-/blob/main/docs/06-domain-guides/ui/auth.md). Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons). Model keamanan umum: [security-model.md](../05-security-and-access/security-model.md).
+Fitur `auth`: endpoint di `app/api/v1/auth/`, logika di `app/modules/auth/`. Masuk, keluar, sesi, daftar, verifikasi email, reset kata sandi, dan Google. Desain layar: [frontend ui/auth.md](https://gitlab.com/databiota-fredd/frontend/-/blob/main/docs/06-domain-guides/ui/auth.md). Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons). Model keamanan umum: [security-model.md](../05-security-and-access/security-model.md).
 
 ## Irisan pengerjaan
 
@@ -100,8 +100,8 @@ Terlalu banyak percobaan (`429`, header `Retry-After: 840`):
 ```mermaid
 sequenceDiagram
   participant B as Browser
-  participant R as auth/router.py
-  participant S as auth/service.py
+  participant R as api/v1/auth/router.py
+  participant S as modules/auth/service.py
   participant L as core/rate_limit.py
   participant D as PostgreSQL
 
@@ -154,7 +154,7 @@ Memakai `INCR` + `EXPIRE` (window tetap). Bila Redis tidak tersedia, login tetap
 
 ### CSRF
 
-Middleware `core/csrf.py` berlaku untuk semua request `POST`, `PUT`, `PATCH`, `DELETE` di bawah `/api/`:
+Middleware `app/api/middleware/csrf.py` berlaku untuk semua request `POST`, `PUT`, `PATCH`, `DELETE` di bawah `/api/`:
 
 - Header `Origin` wajib ada dan sama dengan `APP_BASE_URL`; bila tidak ada, `Referer` dipakai sebagai cadangan.
 - Tidak cocok → `403 csrf_rejected`.
@@ -166,7 +166,7 @@ Middleware `core/csrf.py` berlaku untuk semua request `POST`, `PUT`, `PATCH`, `D
 Selama irisan 2 belum ada, user dibuat lewat CLI:
 
 ```bash
-uv run fredd create-user --email dina@contoh.id --name "Dina Admin"
+uv run python -m scripts.create_user --email dina@contoh.id --name "Dina Admin"
 # kata sandi ditanyakan secara interaktif (tidak lewat argumen, agar tidak tersimpan di riwayat shell)
 ```
 
@@ -181,28 +181,55 @@ Perintah ini menolak berjalan bila `ENVIRONMENT=production`.
 
 `email_verified_at` dan `google_sub` dibuat di irisan 1 supaya irisan 2 dan 4 tidak butuh migrasi kolom. UUID v7 dibuat dengan `uuid.uuid7()` bawaan Python 3.14.
 
-Migrasi: `migrations/versions/<tanggal>_create_users_and_sessions_<rev>.py`.
+Migrasi: `alembic/versions/<tanggal>_create_users_and_sessions_<rev>.py`.
 
 ### Letak kode
 
+Mengikuti [struktur kode](../02-architecture/system-architecture.md#struktur-kode).
+
 ```
-src/fredd/
+app/
+├── main.py                      # pasang middleware, exception handler, router
+├── api/
+│   ├── router.py                # mount v1 (+ webhooks, devtools nanti)
+│   ├── deps.py                  # get_db, get_current_user, get_optional_user
+│   ├── responses.py             # ApiResponse[T], ApiErrorResponse, ok()
+│   ├── errors.py                # handler AppError, validasi, HTTPException, 500
+│   ├── middleware/
+│   │   ├── request_id.py
+│   │   └── csrf.py
+│   └── v1/
+│       ├── router.py            # /api/v1 + include system, auth
+│       ├── system/router.py     # GET /health
+│       └── auth/
+│           ├── __init__.py
+│           ├── router.py        # login, logout, get_me
+│           └── cookies.py       # set_session_cookie(), clear_session_cookie()
+├── modules/
+│   └── auth/
+│       ├── __init__.py          # __all__ = ["service", "schemas", "errors"]
+│       ├── models.py            # User, Session
+│       ├── schemas.py           # LoginRequest, UserOut, MembershipOut, MeResponse
+│       ├── repository.py        # get_user_by_email, create_session, get_active_session, revoke_session, touch_session
+│       ├── service.py           # login, logout, get_me, resolve_session
+│       └── errors.py            # InvalidCredentials, NotAuthenticated, TooManyAttempts
 ├── core/
-│   ├── responses.py      # ApiResponse[T], ApiErrorResponse, ok()
-│   ├── errors.py         # AppError + handler (AppError, validasi, HTTPException, 500)
-│   ├── request_id.py     # middleware X-Request-ID
-│   ├── csrf.py           # middleware cek Origin
-│   ├── rate_limit.py     # hit(), reset(), is_blocked() di Redis
-│   └── security.py       # hash_password(), verify_password(), new_token(), hash_token()
-├── system/
-│   └── router.py         # GET /api/v1/health
-├── auth/
-│   ├── router.py         # login, logout, get_me
-│   ├── schemas.py        # LoginRequest, UserOut, MembershipOut, MeResponse
-│   ├── models.py         # User, Session
-│   ├── service.py        # login(), logout(), get_me() memakai authenticate(), create_session(), revoke_session()
-│   └── dependencies.py   # get_current_user, get_optional_user
-└── cli.py                # create-user
+│   ├── config.py
+│   ├── security.py              # hash_password, verify_password, new_token, hash_token
+│   ├── rate_limit.py
+│   ├── redis.py
+│   ├── logging.py
+│   └── time.py
+└── db/
+    ├── base.py
+    ├── session.py
+    └── models.py                # from app.modules.auth.models import *  (untuk Alembic)
+scripts/
+└── create_user.py
+tests/
+├── unit/core/test_security.py
+├── unit/modules/auth/test_service.py
+└── api/v1/auth/test_login.py, test_me.py, test_logout.py, test_csrf.py
 ```
 
 ### Kode error

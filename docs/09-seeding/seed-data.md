@@ -1,6 +1,6 @@
 # Seed Data
 
-Perintah: `uv run python -m fredd.seed <set>`. Idempoten (aman dijalankan berulang).
+Perintah: `uv run python -m scripts.seed <set>`, membaca data dari `fixtures/`. Idempoten (aman dijalankan berulang).
 
 | Set | Isi | Lingkungan |
 |---|---|---|

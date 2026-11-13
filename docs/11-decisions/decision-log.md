@@ -22,5 +22,11 @@ Format: satu baris per keputusan; keputusan yang diganti ditandai, tidak dihapus
 | B-016 | 2026-11-14 | Satu format respons untuk semua endpoint JSON: `success`, `message`, `data`, `errors[]`, `meta` | Frontend membaca satu pola; error per field bisa ditempel ke input | Diterima |
 | B-017 | 2026-11-14 | Tidak memakai `204 No Content`; aksi tanpa data → `200` + `data: null` | 204 tidak boleh punya body, jadi tidak bisa memakai format standar | Diterima |
 | B-018 | 2026-11-14 | `argon2-cffi` untuk hash kata sandi | Implementasi argon2id teruji; `hashlib.scrypt` bawaan butuh memori jauh lebih besar per login | Diusulkan |
-| B-019 | 2026-11-14 | Aturan lapisan router → service → models dan folder `core/` tanpa import domain | Endpoint dan struktur folder rapi dan bisa ditebak | Diterima |
+| B-019 | 2026-11-14 | Aturan lapisan router → service → models dan folder `core/` tanpa import domain | Endpoint dan struktur folder rapi dan bisa ditebak | Diganti B-021 s.d. B-024 |
 | B-020 | 2026-11-14 | Auth dibangun dalam 4 irisan; irisan 1 login + CLI create-user | Login bisa dites tanpa menunggu pengirim email dan OAuth Google | Diterima |
+| B-021 | 2026-11-14 | Struktur `app/` berlapis: `api/` (HTTP), `modules/` (logika bisnis per fitur), `core/`, `db/`, `devtools/`, ditambah `alembic/`, `fixtures/`, `scripts/` | Usulan pengguna; logika bisnis tanpa HTTP bisa dipakai bersama oleh API, worker antrean, dan CLI | Diterima |
+| B-022 | 2026-11-14 | Di dalam `api/v1/` dikelompokkan per fitur, cermin 1:1 dengan `modules/`; pemisahan per pemanggil hanya di tingkat atas (`api/v1`, `api/webhooks`, `devtools`) | Peran memakai endpoint yang sama dengan izin berbeda dan berubah per paket; penyuluh tidak memakai REST API | Diterima |
+| B-023 | 2026-11-14 | `repository.py` wajib untuk semua akses database; `commit()` hanya di service | Query dashboard/analitik dipakai ulang, service bisa dites dengan repository palsu, SQL berat terkumpul | Diterima |
+| B-024 | 2026-11-14 | Schema Pydantic request/response di `modules/<fitur>/schemas.py`, tidak ada `schemas.py` di `api/` | Satu sumber bentuk data, tidak dobel | Diterima |
+| B-025 | 2026-11-14 | `devtools/` hanya dipasang di development (`/devtools`), dengan tes 404 di staging/produksi | Alat developer tidak boleh terbuka di produksi | Diterima |
+| B-026 | 2026-11-14 | Alur data: ingest mentah append-only, normalisasi ke kolom terstruktur, analitik hanya membaca, ekspor lewat job worker | Data lapangan bisa ditelusuri dan diolah ulang; query berat tidak membebani request | Diterima |

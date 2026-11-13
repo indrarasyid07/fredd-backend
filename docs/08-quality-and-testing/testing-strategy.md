@@ -7,11 +7,13 @@
 - `pytest` + `pytest-asyncio` + `httpx.AsyncClient` untuk tes API.
 - Database tes: PostgreSQL sungguhan di Docker (bukan SQLite), dibersihkan per tes dengan transaksi yang di-rollback.
 
+Letak tes mengikuti [struktur kode](../02-architecture/system-architecture.md#tes): `tests/unit/`, `tests/api/`, `tests/integration/`.
+
 ## Yang wajib dites
 
 ### Fondasi (dibuat bersama endpoint pertama)
 
-- **Format respons** (`tests/core/`): setiap jenis error (AppError, validasi 422, 404 route, 405, 500 yang dipaksa) menghasilkan bentuk standar dengan `request_id` di body dan header; respons sukses selalu punya `errors: []`.
+- **Format respons** (`tests/api/test_responses.py`): setiap jenis error (AppError, validasi 422, 404 route, 405, 500 yang dipaksa) menghasilkan bentuk standar dengan `request_id` di body dan header; respons sukses selalu punya `errors: []`.
 - **Auth**: daftar tes di [auth.md](../06-domain-guides/auth.md#tes-wajib).
 
 ### Domain
