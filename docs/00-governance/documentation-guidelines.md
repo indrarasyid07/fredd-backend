@@ -18,6 +18,10 @@ Berlaku untuk `backend/docs`, `frontend/docs`, dan `infra/docs`.
 - Satu topik per file. Nama file menjelaskan isinya secara umum (`data-model.md`), bukan status atau waktu (`keputusan-stack-v2.md`).
 - Dokumen yang tidak berlaku dipindah ke `99-archive/` dengan catatan pengganti di baris pertama, bukan dihapus.
 
+## Commit
+
+Pesan commit di ketiga repo mengikuti [commit-conventions.md](commit-conventions.md).
+
 ## Merawat
 
 - Perubahan arsitektur, stack, atau konvensi dicatat di `11-decisions/decision-log.md`.

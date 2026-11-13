@@ -2,6 +2,10 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-14 · Standar commit
+
+- `00-governance/commit-conventions.md`: format, type, scope, aturan subject/body/footer, larangan (atribusi AI, referensi file desain, rahasia, data pribadi), dan contoh.
+
 ## 2026-11-14 · Irisan 1 auth: login
 
 - Scaffold dipindah ke struktur `app/` (api, modules, core, db) dan `alembic/`; Python minimal 3.14.

@@ -4,7 +4,7 @@ Dokumentasi teknis backend Fredd (FastAPI). Isi ditulis dalam Bahasa Indonesia; 
 
 | Folder | Isi |
 |---|---|
-| [00-governance](00-governance/documentation-guidelines.md) | Aturan menulis dan merawat dokumen ini |
+| [00-governance](00-governance/documentation-guidelines.md) | Aturan menulis dan merawat dokumen ini; [standar pesan commit](00-governance/commit-conventions.md) untuk ketiga repo |
 | [01-product-and-scope](01-product-and-scope/product-overview.md) | Apa itu Fredd, aktor, alur, ruang lingkup v1 |
 | [02-architecture](02-architecture/system-architecture.md) | Komponen sistem, tech stack, alur pesan |
 | [03-api](03-api/api-conventions.md) | Konvensi API dan daftar endpoint |
