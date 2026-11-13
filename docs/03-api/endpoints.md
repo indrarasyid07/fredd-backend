@@ -1,24 +1,27 @@
 # Endpoints
 
-Sketsa awal. Sumber kebenaran setelah implementasi adalah OpenAPI yang di-generate FastAPI. Semua di bawah prefix `/api/v1` kecuali webhook.
+Sketsa awal. Sumber kebenaran setelah implementasi adalah OpenAPI yang di-generate FastAPI. Semua respons JSON memakai [format standar](api-conventions.md#format-respons). Semua di bawah prefix `/api/v1` kecuali webhook.
 
 Kolom "Peran" = peran minimum: `reviewer` < `form_editor` < `admin`.
 
 ## Auth & sesi
 
-| Method | Path | Peran | Keterangan |
-|---|---|---|---|
-| POST | `/auth/register` | publik | Email, nama, instansi, kata sandi; kirim email verifikasi |
-| POST | `/auth/login` | publik | Email + kata sandi; rate limit |
-| POST | `/auth/verify-email` | publik | Token dari email |
-| POST | `/auth/password/forgot` | publik | Selalu 202 (tidak membocorkan email terdaftar) |
-| POST | `/auth/password/reset` | publik | Token 30 menit + kata sandi baru; cabut semua sesi |
-| GET | `/auth/google/login` | publik | Redirect ke Google |
-| GET | `/auth/google/callback` | publik | Buat sesi, set cookie |
-| POST | `/auth/logout` | login | Cabut sesi saat ini |
-| GET | `/auth/me` | login | User, workspace, peran |
-| GET | `/auth/sessions` | login | Sesi aktif milik user |
-| DELETE | `/auth/sessions/{id}` | login | Keluarkan sesi lain |
+Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/auth.md). Kolom "Irisan" = urutan pengerjaan.
+
+| Irisan | Method | Path | Peran | Keterangan |
+|---|---|---|---|---|
+| 1 | POST | `/auth/login` | publik | Email + kata sandi → `MeResponse` + cookie sesi; rate limit |
+| 1 | POST | `/auth/logout` | opsional | Cabut sesi saat ini; selalu `200`, `data: null` |
+| 1 | GET | `/auth/me` | login | `MeResponse`: user + keanggotaan workspace |
+| 2 | POST | `/auth/register` | publik | Email, nama, instansi, kata sandi; kirim email verifikasi |
+| 2 | POST | `/auth/verify-email` | publik | Token dari email; sukses langsung membuat sesi |
+| 2 | POST | `/auth/verify-email/resend` | publik | Selalu `200` |
+| 3 | POST | `/auth/password/forgot` | publik | Selalu `200` (tidak membocorkan email terdaftar) |
+| 3 | POST | `/auth/password/reset` | publik | Token 30 menit + kata sandi baru; cabut semua sesi |
+| 4 | GET | `/auth/google/login` | publik | Redirect ke Google (bukan JSON) |
+| 4 | GET | `/auth/google/callback` | publik | Buat sesi, redirect ke `next` (bukan JSON) |
+| – | GET | `/auth/sessions` | login | Sesi aktif milik user |
+| – | DELETE | `/auth/sessions/{id}` | login | Keluarkan sesi lain |
 
 ## Workspace & anggota
 

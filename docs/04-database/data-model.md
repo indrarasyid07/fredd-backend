@@ -16,9 +16,9 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | Tabel | Kolom penting | Catatan |
 |---|---|---|
 | `workspaces` | name, type (`personal`/`organization`), timezone (`Asia/Jakarta`), operating_hours, quiet_hours, retention_conversations_months, retention_photos_months, require_sso | |
-| `users` | email, name, password_hash (null bila hanya Google), email_verified_at, google_sub | |
+| `users` | email (unik, huruf kecil), name, password_hash (null bila hanya Google), email_verified_at, google_sub (unik), created_at, updated_at | Rincian: [auth.md](../06-domain-guides/auth.md#tabel) |
 | `members` | workspace_id, user_id, role (`admin`, `form_editor`, `reviewer`), approved_at | |
-| `sessions` | user_id, token_hash, user_agent, ip, city, expires_at, revoked_at | Token mentah hanya di cookie |
+| `sessions` | user_id, token_hash (unik), user_agent, ip, created_at, last_seen_at, expires_at, revoked_at | Token mentah hanya di cookie; `city` untuk halaman Keamanan diturunkan dari IP saat ditampilkan |
 | `channels` | workspace_id, type (`whatsapp`, `telegram`), credentials_encrypted, status, display_name, phone_number_id / bot_username | |
 | `extension_workers` | workspace_id, name, region_id, phone_e164, telegram_chat_id, verified_at, status | Unik per workspace: phone, telegram_chat_id |
 | `extension_worker_invites` | extension_worker_id, token_hash, channel, sent_at, accepted_at | |

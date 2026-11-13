@@ -9,6 +9,13 @@
 
 ## Yang wajib dites
 
+### Fondasi (dibuat bersama endpoint pertama)
+
+- **Format respons** (`tests/core/`): setiap jenis error (AppError, validasi 422, 404 route, 405, 500 yang dipaksa) menghasilkan bentuk standar dengan `request_id` di body dan header; respons sukses selalu punya `errors: []`.
+- **Auth**: daftar tes di [auth.md](../06-domain-guides/auth.md#tes-wajib).
+
+### Domain
+
 Urut dari risiko tertinggi:
 
 1. **Parser jawaban.** Tes tabel input → hasil: `"1,5"`, `"1.5"`, `"satu setengah"`, `"2 ha"`, `"banyak"` (gagal), `"15"` vs `"1,5"`; `"pari"` → `padi`; tanggal relatif.

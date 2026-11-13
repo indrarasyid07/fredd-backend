@@ -10,7 +10,7 @@ Dokumentasi teknis backend Fredd (FastAPI). Isi ditulis dalam Bahasa Indonesia; 
 | [03-api](03-api/api-conventions.md) | Konvensi API dan daftar endpoint |
 | [04-database](04-database/data-model.md) | Model data dan konvensi skema |
 | [05-security-and-access](05-security-and-access/security-model.md) | Auth, peran, webhook, enkripsi, retensi |
-| [06-domain-guides](06-domain-guides/glossary.md) | Glosarium, mesin percakapan, kanal WhatsApp/Telegram, paket & tagihan |
+| [06-domain-guides](06-domain-guides/glossary.md) | Glosarium, auth, mesin percakapan, kanal WhatsApp/Telegram, paket & tagihan |
 | [07-operations](07-operations/deployment.md) | Proses, env, zona waktu, migrasi (layanan dan backup di infra) |
 | [08-quality-and-testing](08-quality-and-testing/testing-strategy.md) | Strategi tes dan tooling kualitas |
 | [09-seeding](09-seeding/seed-data.md) | Data awal dan data demo |

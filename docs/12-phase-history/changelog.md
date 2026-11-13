@@ -2,6 +2,12 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-14 · Rancangan auth dan format respons
+
+- Format respons standar untuk semua endpoint (`success`, `message`, `data`, `errors[]`, `meta`) dan katalog kode error di `03-api/api-conventions.md`.
+- Panduan auth (`06-domain-guides/auth.md`): 4 irisan, irisan 1 (login, logout, me) dirinci sampai schema, alur, sesi, rate limit, CSRF, tabel, letak kode, dan tes.
+- `02-architecture/system-architecture.md`: struktur folder lengkap, isi folder domain, aturan lapisan, penamaan, cara merangkai router.
+
 ## 2026-11-13 · Paket dan desain V.1
 
 - Acuan desain: Login Register V.1, Dashboard V.1, Struktur Data Baru V.1, Penyuluh V.1, Upgrade.

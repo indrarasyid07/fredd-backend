@@ -19,3 +19,8 @@ Format: satu baris per keputusan; keputusan yang diganti ditandai, tidak dihapus
 | B-013 | 2026-11-13 | Masuk dengan email + kata sandi (argon2id) dan Google; wajib SSO opsi per workspace | Pendaftaran mandiri untuk paket Gratis | Diusulkan |
 | B-014 | 2026-11-13 | Checkout hosted penyedia pembayaran; status langganan hanya dari webhook bertanda tangan | Tidak menyimpan data kartu; redirect browser bisa dipalsukan | Diusulkan |
 | B-015 | 2026-11-13 | Laporan di atas kuota tetap disimpan, ditandai `over_quota` | Data lapangan tidak boleh hilang | Diusulkan |
+| B-016 | 2026-11-14 | Satu format respons untuk semua endpoint JSON: `success`, `message`, `data`, `errors[]`, `meta` | Frontend membaca satu pola; error per field bisa ditempel ke input | Diterima |
+| B-017 | 2026-11-14 | Tidak memakai `204 No Content`; aksi tanpa data → `200` + `data: null` | 204 tidak boleh punya body, jadi tidak bisa memakai format standar | Diterima |
+| B-018 | 2026-11-14 | `argon2-cffi` untuk hash kata sandi | Implementasi argon2id teruji; `hashlib.scrypt` bawaan butuh memori jauh lebih besar per login | Diusulkan |
+| B-019 | 2026-11-14 | Aturan lapisan router → service → models dan folder `core/` tanpa import domain | Endpoint dan struktur folder rapi dan bisa ditebak | Diterima |
+| B-020 | 2026-11-14 | Auth dibangun dalam 4 irisan; irisan 1 login + CLI create-user | Login bisa dites tanpa menunggu pengirim email dan OAuth Google | Diterima |

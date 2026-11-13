@@ -30,6 +30,7 @@ Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command
 | `DATABASE_URL` | `postgresql+asyncpg://…` |
 | `REDIS_URL` | |
 | `APP_BASE_URL` | `https://fredd.id` (untuk Origin check, callback OAuth, webhook) |
+| `ALLOWED_ORIGINS` | Origin tambahan yang lolos cek CSRF, dipisah koma; development: `http://localhost:3000,http://localhost:8080` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | |
 | `ENCRYPTION_KEYS` | Daftar kunci Fernet dipisah koma, terbaru di depan |
 | `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | WhatsApp Cloud API |
