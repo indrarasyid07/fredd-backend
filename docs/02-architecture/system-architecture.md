@@ -36,7 +36,7 @@ Alasan lengkap tiap pilihan ada di [decision log](../11-decisions/decision-log.m
 
 ## Struktur kode
 
-> **Status:** struktur target (keputusan B-021 s.d. B-026). Scaffold saat ini masih di `src/fredd/` dan dipindah ke struktur ini pada awal implementasi irisan 1 auth.
+> **Status:** diterapkan sejak irisan 1 auth (keputusan B-021 s.d. B-026). Folder fitur lain dibuat saat fiturnya dikerjakan.
 
 ### Pohon folder
 
@@ -48,6 +48,7 @@ backend/
 │   │
 │   ├── api/                         # SEMUA yang berbau HTTP; tidak ada logika bisnis
 │   │   ├── router.py                # merangkai v1, webhooks, (devtools) ke app
+│   │   ├── cookies.py               # set, hapus, baca cookie sesi
 │   │   ├── deps.py                  # dependency HTTP bersama: get_db, get_current_user, require_role, require_feature
 │   │   ├── responses.py             # ApiResponse[T], ApiErrorResponse, ok()
 │   │   ├── errors.py                # exception handler → format respons standar
@@ -93,6 +94,7 @@ backend/
 │   │
 │   ├── core/                        # dipakai semua lapisan; tanpa logika bisnis, tanpa HTTP
 │   │   ├── config.py                # Settings dari env
+│   │   ├── errors.py                # AppError dasar; modules melemparnya, api/errors.py mengubahnya jadi respons
 │   │   ├── security.py              # hash kata sandi, token
 │   │   ├── logging.py               # log JSON + request_id
 │   │   ├── redis.py                 # klien Redis bersama
@@ -178,7 +180,7 @@ modules/forms/
 ├── schemas.py           # Pydantic: request, response, DTO
 ├── repository.py        # SEMUA query database modul ini
 ├── service.py           # logika bisnis + batas transaksi
-├── errors.py            # kode error modul (AppError) + pesan Indonesia
+├── errors.py            # kode error modul (turunan core.errors.AppError) + pesan Indonesia
 ├── constants.py         # (opsional) enum, batas
 ├── jobs.py              # (opsional) job/cron arq untuk modul ini
 └── engine/              # (opsional) sub-paket untuk logika besar, mis. conversations/engine/
@@ -198,12 +200,16 @@ modules/forms/
 
 ```python
 # app/modules/auth/service.py
-async def login(db: AsyncSession, email: str, password: str, *, ip: str, user_agent: str | None) -> tuple[str, MeResponse]:
+async def login(
+    db: AsyncSession, email: str, password: str, *, ip: str, user_agent: str | None
+) -> tuple[str, MeResponse]:
     user = await repository.get_user_by_email(db, email.strip().lower())
     if user is None or not verify_password(password, user.password_hash):
         raise errors.InvalidCredentials()
     token = new_token()
-    await repository.create_session(db, user_id=user.id, token_hash=hash_token(token), ip=ip, user_agent=user_agent)
+    await repository.create_session(
+        db, user_id=user.id, token_hash=hash_token(token), ip=ip, user_agent=user_agent
+    )
     await db.commit()
     return token, await build_me(db, user)
 ```
@@ -256,7 +262,7 @@ Siklus import antar modul diselesaikan dengan memindahkan bagian bersama ke modu
 ```python
 # app/api/v1/router.py
 from fastapi import APIRouter
-from app.api.v1 import auth, system   # tiap folder fitur mengekspor `router`
+from app.api.v1 import auth, system  # tiap folder fitur mengekspor `router`
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(system.router, tags=["system"])

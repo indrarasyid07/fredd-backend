@@ -15,7 +15,8 @@ docker compose -f ../infra/docker-compose.yml up -d --wait
 cp .env.example .env
 uv sync
 uv run alembic upgrade head
-uv run uvicorn fredd.main:app --reload
+uv run uvicorn app.main:app --reload
+uv run python -m scripts.create_user --email you@example.com --name "Your Name"   # prompts for a password
 ```
 
 - Health: http://127.0.0.1:8000/api/v1/health
@@ -39,7 +40,15 @@ The API is served behind Caddy at http://localhost:8080/api/v1/health. Migration
 uv run ruff check . && uv run ruff format --check . && uv run pyright && uv run pytest
 ```
 
-Tests need the Docker services running.
+Tests need the Docker services running. They create and migrate their own `<db>_test` database and use Redis db 15, so development data is untouched.
+
+## API contract
+
+```bash
+uv run python -m scripts.export_openapi   # writes openapi.json; frontend runs `npm run api:types` from it
+```
+
+Code layout and rules: [docs/02-architecture/system-architecture.md](docs/02-architecture/system-architecture.md#struktur-kode).
 
 ## New migration
 

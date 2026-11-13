@@ -151,7 +151,7 @@ Satu respons bisa berisi beberapa error (mis. dua field gagal validasi). `messag
 2. **Tidak memakai `204 No Content`.** Respons 204 tidak boleh punya body; aksi tanpa data mengembalikan `200` dengan `data: null`.
 3. **Pesan untuk pengguna selalu dari `message`/`errors[].message`.** Frontend tidak menyusun pesan sendiri dari `code`, kecuali untuk perilaku khusus (mis. redirect saat `not_authenticated`).
 4. **Error 500 tidak membocorkan detail** (stack trace, query, nama tabel). Detail lengkap hanya di log, dicari dengan `request_id`.
-5. **`request_id`** dibuat per request (ULID). Bila klien atau Caddy mengirim header `X-Request-ID` yang valid, nilai itu dipakai. Nilai ini dikirim balik di header `X-Request-ID` dan dicatat di setiap baris log request tersebut.
+5. **`request_id`** dibuat per request (UUID v7, bawaan Python 3.14). Bila klien atau Caddy mengirim header `X-Request-ID` yang valid, nilai itu dipakai. Nilai ini dikirim balik di header `X-Request-ID` dan dicatat di setiap baris log request tersebut.
 6. **Respons selalu `Content-Type: application/json; charset=utf-8`**, termasuk 404 route yang tidak ada dan 405 method salah.
 
 ### Pengecualian format

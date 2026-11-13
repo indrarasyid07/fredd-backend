@@ -11,7 +11,6 @@ Dokumen ini hanya berisi hal yang khusus aplikasi backend.
 
 ## Proses
 
-Perintah di bawah memakai [struktur target](../02-architecture/system-architecture.md#struktur-kode) `app/`. Sampai scaffold dipindah, kode masih di `src/fredd/` (`uvicorn fredd.main:app`).
 
 | Proses | Perintah |
 |---|---|

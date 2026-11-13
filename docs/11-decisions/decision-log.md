@@ -21,7 +21,7 @@ Format: satu baris per keputusan; keputusan yang diganti ditandai, tidak dihapus
 | B-015 | 2026-11-13 | Laporan di atas kuota tetap disimpan, ditandai `over_quota` | Data lapangan tidak boleh hilang | Diusulkan |
 | B-016 | 2026-11-14 | Satu format respons untuk semua endpoint JSON: `success`, `message`, `data`, `errors[]`, `meta` | Frontend membaca satu pola; error per field bisa ditempel ke input | Diterima |
 | B-017 | 2026-11-14 | Tidak memakai `204 No Content`; aksi tanpa data → `200` + `data: null` | 204 tidak boleh punya body, jadi tidak bisa memakai format standar | Diterima |
-| B-018 | 2026-11-14 | `argon2-cffi` untuk hash kata sandi | Implementasi argon2id teruji; `hashlib.scrypt` bawaan butuh memori jauh lebih besar per login | Diusulkan |
+| B-018 | 2026-11-14 | `argon2-cffi` untuk hash kata sandi | Implementasi argon2id teruji; `hashlib.scrypt` bawaan butuh memori jauh lebih besar per login | Diterima |
 | B-019 | 2026-11-14 | Aturan lapisan router → service → models dan folder `core/` tanpa import domain | Endpoint dan struktur folder rapi dan bisa ditebak | Diganti B-021 s.d. B-024 |
 | B-020 | 2026-11-14 | Auth dibangun dalam 4 irisan; irisan 1 login + CLI create-user | Login bisa dites tanpa menunggu pengirim email dan OAuth Google | Diterima |
 | B-021 | 2026-11-14 | Struktur `app/` berlapis: `api/` (HTTP), `modules/` (logika bisnis per fitur), `core/`, `db/`, `devtools/`, ditambah `alembic/`, `fixtures/`, `scripts/` | Usulan pengguna; logika bisnis tanpa HTTP bisa dipakai bersama oleh API, worker antrean, dan CLI | Diterima |
@@ -30,3 +30,7 @@ Format: satu baris per keputusan; keputusan yang diganti ditandai, tidak dihapus
 | B-024 | 2026-11-14 | Schema Pydantic request/response di `modules/<fitur>/schemas.py`, tidak ada `schemas.py` di `api/` | Satu sumber bentuk data, tidak dobel | Diterima |
 | B-025 | 2026-11-14 | `devtools/` hanya dipasang di development (`/devtools`), dengan tes 404 di staging/produksi | Alat developer tidak boleh terbuka di produksi | Diterima |
 | B-026 | 2026-11-14 | Alur data: ingest mentah append-only, normalisasi ke kolom terstruktur, analitik hanya membaca, ekspor lewat job worker | Data lapangan bisa ditelusuri dan diolah ulang; query berat tidak membebani request | Diterima |
+| B-027 | 2026-11-14 | `request_id` memakai UUID v7 bawaan Python, bukan ULID | Sama-sama unik dan urut waktu, tanpa dependency tambahan | Diterima |
+| B-028 | 2026-11-14 | `AppError` dasar di `core/errors.py`; handler HTTP di `api/errors.py`; cookie sesi di `api/cookies.py` | Modules bisa melempar error tanpa import `api/`; menghindari import melingkar | Diterima |
+| B-029 | 2026-11-14 | Python minimal 3.14 | UUID v7 dan sintaks generic baru dipakai; image Docker sudah 3.14 | Diterima |
+| B-030 | 2026-11-14 | Tes memakai database `<db>_test` dan Redis db 15 yang dibuat otomatis; tiap tes di-rollback | Data development tidak pernah tersentuh | Diterima |

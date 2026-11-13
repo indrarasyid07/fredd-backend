@@ -2,6 +2,13 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-14 · Irisan 1 auth: login
+
+- Scaffold dipindah ke struktur `app/` (api, modules, core, db) dan `alembic/`; Python minimal 3.14.
+- Format respons standar, handler error, middleware request ID dan CSRF.
+- Modul auth: tabel `users` dan `sessions`, login, logout, `/me`, rate limit Redis, argon2id; skrip `create_user` dan `export_openapi`.
+- 27 tes (unit, API, format respons, CSRF); diuji di browser dan mode Docker.
+
 ## 2026-11-14 · Struktur folder backend
 
 - Struktur target `app/` (api, modules, core, db, devtools) + `alembic/`, `fixtures/`, `scripts/` menggantikan `src/fredd/` per domain (B-021).

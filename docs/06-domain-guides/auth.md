@@ -31,19 +31,22 @@ Selama irisan berikutnya belum selesai, elemen UI-nya **disembunyikan** (tombol 
 
 ```python
 class LoginRequest(BaseModel):
-    email: EmailStr                                   # dinormalisasi: trim + huruf kecil
+    email: EmailStr  # dinormalisasi: trim + huruf kecil
     password: str = Field(min_length=1, max_length=128)
+
 
 class UserOut(BaseModel):
     id: UUID
     email: str
     name: str
 
-class MembershipOut(BaseModel):                       # terisi setelah modul workspaces ada
+
+class MembershipOut(BaseModel):  # terisi setelah modul workspaces ada
     workspace_id: UUID
     workspace_name: str
     workspace_type: Literal["personal", "organization"]
     role: Literal["admin", "form_editor", "reviewer"]
+
 
 class MeResponse(BaseModel):
     user: UserOut
@@ -161,6 +164,12 @@ Middleware `app/api/middleware/csrf.py` berlaku untuk semua request `POST`, `PUT
 - `/webhooks/*` dikecualikan (diverifikasi dengan tanda tangan).
 - Di development, `http://localhost:3000` dan `http://localhost:8080` diizinkan lewat `ALLOWED_ORIGINS`.
 
+### Status irisan 1
+
+Selesai 14 November 2026: 27 tes lulus, diuji di browser (mode native) dan lewat Caddy (mode Docker).
+
+Catatan implementasi: `verify_password` dan `hash_password` dijalankan lewat `asyncio.to_thread` karena argon2 memakai CPU puluhan milidetik dan tidak boleh memblokir event loop.
+
 ### Membuat user untuk development
 
 Selama irisan 2 belum ada, user dibuat lewat CLI:
@@ -192,7 +201,8 @@ app/
 ├── main.py                      # pasang middleware, exception handler, router
 ├── api/
 │   ├── router.py                # mount v1 (+ webhooks, devtools nanti)
-│   ├── deps.py                  # get_db, get_current_user, get_optional_user
+│   ├── cookies.py               # set_session_cookie(), clear_session_cookie(), read_session_token()
+│   ├── deps.py                  # get_db, get_current_user, client_ip
 │   ├── responses.py             # ApiResponse[T], ApiErrorResponse, ok()
 │   ├── errors.py                # handler AppError, validasi, HTTPException, 500
 │   ├── middleware/
@@ -203,8 +213,7 @@ app/
 │       ├── system/router.py     # GET /health
 │       └── auth/
 │           ├── __init__.py
-│           ├── router.py        # login, logout, get_me
-│           └── cookies.py       # set_session_cookie(), clear_session_cookie()
+│           └── router.py        # login, logout, get_me
 ├── modules/
 │   └── auth/
 │       ├── __init__.py          # __all__ = ["service", "schemas", "errors"]
@@ -212,9 +221,10 @@ app/
 │       ├── schemas.py           # LoginRequest, UserOut, MembershipOut, MeResponse
 │       ├── repository.py        # get_user_by_email, create_session, get_active_session, revoke_session, touch_session
 │       ├── service.py           # login, logout, get_me, resolve_session
-│       └── errors.py            # InvalidCredentials, NotAuthenticated, TooManyAttempts
+│       └── errors.py            # InvalidCredentials, NotAuthenticated, TooManyAttempts, EmailAlreadyRegistered, WeakPassword
 ├── core/
 │   ├── config.py
+│   ├── errors.py                # AppError, NotFound, Forbidden, Conflict
 │   ├── security.py              # hash_password, verify_password, new_token, hash_token
 │   ├── rate_limit.py
 │   ├── redis.py
@@ -241,6 +251,8 @@ tests/
 | `too_many_attempts` | 429 | Batas rate limit login tercapai |
 | `csrf_rejected` | 403 | `Origin` tidak cocok |
 | `required`, `invalid_email` | 422 | Field login kosong atau email tidak valid |
+| `email_already_registered` | 409 | Membuat user dengan email yang sudah ada (CLI sekarang, daftar di irisan 2) |
+| `weak_password` | 422 | Kata sandi kurang dari 8 karakter atau tanpa huruf dan angka |
 
 ### Tes wajib
 
