@@ -2,6 +2,10 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-13 · Docker
+
+- `Dockerfile` dan `.dockerignore`; backend bisa dijalankan native (uv) atau sebagai image lewat `infra` profile `app`.
+
 ## 2026-11-13 · Folder infra
 
 - Compose dev pindah ke `infra/docker-compose.yml`; bagian layanan, Caddy, backup, dan observabilitas di `07-operations` dipindah ke `infra/docs`.

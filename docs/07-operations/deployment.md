@@ -17,6 +17,12 @@ Dokumen ini hanya berisi hal yang khusus aplikasi backend.
 | Worker | `arq fredd.worker.WorkerSettings` |
 | Migrasi (sekali per deploy) | `alembic upgrade head` |
 
+## Image Docker
+
+[`Dockerfile`](../../Dockerfile): `python:3.14-slim` + uv 0.13.7, dependensi dari `uv.lock` (`uv sync --locked --no-dev`), user non-root `fredd`, health check ke `/api/v1/health`. `.dockerignore` mengecualikan `.env`, `.venv`, cache, `docs/`, dan `tests/`.
+
+Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command berbeda. Env diberikan oleh compose, bukan file `.env` di dalam image. Menjalankan secara lokal: lihat [local-development](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/06-domain-guides/local-development.md).
+
 ## Konfigurasi (env)
 
 | Variabel | Keterangan |
