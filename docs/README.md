@@ -21,4 +21,4 @@ Dokumentasi teknis backend Fredd (FastAPI). Isi ditulis dalam Bahasa Indonesia; 
 | [14-agent-guides](14-agent-guides/agent-guidelines.md) | Panduan untuk AI coding agent |
 | [99-archive](99-archive/README.md) | Dokumen lama yang tidak berlaku |
 
-Dokumentasi frontend ada di [`../../frontend/docs`](https://gitlab.com/databiota-fredd/frontend/-/blob/main/docs/README.md), infrastruktur (database, Redis, deploy) di [`../../infra/docs`](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/README.md).
+Dokumentasi frontend ada di [`../../frontend/docs`](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/README.md), infrastruktur (database, Redis, deploy) di [`../../infra/docs`](https://gitlab.com/databiota-fredd/infra/-/blob/development/docs/README.md).

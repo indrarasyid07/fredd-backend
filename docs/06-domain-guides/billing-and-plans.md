@@ -1,6 +1,6 @@
 # Billing and Plans
 
-Sumber: halaman canvas "Upgrade" (Perorangan, Organisasi). Spesifikasi layar: [frontend ui/upgrade.md](https://gitlab.com/databiota-fredd/frontend/-/blob/main/docs/06-domain-guides/ui/upgrade.md).
+Sumber: halaman canvas "Upgrade" (Perorangan, Organisasi). Spesifikasi layar: [frontend ui/upgrade.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/upgrade.md).
 
 Fredd dijual sebagai SaaS dengan paket per workspace. Setiap workspace bertipe **Perorangan** atau **Organisasi** dan punya satu langganan aktif.
 

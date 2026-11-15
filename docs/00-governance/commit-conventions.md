@@ -97,14 +97,26 @@ Aturan rahasia dan data pribadi juga berlaku untuk **isi** commit: file `.env`, 
 ## Ukuran dan isi commit
 
 - **Satu perubahan logis per commit.** Fitur beserta tes dan dokumennya boleh satu commit; perbaikan bug yang tidak berhubungan dibuat commit terpisah.
-- Setiap commit di `main` harus lolos lint, typecheck, dan tes. Jangan commit kode yang setengah jadi.
+- Setiap commit di `development` harus lolos lint, typecheck, dan tes. Jangan commit kode yang setengah jadi.
 - File hasil generate ikut di commit yang membuatnya berubah: `openapi.json` (backend) bersama perubahan endpoint, `src/lib/api/schema.d.ts` (frontend) bersama pemakaian tipe barunya, migrasi Alembic bersama perubahan model.
 - Perubahan format massal (`ruff format`, Prettier) dibuat commit `style` tersendiri agar diff fitur tetap terbaca.
+
+## Cabang
+
+| Cabang | Fungsi |
+|---|---|
+| `development` | Cabang utama (default di GitLab). Semua pekerjaan dan commit harian masuk ke sini. |
+| `main` | Cabang rilis. Berisi commit awal; diperbarui hanya dengan merge dari `development` bila ada rilis atau pembaruan yang disengaja. |
+
+- Commit awal (`chore: initial project setup`) ada di kedua cabang. Selebihnya hanya di `development`.
+- Jangan commit langsung ke `main`. Perbarui dengan merge dari `development` (`git switch main && git merge --no-ff development`), lalu push.
+- Aturan ini sama di ketiga repo (backend, frontend, infra).
+- Cabang fitur, bila dipakai, dicabangkan dari `development` dan digabung kembali ke `development`.
 
 ## Menulis ulang riwayat
 
 - Sebelum di-push, commit boleh dirapikan: `git commit --amend`, rebase untuk menggabung atau mengganti pesan.
-- Setelah di-push ke `main`, riwayat **tidak** ditulis ulang dan tidak di-force push. Kesalahan diperbaiki dengan commit baru atau `git revert`.
+- Setelah di-push ke `development` atau `main`, riwayat **tidak** ditulis ulang dan tidak di-force push. Kesalahan diperbaiki dengan commit baru atau `git revert`.
 - Branch fitur yang sudah di-push hanya boleh di-force push (`--force-with-lease`) bila belum ada orang lain yang bekerja di atasnya.
 
 ## Cek sebelum commit
@@ -117,7 +129,7 @@ Aturan rahasia dan data pribadi juga berlaku untuk **isi** commit: file `.env`, 
 Untuk mengecek pesan commit yang sudah ada sebelum push:
 
 ```bash
-git log origin/main..HEAD --format='%h %s%n%b' | grep -n -i -E 'co-authored|generated with|artifact|canvas|artboard|v\.1'
+git log origin/development..HEAD --format='%h %s%n%b' | grep -n -i -E 'co-authored|generated with|artifact|canvas|artboard|v\.1'
 ```
 
 Perintah di atas tidak boleh menghasilkan apa pun.
@@ -158,4 +170,4 @@ Buruk, dan perbaikannya:
 | `feat: build landing from Landing V.1 design` | Menyebut halaman desain | `feat(marketing): build landing page` |
 | `fix(auth): fix bug` | Tidak menyebut bug-nya | `fix(auth): accept emails with uppercase letters` |
 | `feat: login, docker, docs, fix typo` | Beberapa perubahan tak berhubungan | Pecah menjadi beberapa commit |
-| `wip` | Commit setengah jadi di `main` | Selesaikan dulu, atau rapikan sebelum push |
+| `wip` | Commit setengah jadi di `development` | Selesaikan dulu, atau rapikan sebelum push |

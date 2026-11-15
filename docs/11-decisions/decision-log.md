@@ -35,3 +35,4 @@ Format: satu baris per keputusan; keputusan yang diganti ditandai, tidak dihapus
 | B-029 | 2026-11-14 | Python minimal 3.14 | UUID v7 dan sintaks generic baru dipakai; image Docker sudah 3.14 | Diterima |
 | B-030 | 2026-11-14 | Tes memakai database `<db>_test` dan Redis db 15 yang dibuat otomatis; tiap tes di-rollback | Data development tidak pernah tersentuh | Diterima |
 | B-031 | 2026-11-14 | Pesan commit mengikuti Conventional Commits dalam Bahasa Inggris, tanpa baris atribusi AI/alat dan tanpa referensi ke file desain ([commit-conventions](../00-governance/commit-conventions.md)) | Riwayat yang seragam dan bermakna tanpa bergantung pada alat yang dipakai | Diterima |
+| B-032 | 2026-11-15 | `development` jadi cabang utama dan default di GitLab; `main` hanya berisi commit awal dan diperbarui lewat merge dari `development` | Pekerjaan harian terpusat di satu cabang; `main` baru bergerak saat ada rilis yang disengaja | Diterima |
