@@ -10,4 +10,16 @@ Perintah: `uv run python -m scripts.seed <set>`, membaca data dari `fixtures/`. 
 
 Sumber data wilayah: kode wilayah Kemendagri (Permendagri terbaru); simpan kode resmi di `reference_data` agar bisa dicocokkan dengan data instansi.
 
+## Status
+
+Baru set `demo` bagian akun yang ada: `uv run python -m scripts.seed demo` membuat tiga user dari `fixtures/demo/users.json` (hanya development; kata sandi dipublikasikan di berkas itu).
+
+| Email | Nama | Kata sandi |
+|---|---|---|
+| `dina@contoh.id` | Dina Admin | `rahasia123` |
+| `fajar@contoh.id` | Fajar Editor Form | `rahasia123` |
+| `rani@contoh.id` | Rani Reviewer | `rahasia123` |
+
+Peran workspace (admin, editor form, reviewer) dipasang setelah modul workspaces ada; saat ini ketiganya hanya akun biasa. Set `reference` dan `templates`, serta workspace, penyuluh, dan laporan di `demo`, belum dibuat.
+
 Data demo tidak boleh berisi nomor HP sungguhan; pakai rentang `+62 811-0000-xxxx`.
