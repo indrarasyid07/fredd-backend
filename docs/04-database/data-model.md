@@ -32,10 +32,12 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `report_photos` | report_id, object_key, size_bytes, blur_score, ai_note | |
 | `report_follow_ups` | report_id, assignee_member_id, priority, status, note | |
 | `activity_events` | workspace_id, occurred_at, extension_worker_id, channel, type, details JSONB, status | Log Aktivitas Agent |
-| `audit_logs` | workspace_id, actor_user_id, action, target, metadata JSONB | Ekspor, ubah peran, publikasi, takeover, hapus |
+| `audit_logs` | workspace_id (null untuk aksi platform, mis. artikel), actor_user_id, action, target, metadata JSONB | Ekspor, ubah peran, publikasi, takeover, hapus |
 | `leads` | name, email, organization, message, source | Dari form landing page dan "Hubungi kami" Enterprise |
 | `plans`, `subscriptions`, `payments`, `usage_counters` | lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#model-data) | Paket, langganan, kuota |
 | `auth_tokens` | user_id, purpose (`verify_email`, `reset_password`), token_hash, expires_at, used_at | Token sekali pakai |
+| `articles`, `article_categories`, `article_media`, `article_revisions` | lihat [articles.md](../06-domain-guides/articles.md#model-data) | Blog; data platform, **tanpa `workspace_id`** |
+| `users.platform_role` | `content_author`, `content_editor`, atau null | Peran konten Fredd, diberikan lewat CLI |
 
 ## Detail penting
 

@@ -28,6 +28,10 @@ Cookie `SameSite=Lax` + middleware yang menolak request selain GET/HEAD/OPTIONS 
 
 Diterapkan sebagai dependency FastAPI (`require_role("admin")`). Frontend menyembunyikan tombol sesuai peran, tetapi backend yang menolak.
 
+## Peran platform (konten)
+
+Selain peran workspace, `users.platform_role` (`content_author`, `content_editor`) memberi akses ke pengelolaan artikel Fredd. Tidak bisa diatur lewat API atau UI, hanya lewat CLI; admin workspace pelanggan tidak mendapat akses apa pun ke blog. Dependency `require_platform_role(...)`. Rincian, serta aturan unggah gambar dan Markdown: [articles.md](../06-domain-guides/articles.md).
+
 ## Isolasi tenant
 
 - Setiap query difilter `workspace_id` dari sesi, tidak pernah dari input request.
@@ -49,6 +53,7 @@ Diterapkan sebagai dependency FastAPI (`require_role("admin")`). Frontend menyem
 
 - Bucket privat. Foto dilayani lewat URL bertanda tangan berumur 10 menit.
 - Validasi tipe dan ukuran media sebelum disimpan.
+- Gambar blog memakai awalan **publik** yang terpisah dari bucket privat ini ([articles.md](../06-domain-guides/articles.md#media)); foto laporan tidak pernah di sana.
 
 ## Data pribadi
 

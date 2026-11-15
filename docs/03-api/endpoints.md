@@ -129,6 +129,22 @@ Rincian: [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#endpoin
 | POST | `/billing/checkout`, `/billing/cancel` | admin |
 | POST | `/webhooks/payments/{provider}` (tanpa `/api/v1`) | penyedia pembayaran, tanda tangan wajib |
 
+## Artikel
+
+Rancangan, belum dibangun. Rincian: [articles.md](../06-domain-guides/articles.md). Peran di kolom ini adalah **peran platform** (`content_author` < `content_editor`), bukan peran workspace.
+
+| Method | Path | Peran |
+|---|---|---|
+| GET | `/public/articles`, `/public/articles/{slug}`, `/public/article-categories` | publik |
+| GET, POST | `/articles` | content_author |
+| GET, PATCH, DELETE | `/articles/{id}` | content_author (draf milik sendiri) / content_editor |
+| POST | `/articles/{id}/submit` | content_author |
+| POST | `/articles/{id}/return`, `/publish`, `/schedule`, `/unpublish`, `/archive`, `/restore` | content_editor |
+| PUT | `/articles/{id}/featured` | content_editor |
+| GET, POST | `/articles/{id}/revisions`, `/articles/{id}/revisions/{rev}/restore` | content_author (lihat) / content_editor (pulihkan) |
+| POST | `/article-media` | content_author (multipart) |
+| GET, POST, PATCH, DELETE | `/article-categories` | GET content_author, sisanya content_editor |
+
 ## Publik (untuk website)
 
 | Method | Path | Keterangan |

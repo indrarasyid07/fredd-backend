@@ -38,6 +38,10 @@ Padanan istilah domain (Bahasa Indonesia, dipakai di UI dan percakapan) dengan n
 | Undangan | `invite` | |
 | Prospek (form landing page) | `lead` | |
 | Paket | `plan` | Gratis, Plus, Starter, Growth, Enterprise |
+| Artikel | `article` | Tulisan blog; jenis `post` atau `external` (liputan media) |
+| Kategori artikel | `article_category` | |
+| Penulis konten / Editor konten | `content_author` / `content_editor` | Peran platform (`users.platform_role`), bukan peran workspace |
+| Terjadwal | `scheduled` | Status artikel dengan tanggal terbit di masa depan |
 | Langganan | `subscription` | |
 | Kuota | `quota` / `limits` | Anggota, formulir aktif, laporan per bulan |
 | Perorangan / Organisasi | `personal` / `organization` | Tipe workspace |

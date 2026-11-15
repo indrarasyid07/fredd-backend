@@ -2,6 +2,10 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-15 · Rancangan artikel (blog)
+
+- Ditambahkan [articles.md](../06-domain-guides/articles.md): artikel dikelola dari dashboard oleh staf Fredd (peran platform), dengan status draf sampai terbit/jadwal, kategori, unggah gambar, revisi, API publik, dan revalidasi web. Endpoint, model data, keamanan, roadmap (Fase 7), glosarium, dan keputusan B-033 s.d. B-038 diperbarui. Hanya dokumen; belum ada kode.
+
 ## 2026-11-15 · Cabang
 
 - `development` menjadi cabang utama dan default di GitLab; `main` berisi commit awal dan diperbarui lewat merge dari `development` ([commit-conventions](../00-governance/commit-conventions.md#cabang)). Semua tautan lintas repo kini mengarah ke `development`.
