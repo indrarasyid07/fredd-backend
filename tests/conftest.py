@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
 from alembic import command  # noqa: E402
 from app.api.deps import get_db  # noqa: E402
+from app.core import mail  # noqa: E402
 from app.core.redis import redis  # noqa: E402
 from app.db.session import engine  # noqa: E402
 from app.main import app  # noqa: E402
@@ -105,3 +106,15 @@ async def logged_in(client: AsyncClient, user: User) -> AsyncClient:
     )
     assert response.status_code == 200
     return client
+
+
+@pytest.fixture
+def outbox(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, str]]:
+    """Capture outgoing email as (to, subject, body) instead of sending it."""
+    sent: list[tuple[str, str, str]] = []
+
+    async def fake_send(to: str, subject: str, body: str) -> None:
+        sent.append((to, subject, body))
+
+    monkeypatch.setattr(mail, "send_email", fake_send)
+    return sent

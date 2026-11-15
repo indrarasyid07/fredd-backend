@@ -18,6 +18,17 @@ class Settings(BaseSettings):
 
     session_ttl_days: int = 30
 
+    # Outgoing mail. Without smtp_host, development logs the message (and its link) instead.
+    smtp_host: str = ""
+    smtp_port: int = 587  # STARTTLS
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "Fredd <no-reply@fredd.id>"
+
+    # Google sign-in. Empty id = the feature is off and the button answers "unavailable".
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
     @property
     def is_development(self) -> bool:
         return self.environment == "development"

@@ -2,6 +2,13 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-16 · Irisan 2-4 auth: daftar, lupa kata sandi, Google
+
+- Endpoint `register`, `verify-email` (+ `resend`), `password/forgot`, `password/reset`, dan `google/login` + `callback`; tabel `auth_tokens` dan `users.organization` (migrasi mengisi `email_verified_at` akun lama).
+- Login kini menolak email yang belum terverifikasi (`403 email_not_verified`). Pesan batas percobaan tidak lagi menyebut "masuk".
+- Pengirim email SMTP (`core/mail.py`) dan `httpx` pindah dari dependency dev ke dependency utama. Variabel baru: `SMTP_*`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+- 21 tes baru (total 48). Layar web 02-06 belum dibangun ([auth.md](../06-domain-guides/auth.md)).
+
 ## 2026-11-15 · Rancangan artikel (blog)
 
 - Ditambahkan [articles.md](../06-domain-guides/articles.md): artikel dikelola dari dashboard oleh staf Fredd (peran platform), dengan status draf sampai terbit/jadwal, kategori, unggah gambar, revisi, API publik, dan revalidasi web. Endpoint, model data, keamanan, roadmap (Fase 7), glosarium, dan keputusan B-033 s.d. B-038 diperbarui. Hanya dokumen; belum ada kode.

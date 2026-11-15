@@ -6,7 +6,7 @@ Kolom "Peran" = peran minimum: `reviewer` < `form_editor` < `admin`.
 
 ## Auth & sesi
 
-Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/auth.md). Kolom "Irisan" = urutan pengerjaan.
+Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/auth.md). Kolom "Irisan" = urutan pengerjaan; irisan 1-4 sudah dibangun (16 November 2026), `/auth/sessions` belum.
 
 | Irisan | Method | Path | Peran | Keterangan |
 |---|---|---|---|---|

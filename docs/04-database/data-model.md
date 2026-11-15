@@ -16,7 +16,7 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | Tabel | Kolom penting | Catatan |
 |---|---|---|
 | `workspaces` | name, type (`personal`/`organization`), timezone (`Asia/Jakarta`), operating_hours, quiet_hours, retention_conversations_months, retention_photos_months, require_sso | |
-| `users` | email (unik, huruf kecil), name, password_hash (null bila hanya Google), email_verified_at, google_sub (unik), created_at, updated_at | Rincian: [auth.md](../06-domain-guides/auth.md#tabel) |
+| `users` | email (unik, huruf kecil), name, password_hash (null bila hanya Google), email_verified_at, google_sub (unik), organization, created_at, updated_at | Rincian: [auth.md](../06-domain-guides/auth.md#tabel) |
 | `members` | workspace_id, user_id, role (`admin`, `form_editor`, `reviewer`), approved_at | |
 | `sessions` | user_id, token_hash (unik), user_agent, ip, created_at, last_seen_at, expires_at, revoked_at | Token mentah hanya di cookie; `city` untuk halaman Keamanan diturunkan dari IP saat ditampilkan |
 | `channels` | workspace_id, type (`whatsapp`, `telegram`), credentials_encrypted, status, display_name, phone_number_id / bot_username | |
@@ -35,7 +35,7 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `audit_logs` | workspace_id (null untuk aksi platform, mis. artikel), actor_user_id, action, target, metadata JSONB | Ekspor, ubah peran, publikasi, takeover, hapus |
 | `leads` | name, email, organization, message, source | Dari form landing page dan "Hubungi kami" Enterprise |
 | `plans`, `subscriptions`, `payments`, `usage_counters` | lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#model-data) | Paket, langganan, kuota |
-| `auth_tokens` | user_id, purpose (`verify_email`, `reset_password`), token_hash, expires_at, used_at | Token sekali pakai |
+| `auth_tokens` | user_id, purpose (`verify_email`, `reset_password`), token_hash, expires_at, used_at | Token sekali pakai; hanya hash yang disimpan ([auth.md](../06-domain-guides/auth.md#tabel)) |
 | `articles`, `article_categories`, `article_media`, `article_revisions` | lihat [articles.md](../06-domain-guides/articles.md#model-data) | Blog; data platform, **tanpa `workspace_id`** |
 | `users.platform_role` | `content_author`, `content_editor`, atau null | Peran konten Fredd, diberikan lewat CLI |
 

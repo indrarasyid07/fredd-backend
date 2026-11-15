@@ -2,10 +2,10 @@
 
 ## Login dashboard
 
-- Email + kata sandi: hash argon2id, minimal 8 karakter dengan huruf dan angka, email wajib diverifikasi sebelum bisa membuat workspace. Token verifikasi dan reset (30 menit) disimpan sebagai hash dan hanya sekali pakai. Reset kata sandi mencabut semua sesi lain.
+- Email + kata sandi: hash argon2id, minimal 8 karakter dengan huruf dan angka, email wajib diverifikasi sebelum bisa masuk dan membuat workspace. Token verifikasi dan reset (30 menit) disimpan sebagai hash dan hanya sekali pakai. Reset kata sandi mencabut semua sesi lain.
 - Endpoint login, daftar, dan lupa kata sandi diberi rate limit per IP dan per email; pesan error tidak membedakan "email tidak terdaftar" dan "kata sandi salah".
 - Workspace Organisasi bisa mewajibkan SSO Google (`require_sso`); anggotanya tidak bisa masuk dengan kata sandi.
-- Google OAuth (authlib). Domain email yang diizinkan diatur per workspace; anggota baru dari domain itu menunggu persetujuan admin.
+- Google OAuth: kode otorisasi + PKCE lewat httpx; `state` sekali pakai di Redis; akun belum terverifikasi yang ditautkan ke Google kehilangan kata sandinya. Domain email yang diizinkan diatur per workspace; anggota baru dari domain itu menunggu persetujuan admin.
 - Setelah callback, backend membuat baris `sessions` dan mengirim cookie:
   `fredd_session=<token acak 32 byte>; HttpOnly; Secure; SameSite=Lax; Path=/`
 - Database hanya menyimpan hash token. Sesi bisa dicabut (halaman Keamanan › Sesi aktif).
