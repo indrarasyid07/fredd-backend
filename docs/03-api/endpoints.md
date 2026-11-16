@@ -66,24 +66,36 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 | POST | `/extension-workers/invites` | admin |
 | POST | `/extension-workers/invites/{id}/resend` | admin |
 
+## Dashboard
+
+Rancangan, belum dibangun. Rincian, skema respons, dan definisi angka: [dashboard.md](../06-domain-guides/dashboard.md).
+
+| Method | Path | Peran |
+|---|---|---|
+| GET | `/dashboard/summary?range=today\|7d\|30d` | reviewer (KPI, 7 hari, kondisi, wilayah teratas, status persiapan) |
+
+Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivitas di bawah.
+
 ## Laporan (field reports)
 
 | Method | Path | Peran |
 |---|---|---|
 | GET | `/reports` | reviewer (filter, cursor) |
-| GET | `/reports/map` | reviewer (agregat per wilayah + titik) |
+| GET | `/reports/map` | reviewer (agregat per wilayah + titik; [dashboard.md](../06-domain-guides/dashboard.md#get-reportsmaprangeform_idcondition)) |
+| GET | `/reports/count` | reviewer (jumlah untuk jendela unduh) |
 | GET | `/reports/photos` | reviewer (galeri) |
 | GET | `/reports/{id}` | reviewer |
 | PATCH | `/reports/{id}/review` | reviewer (tandai ditinjau) |
 | PUT | `/reports/{id}/follow-up` | reviewer (status, assignee, prioritas, catatan) |
-| GET | `/reports/export?format=xlsx` | form_editor |
+| POST | `/reports/exports` | form_editor (pekerjaan ekspor PDF/Excel/CSV; menggantikan `GET /reports/export`) |
+| GET | `/reports/exports/{id}` | pembuat / admin (status + tautan unduh) |
 
 ## Aktivitas & percakapan
 
 | Method | Path | Peran |
 |---|---|---|
 | GET | `/activity` | reviewer |
-| GET | `/events` | reviewer (SSE) |
+| GET | `/events` | reviewer (SSE; `report.created`, `report.updated`, `worker.activity`, `conversation.needs_help`, `export.ready`; [dashboard.md](../06-domain-guides/dashboard.md#event-realtime-sse)) |
 | GET | `/conversations?status=needs_help` | reviewer |
 | GET | `/conversations/{id}` | reviewer |
 | POST | `/conversations/{id}/takeover` | admin (409 bila sudah diambil admin lain) |

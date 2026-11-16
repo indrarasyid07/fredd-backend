@@ -28,7 +28,8 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `form_assignments` | form_version_id, extension_worker_id | Pilot = sebagian penyuluh |
 | `conversations` | workspace_id, extension_worker_id, form_version_id, channel_id, step, draft_answers JSONB, status, failed_attempts, last_inbound_at, taken_over_by, taken_over_at, next_reminder_at | `last_inbound_at` untuk jendela 24 jam WA |
 | `messages` | conversation_id, direction (`in`, `out`), body, media_key, external_id, channel_sent_at, processed_at, delivery_status | `UNIQUE (channel_id, external_id)` |
-| `reports` | workspace_id, code, form_version_id, extension_worker_id, conversation_id, answers JSONB, latitude, longitude, accuracy_m, region_id, commodity_id, condition, needs_review, received_at | Kolom filter disalin dari `answers` dan diindeks |
+| `reports` | workspace_id, code, form_version_id, extension_worker_id, conversation_id, answers JSONB, latitude, longitude, accuracy_m, region_id, commodity_id, condition, area_ha, plot_key, complete, needs_review, received_at | Kolom filter disalin dari `answers` dan diindeks |
+| `report_exports` | workspace_id, requested_by, params JSONB, status, object_key, row_count, error, created_at, finished_at, expires_at | Ekspor dashboard; lihat [dashboard.md](../06-domain-guides/dashboard.md#model-data-tambahan) |
 | `report_photos` | report_id, object_key, size_bytes, blur_score, ai_note | |
 | `report_follow_ups` | report_id, assignee_member_id, priority, status, note | |
 | `activity_events` | workspace_id, occurred_at, extension_worker_id, channel, type, details JSONB, status | Log Aktivitas Agent |

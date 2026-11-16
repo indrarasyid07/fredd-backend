@@ -2,6 +2,10 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-16 · Rancangan dashboard
+
+- Ditambahkan [dashboard.md](../06-domain-guides/dashboard.md): definisi tiap angka, endpoint `summary`, `reports/map`, `reports/{id}`, `reports/count`, ekspor, event SSE, kolom dan tabel tambahan, performa, tes wajib, dan irisan. `GET /reports/export` diganti `POST /reports/exports`. Keputusan B-044 s.d. B-047. Hanya dokumen; belum ada kode.
+
 ## 2026-11-16 · Irisan 2-4 auth: daftar, lupa kata sandi, Google
 
 - Endpoint `register`, `verify-email` (+ `resend`), `password/forgot`, `password/reset`, dan `google/login` + `callback`; tabel `auth_tokens` dan `users.organization` (migrasi mengisi `email_verified_at` akun lama).
