@@ -302,7 +302,7 @@ class RegisterRequest(BaseModel):
 - **`verify-email`** menandai email terverifikasi dan langsung membuat sesi. Token salah, sudah dipakai, atau kedaluwarsa → `400 invalid_token` (`field: token`).
 - **`resend`** selalu `200`; hanya mengirim bila email ada dan belum terverifikasi.
 - **Rate limit** (Redis, window tetap, dihitung per permintaan): `register` 10 per jam per IP; `resend` 3 per jam per email dan 20 per jam per IP; `verify-email` 30 per jam per IP.
-- **Tautan di email:** `{APP_BASE_URL}/login/verifikasi?token=…`. Halaman web-nya belum dibangun; sementara itu token bisa dikirim langsung ke `verify-email`.
+- **Tautan di email:** `{APP_BASE_URL}/login/verify-email?token=…`. Halaman web-nya belum dibangun; sementara itu token bisa dikirim langsung ke `verify-email`.
 - Workspace Perorangan paket Gratis dibuat setelah verifikasi **begitu modul workspaces ada**; sampai saat itu `memberships` kosong dan `organization` hanya disimpan di user.
 
 ### Pengiriman email
@@ -328,7 +328,7 @@ Selesai 16 November 2026.
 - `forgot` selalu `200` dengan pesan yang sama. Bila akun ada, token 30 menit dikirim; permintaan baru membatalkan token lama. Akun yang hanya memakai Google juga bisa menetapkan kata sandi lewat alur ini.
 - `reset`: kekuatan kata sandi diperiksa **sebelum** token dipakai, jadi salah ketik tidak menghanguskan tautan. Sukses: kata sandi baru (argon2id), email ditandai terverifikasi (tautan membuktikan kepemilikan), dan **semua sesi user dicabut**. Reset tidak membuat sesi; pengguna diarahkan ke layar Masuk.
 - Rate limit: `forgot` 3 per jam per email dan 20 per jam per IP (tetap `429` untuk email yang tidak ada, jadi tidak membocorkan apa pun); `reset` 30 per jam per IP.
-- Tautan di email: `{APP_BASE_URL}/login/baru?token=…` (halaman web belum dibangun).
+- Tautan di email: `{APP_BASE_URL}/login/reset-password?token=…` (halaman web belum dibangun).
 - Token disimpan sebagai hash SHA-256 di `auth_tokens`; satu `UPDATE … RETURNING` menandainya terpakai, jadi dua permintaan serentak tidak bisa memakainya dua kali.
 
 ## Irisan 4: Google

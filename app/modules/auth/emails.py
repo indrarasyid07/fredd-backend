@@ -10,7 +10,7 @@ def _url(path: str) -> str:
 def verify_email(token: str) -> tuple[str, str]:
     return "Verifikasi email Fluctuz Anda", (
         "Halo,\n\nTerima kasih sudah mendaftar di Fluctuz. Buka tautan ini untuk memverifikasi "
-        f"email Anda (berlaku 24 jam):\n\n{_url(f'/login/verifikasi?token={token}')}\n\n"
+        f"email Anda (berlaku 24 jam):\n\n{_url(f'/login/verify-email?token={token}')}\n\n"
         "Jika Anda tidak mendaftar, abaikan email ini.\n\nTim Fluctuz\n"
     )
 
@@ -26,7 +26,7 @@ def already_registered() -> tuple[str, str]:
 def reset_password(token: str) -> tuple[str, str]:
     return "Atur ulang kata sandi Fluctuz", (
         "Halo,\n\nKami menerima permintaan mengatur ulang kata sandi akun Fluctuz Anda. Buka "
-        f"tautan ini (berlaku 30 menit, sekali pakai):\n\n{_url(f'/login/baru?token={token}')}"
+        f"tautan ini (berlaku 30 menit, sekali pakai):\n\n{_url(f'/login/reset-password?token={token}')}"
         "\n\nJika Anda tidak memintanya, abaikan email ini; kata sandi Anda tidak berubah."
         "\n\nTim Fluctuz\n"
     )
