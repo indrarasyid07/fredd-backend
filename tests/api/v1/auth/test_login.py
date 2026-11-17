@@ -21,7 +21,7 @@ async def test_login_sets_session_cookie_and_returns_me(
     assert body["data"]["memberships"] == []
 
     cookie = response.headers["set-cookie"]
-    assert cookie.startswith("fredd_session=")
+    assert cookie.startswith("fluctuz_session=")
     for attribute in ("HttpOnly", "Max-Age=2592000", "Path=/", "SameSite=lax"):
         assert attribute in cookie
     sessions = await db.scalar(

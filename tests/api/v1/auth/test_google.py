@@ -39,7 +39,7 @@ async def test_login_redirects_to_google_with_pkce_and_state_cookie(
     assert query["client_id"] == ["client-123"]
     assert query["code_challenge_method"] == ["S256"]
     assert query["redirect_uri"] == ["http://localhost:3000/api/v1/auth/google/callback"]
-    assert f"fredd_oauth={query['state'][0]}" in response.headers["set-cookie"]
+    assert f"fluctuz_oauth={query['state'][0]}" in response.headers["set-cookie"]
 
 
 @pytest.mark.parametrize("bad", ["https://evil.example", "//evil.example", "/admin", "/app\\x"])
@@ -66,7 +66,7 @@ async def test_callback_signs_in_and_redirects_to_next(
 
     assert response.status_code == 303
     assert response.headers["location"] == "http://localhost:3000/app/laporan"
-    assert "fredd_session=" in "; ".join(response.headers.get_list("set-cookie"))
+    assert "fluctuz_session=" in "; ".join(response.headers.get_list("set-cookie"))
     assert (await client.get("/api/v1/auth/me")).json()["data"]["user"]["email"] == "tati@contoh.id"
 
 

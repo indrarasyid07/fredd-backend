@@ -100,7 +100,7 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 | GET | `/conversations/{id}` | reviewer |
 | POST | `/conversations/{id}/takeover` | admin (409 bila sudah diambil admin lain) |
 | POST | `/conversations/{id}/messages` | admin (hanya pemilik takeover) |
-| POST | `/conversations/{id}/release` | admin (kembalikan ke Fredd) |
+| POST | `/conversations/{id}/release` | admin (kembalikan ke Fluctuz) |
 | POST | `/agent/pause`, `/agent/resume` | admin |
 
 ## Kanal

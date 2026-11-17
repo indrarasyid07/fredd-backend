@@ -13,7 +13,7 @@ class Channel(Protocol):
 
 ## WhatsApp: Cloud API resmi
 
-Desain canvas memakai pindai QR (perangkat tertaut). Itu jalur tidak resmi (Baileys / whatsapp-web.js): melanggar ToS dan berisiko nomor diblokir, terutama untuk pesan proaktif seperti pengingat. Fredd memakai **WhatsApp Business Cloud API** (langsung ke Meta atau lewat BSP).
+Desain canvas memakai pindai QR (perangkat tertaut). Itu jalur tidak resmi (Baileys / whatsapp-web.js): melanggar ToS dan berisiko nomor diblokir, terutama untuk pesan proaktif seperti pengingat. Fluctuz memakai **WhatsApp Business Cloud API** (langsung ke Meta atau lewat BSP).
 
 Konsekuensi:
 
@@ -22,10 +22,10 @@ Konsekuensi:
 
 | Template | Kategori | Isi |
 |---|---|---|
-| `fredd_intro` | utility | Perkenalan saat struktur dipublikasikan |
-| `fredd_invite` | utility | Undangan + tautan verifikasi |
-| `fredd_resume` | utility | "Laporan {1} berhenti di langkah {2}. Lanjutkan?" + tombol |
-| `fredd_reminder` | utility | Pengingat laporan rutin |
+| `fluctuz_intro` | utility | Perkenalan saat struktur dipublikasikan |
+| `fluctuz_invite` | utility | Undangan + tautan verifikasi |
+| `fluctuz_resume` | utility | "Laporan {1} berhenti di langkah {2}. Lanjutkan?" + tombol |
+| `fluctuz_reminder` | utility | Pengingat laporan rutin |
 
 - **Batas format:** reply buttons maks 3, list message maks 10 baris.
 - **Media:** URL unduhan dari Meta cepat kedaluwarsa; worker langsung mengunduh ke S3.

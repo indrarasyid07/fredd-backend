@@ -21,7 +21,7 @@ Backend irisan 1-4 selesai pada 16 November 2026. Layar web 02-06 belum dibangun
 
 | Method | Path | Auth | Body | Sukses | Error |
 |---|---|---|---|---|---|
-| POST | `/api/v1/auth/login` | publik | `LoginRequest` | `200`, cookie `fredd_session`, `data`: `MeResponse` | `401 invalid_credentials`, `422`, `429 too_many_attempts`, `403 csrf_rejected` |
+| POST | `/api/v1/auth/login` | publik | `LoginRequest` | `200`, cookie `fluctuz_session`, `data`: `MeResponse` | `401 invalid_credentials`, `422`, `429 too_many_attempts`, `403 csrf_rejected` |
 | POST | `/api/v1/auth/logout` | opsional | – | `200`, `data: null`, cookie dihapus | `403 csrf_rejected` |
 | GET | `/api/v1/auth/me` | wajib | – | `200`, `data`: `MeResponse` | `401 not_authenticated` |
 
@@ -72,7 +72,7 @@ Login tidak memeriksa aturan kekuatan kata sandi (hanya tidak kosong); aturan ke
 }
 ```
 
-Header: `Set-Cookie: fredd_session=<token>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000`
+Header: `Set-Cookie: fluctuz_session=<token>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000`
 
 Email atau kata sandi salah:
 
@@ -124,14 +124,14 @@ sequenceDiagram
   S->>D: INSERT sessions (token_hash, user_agent, ip, expires_at)
   S-->>R: token, MeResponse
   R->>L: hapus hitungan gagal
-  R-->>B: 200 + Set-Cookie fredd_session
+  R-->>B: 200 + Set-Cookie fluctuz_session
 ```
 
 ### Sesi dan cookie
 
 | Hal | Nilai |
 |---|---|
-| Nama cookie | `fredd_session` |
+| Nama cookie | `fluctuz_session` |
 | Atribut | `HttpOnly; Secure; SameSite=Lax; Path=/`. Di development `Secure` dimatikan otomatis (HTTP lokal) |
 | Token | `secrets.token_urlsafe(32)`; hanya hash SHA-256-nya yang disimpan di `sessions.token_hash` |
 | Masa berlaku | 30 hari sejak terakhir dipakai (sliding) |
@@ -342,7 +342,7 @@ Selesai 16 November 2026. Aktif hanya bila `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT
 
 Kedua endpoint dibuka langsung oleh browser, jadi mereka mengalihkan, bukan mengembalikan JSON, dan tidak masuk `openapi.json`.
 
-- **State.** `login` membuat `state` dan `code_verifier`, menyimpannya di Redis (`oauth:google:{state}`, 10 menit), dan hanya `state` yang dipasang di cookie `fredd_oauth` (HttpOnly, `SameSite=Lax`, path `/api/v1/auth/google`). `callback` menolak bila `state` di query tidak sama dengan cookie atau tidak ada di Redis, dan mengambilnya dengan `GETDEL` (sekali pakai).
+- **State.** `login` membuat `state` dan `code_verifier`, menyimpannya di Redis (`oauth:google:{state}`, 10 menit), dan hanya `state` yang dipasang di cookie `fluctuz_oauth` (HttpOnly, `SameSite=Lax`, path `/api/v1/auth/google`). `callback` menolak bila `state` di query tidak sama dengan cookie atau tidak ada di Redis, dan mengambilnya dengan `GETDEL` (sekali pakai).
 - **Profil.** Kode ditukar dengan `client_secret` dan `code_verifier` lewat TLS, lalu `userinfo` dibaca. `email_verified` wajib `true`.
 - **Pencocokan akun:** `google_sub` → email → akun baru.
   - Cocok `google_sub`: masuk.

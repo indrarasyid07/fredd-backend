@@ -1,12 +1,12 @@
 # Product Overview
 
-Sumber: artifact canvas desain "Fredd" (halaman Login Register, Dashboard, Pengelolaan, Dashboard V.1, AI Agent Build, Struktur Data Baru).
+Sumber: artifact canvas desain "Fluctuz" (halaman Login Register, Dashboard, Pengelolaan, Dashboard V.1, AI Agent Build, Struktur Data Baru).
 
-## Apa itu Fredd
+## Apa itu Fluctuz
 
-Fredd adalah agen AI yang mengumpulkan laporan lapangan dari penyuluh pertanian lewat chat WhatsApp dan Telegram. Admin instansi menyusun **struktur data** (daftar isian + aturan), Fredd menanyakannya ke penyuluh satu pertanyaan per pesan, memvalidasi jawaban, lalu menyimpan laporan yang tampil di dashboard (tabel, peta, galeri, analitik).
+Fluctuz adalah agen AI yang mengumpulkan laporan lapangan dari penyuluh pertanian lewat chat WhatsApp dan Telegram. Admin instansi menyusun **struktur data** (daftar isian + aturan), Fluctuz menanyakannya ke penyuluh satu pertanyaan per pesan, memvalidasi jawaban, lalu menyimpan laporan yang tampil di dashboard (tabel, peta, galeri, analitik).
 
-Fredd dijual sebagai SaaS dengan paket: Perorangan (Gratis, Plus) dan Organisasi (Starter, Growth, Enterprise). Lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md).
+Fluctuz dijual sebagai SaaS dengan paket: Perorangan (Gratis, Plus) dan Organisasi (Starter, Growth, Enterprise). Lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md).
 
 Acuan desain: halaman canvas Login Register V.1, Dashboard V.1, Struktur Data Baru V.1, Penyuluh V.1, dan Upgrade.
 
@@ -16,7 +16,7 @@ Acuan desain: halaman canvas Login Register V.1, Dashboard V.1, Struktur Data Ba
 |---|---|---|
 | Admin / Editor / Peninjau | Dashboard web | Menyusun struktur, mengelola penyuluh dan kanal, meninjau laporan, mengambil alih percakapan |
 | Penyuluh | WhatsApp / Telegram | Mengisi laporan dari lapangan |
-| Fredd (agen) | Backend | Menjalankan percakapan, validasi, pengingat, ringkasan |
+| Fluctuz (agen) | Backend | Menjalankan percakapan, validasi, pengingat, ringkasan |
 | Pengunjung publik | Website | Membaca landing page, mendaftar |
 
 ## Alur utama admin
@@ -30,7 +30,7 @@ Acuan desain: halaman canvas Login Register V.1, Dashboard V.1, Struktur Data Ba
 
 ## Alur utama penyuluh
 
-Mulai → Fredd mengenali dari nomor/chat ID → satu pertanyaan per pesan (penanda 3/5) → validasi (koreksi dengan contoh; setelah 3 kali gagal tawarkan lewati atau bantuan admin) → ringkasan → kirim → ID laporan. Bila sinyal hilang, jawaban tersimpan sebagai draf dan Fredd mengingatkan nanti di luar jam tenang.
+Mulai → Fluctuz mengenali dari nomor/chat ID → satu pertanyaan per pesan (penanda 3/5) → validasi (koreksi dengan contoh; setelah 3 kali gagal tawarkan lewati atau bantuan admin) → ringkasan → kirim → ID laporan. Bila sinyal hilang, jawaban tersimpan sebagai draf dan Fluctuz mengingatkan nanti di luar jam tenang.
 
 ## Ruang lingkup v1 (usulan)
 
@@ -49,14 +49,14 @@ Bisa menyusul setelah v1 (kecuali sudah dijanjikan ke klien):
 
 - Halaman metrik pilot khusus (pilot cukup = publikasi ke sebagian penyuluh).
 - Laporan terjadwal PDF/Excel.
-- Insight Fredd, Tanya Fredd, perkiraan kondisi dari foto.
+- Insight Fluctuz, Tanya Fluctuz, perkiraan kondisi dari foto.
 - Jawaban lewat pesan suara.
 - Galeri foto sebagai tampilan terpisah.
 
 ## Pertanyaan terbuka
 
 1. ~~Cara masuk dashboard~~: diputuskan email + kata sandi dan Google (B-013).
-2. Pemilik akun Meta Business untuk WhatsApp (klien atau Fredd) dan anggaran biaya per pesan.
+2. Pemilik akun Meta Business untuk WhatsApp (klien atau Fluctuz) dan anggaran biaya per pesan.
 3. ~~Satu instansi atau multi-tenant~~: multi-tenant dengan paket per workspace (B-012).
 4. Penyedia LLM dan speech-to-text.
 5. Hosting dan syarat lokasi data (harus di Indonesia atau tidak).

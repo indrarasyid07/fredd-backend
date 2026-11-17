@@ -14,7 +14,7 @@ Rancangan modul artikel untuk blog publik. **Status: rancangan, belum dibangun.*
 
 ## Siapa yang mengelola
 
-Artikel milik Fredd sebagai produk, **bukan milik workspace pelanggan**. Karena itu peran `admin` / `form_editor` / `reviewer` ([security-model.md](../05-security-and-access/security-model.md#peran)) tidak dipakai; admin workspace pelanggan tidak boleh menerbitkan di blog Fredd.
+Artikel milik Fluctuz sebagai produk, **bukan milik workspace pelanggan**. Karena itu peran `admin` / `form_editor` / `reviewer` ([security-model.md](../05-security-and-access/security-model.md#peran)) tidak dipakai; admin workspace pelanggan tidak boleh menerbitkan di blog Fluctuz.
 
 Dipakai satu kolom baru `users.platform_role` (null untuk pengguna biasa):
 
@@ -26,7 +26,7 @@ Dipakai satu kolom baru `users.platform_role` (null untuk pengguna biasa):
 - Peran platform **tidak bisa diberikan lewat API atau UI**; diberikan lewat CLI (`create-user --platform-role` dan perintah `set-platform-role`), sama seperti pengguna pertama pada irisan 1 auth. Mencegah eskalasi dari akun pelanggan.
 - Diterapkan sebagai dependency FastAPI `require_platform_role("content_author")` / `("content_editor")` (editor otomatis lolos cek penulis). Frontend menyembunyikan menu, backend yang menolak.
 - `MeResponse.user` mendapat field `platform_role` agar dashboard tahu apakah menu **Konten** ditampilkan.
-- Pengguna tanpa workspace tetap bisa punya peran platform (staf Fredd); layout dashboard sudah harus menangani `memberships` kosong.
+- Pengguna tanpa workspace tetap bisa punya peran platform (staf Fluctuz); layout dashboard sudah harus menangani `memberships` kosong.
 
 ## Siklus status
 
@@ -65,7 +65,7 @@ Tabel di luar konvensi tenant: **tidak punya `workspace_id`** (data platform). K
 | Kolom | Tipe | Catatan |
 |---|---|---|
 | `id` | uuid | |
-| `kind` | text | `post` (isi di Fredd) atau `external` (liputan media, menaut keluar) |
+| `kind` | text | `post` (isi di Fluctuz) atau `external` (liputan media, menaut keluar) |
 | `status` | text | `draft`, `in_review`, `scheduled`, `published`, `archived` |
 | `slug` | text, unik | Huruf kecil, angka, tanda hubung, 3–80 karakter; Bahasa Indonesia boleh. **Terkunci setelah terbit pertama kali** (lihat [Slug](#slug)) |
 | `title` | text | 5–140 karakter |
@@ -76,7 +76,7 @@ Tabel di luar konvensi tenant: **tidak punya `workspace_id`** (data platform). K
 | `cover_alt` | text | Teks alternatif sampul, wajib saat terbit |
 | `cover_credit` | text, null | Kredit/lisensi gambar, tampil di bawah sampul di halaman artikel |
 | `cover_focus_y` | smallint | 0–100, posisi vertikal potong gambar di kartu (default 50); menggantikan `center 35%` yang tertulis di CSS |
-| `byline` | text | Default `Tim Fredd`; nama tampilan penulis. Email dan nama akun tidak pernah keluar ke publik |
+| `byline` | text | Default `Tim Fluctuz`; nama tampilan penulis. Email dan nama akun tidak pernah keluar ke publik |
 | `external_url` | text, null | Wajib untuk `external`, harus `https://` |
 | `source_name` | text, null | Wajib untuk `external` (mis. `Bloomberg Technoz`), tampil sebagai label di sampul kartu |
 | `featured_at` | timestamptz, null | Diisi saat disematkan; sematan dicabut dengan mengosongkan |
@@ -141,9 +141,9 @@ Bentuk item daftar (`ArticleCard`):
 
 ```json
 {
-  "slug": "mengenal-agen-ai-fredd",
+  "slug": "mengenal-agen-ai-fluctuz",
   "kind": "post",
-  "title": "Mengenal Agent AI Fredd: cara kerja di balik percakapan",
+  "title": "Mengenal Agent AI Fluctuz: cara kerja di balik percakapan",
   "excerpt": "…",
   "category": { "slug": "produk", "name": "Produk", "icon": "sparkle" },
   "cover": { "card_url": "/media/articles/2026/….w800.webp", "alt": "…", "focus_y": 35 },

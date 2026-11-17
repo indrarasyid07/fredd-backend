@@ -16,10 +16,10 @@ RUN uv sync --locked --no-dev --no-install-project
 
 COPY . .
 RUN uv sync --locked --no-dev \
-    && useradd --system --uid 1000 --home /app fredd \
-    && chown -R fredd /app
+    && useradd --system --uid 1000 --home /app fluctuz \
+    && chown -R fluctuz /app
 
-USER fredd
+USER fluctuz
 EXPOSE 8000
 
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \

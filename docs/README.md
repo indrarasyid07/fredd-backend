@@ -1,11 +1,11 @@
-# Fredd Backend Docs
+# Fluctuz Backend Docs
 
-Dokumentasi teknis backend Fredd (FastAPI). Isi ditulis dalam Bahasa Indonesia; nama file, kode, endpoint, dan skema database memakai Bahasa Inggris.
+Dokumentasi teknis backend Fluctuz (FastAPI). Isi ditulis dalam Bahasa Indonesia; nama file, kode, endpoint, dan skema database memakai Bahasa Inggris.
 
 | Folder | Isi |
 |---|---|
 | [00-governance](00-governance/documentation-guidelines.md) | Aturan menulis dan merawat dokumen ini; [standar pesan commit](00-governance/commit-conventions.md) untuk ketiga repo |
-| [01-product-and-scope](01-product-and-scope/product-overview.md) | Apa itu Fredd, aktor, alur, ruang lingkup v1 |
+| [01-product-and-scope](01-product-and-scope/product-overview.md) | Apa itu Fluctuz, aktor, alur, ruang lingkup v1 |
 | [02-architecture](02-architecture/system-architecture.md) | Komponen sistem, tech stack, alur pesan |
 | [03-api](03-api/api-conventions.md) | Konvensi API dan daftar endpoint |
 | [04-database](04-database/data-model.md) | Model data dan konvensi skema |

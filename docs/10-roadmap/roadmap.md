@@ -11,7 +11,7 @@ Urutan pengerjaan backend. Frontend berjalan paralel (lihat `frontend/docs/10-ro
 | 4. WhatsApp | Cloud API, Embedded Signup, template, jendela 24 jam | Alur sama berjalan di WhatsApp |
 | 5. Pemantauan | Aktivitas agen, SSE, takeover, analitik | Admin bisa ambil alih percakapan |
 | 5b. Paket & tagihan | Tabel paket, langganan, kuota, checkout dan webhook penyedia pembayaran | Workspace bisa naik ke Plus/Starter dan kuota ditegakkan |
-| 6. Fitur AI & tambahan | STT, insight, Tanya Fredd, laporan terjadwal | Sesuai kesepakatan scope |
+| 6. Fitur AI & tambahan | STT, insight, Tanya Fluctuz, laporan terjadwal | Sesuai kesepakatan scope |
 | 7. Artikel (blog) | Peran platform, artikel dengan status dan jadwal, kategori, unggah gambar, API publik, revalidasi web; berdiri sendiri, bisa paralel setelah Fase 0 ([articles.md](../06-domain-guides/articles.md)) | Staf konten menerbitkan artikel dari dashboard dan muncul di `/blog` |
 
 Proses verifikasi bisnis Meta dimulai di Fase 0 karena bisa memakan waktu berminggu-minggu.

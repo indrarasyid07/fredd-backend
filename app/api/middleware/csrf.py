@@ -19,7 +19,7 @@ def _origin(request: Request) -> str:
 
 
 class CsrfMiddleware:
-    """Reject state-changing /api requests whose Origin is not the Fredd web app.
+    """Reject state-changing /api requests whose Origin is not the Fluctuz web app.
 
     Works with the SameSite=Lax session cookie; webhooks are outside /api and use signatures.
     """

@@ -2,7 +2,7 @@
 
 Sumber: halaman canvas "Upgrade" (Perorangan, Organisasi). Spesifikasi layar: [frontend ui/upgrade.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/upgrade.md).
 
-Fredd dijual sebagai SaaS dengan paket per workspace. Setiap workspace bertipe **Perorangan** atau **Organisasi** dan punya satu langganan aktif.
+Fluctuz dijual sebagai SaaS dengan paket per workspace. Setiap workspace bertipe **Perorangan** atau **Organisasi** dan punya satu langganan aktif.
 
 ## Paket (dari desain)
 
@@ -37,13 +37,13 @@ Periode kuota laporan mengikuti tanggal tagihan ("diatur ulang setiap tanggal ta
 
 - **Laporan penyuluh tetap diterima dan disimpan**, karena data lapangan tidak boleh hilang. Laporan di atas kuota ditandai `over_quota` dan tidak tampil di dashboard sampai paket dinaikkan atau periode berganti.
 - Admin diberi peringatan di 80% dan 100% (dashboard + email).
-- Fredd tidak memberi tahu penyuluh soal kuota; urusan paket hanya antara admin dan Fredd.
+- Fluctuz tidak memberi tahu penyuluh soal kuota; urusan paket hanya antara admin dan Fluctuz.
 - Membuat formulir atau mengundang anggota melebihi batas ditolak dengan error `plan_limit_reached` dan tautan ke halaman Upgrade.
 
 ## Pembayaran
 
 - Penyedia belum dipilih. Kandidat untuk Rupiah: Midtrans, Xendit (mendukung VA bank, e-wallet, QRIS, kartu).
-- Pakai **halaman checkout hosted** penyedia. Fredd tidak pernah menerima atau menyimpan data kartu.
+- Pakai **halaman checkout hosted** penyedia. Fluctuz tidak pernah menerima atau menyimpan data kartu.
 - Status langganan hanya berubah dari **webhook penyedia** yang tanda tangannya terverifikasi (`POST /webhooks/payments/{provider}`), bukan dari redirect browser.
 - Webhook idempoten berdasarkan ID transaksi penyedia.
 - Langganan berulang: bila penyedia tidak mendukung auto-debit untuk metode tertentu, kirim tagihan baru sebelum jatuh tempo dan beri masa tenggang 7 hari sebelum turun ke Gratis.

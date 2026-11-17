@@ -9,7 +9,7 @@ flowchart LR
   worker_person[Penyuluh] -->|chat| wa[WhatsApp Cloud API]
   worker_person -->|chat| tg[Telegram Bot API]
 
-  subgraph fredd[Fredd]
+  subgraph fluctuz[Fluctuz]
     caddy[Caddy]
     web[Next.js]
     api[FastAPI]
@@ -69,7 +69,7 @@ stateDiagram-v2
   asking --> needs_help: gagal 3x / di luar alur
   asking --> confirming_summary: semua terjawab
   needs_help --> taken_over: admin ambil alih
-  taken_over --> asking: kembalikan ke Fredd
+  taken_over --> asking: kembalikan ke Fluctuz
   confirming_summary --> asking: ubah jawaban
   confirming_summary --> submitted: kirim
   submitted --> [*]

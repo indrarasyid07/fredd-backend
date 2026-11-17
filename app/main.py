@@ -21,7 +21,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Fredd API",
+        title="Fluctuz API",
         lifespan=lifespan,
         docs_url="/api/docs" if settings.is_development else None,
         redoc_url=None,

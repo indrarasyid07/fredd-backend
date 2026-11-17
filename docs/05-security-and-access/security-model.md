@@ -7,13 +7,13 @@
 - Workspace Organisasi bisa mewajibkan SSO Google (`require_sso`); anggotanya tidak bisa masuk dengan kata sandi.
 - Google OAuth: kode otorisasi + PKCE lewat httpx; `state` sekali pakai di Redis; akun belum terverifikasi yang ditautkan ke Google kehilangan kata sandinya. Domain email yang diizinkan diatur per workspace; anggota baru dari domain itu menunggu persetujuan admin.
 - Setelah callback, backend membuat baris `sessions` dan mengirim cookie:
-  `fredd_session=<token acak 32 byte>; HttpOnly; Secure; SameSite=Lax; Path=/`
+  `fluctuz_session=<token acak 32 byte>; HttpOnly; Secure; SameSite=Lax; Path=/`
 - Database hanya menyimpan hash token. Sesi bisa dicabut (halaman Keamanan › Sesi aktif).
 - Sesi kedaluwarsa setelah 30 hari tidak aktif; diperpanjang saat dipakai.
 
 ## CSRF
 
-Cookie `SameSite=Lax` + middleware yang menolak request selain GET/HEAD/OPTIONS bila header `Origin` bukan domain Fredd. Tidak perlu token CSRF terpisah. Webhook dikecualikan (diverifikasi tanda tangan).
+Cookie `SameSite=Lax` + middleware yang menolak request selain GET/HEAD/OPTIONS bila header `Origin` bukan domain Fluctuz. Tidak perlu token CSRF terpisah. Webhook dikecualikan (diverifikasi tanda tangan).
 
 ## Peran
 
@@ -30,7 +30,7 @@ Diterapkan sebagai dependency FastAPI (`require_role("admin")`). Frontend menyem
 
 ## Peran platform (konten)
 
-Selain peran workspace, `users.platform_role` (`content_author`, `content_editor`) memberi akses ke pengelolaan artikel Fredd. Tidak bisa diatur lewat API atau UI, hanya lewat CLI; admin workspace pelanggan tidak mendapat akses apa pun ke blog. Dependency `require_platform_role(...)`. Rincian, serta aturan unggah gambar dan Markdown: [articles.md](../06-domain-guides/articles.md).
+Selain peran workspace, `users.platform_role` (`content_author`, `content_editor`) memberi akses ke pengelolaan artikel Fluctuz. Tidak bisa diatur lewat API atau UI, hanya lewat CLI; admin workspace pelanggan tidak mendapat akses apa pun ke blog. Dependency `require_platform_role(...)`. Rincian, serta aturan unggah gambar dan Markdown: [articles.md](../06-domain-guides/articles.md).
 
 ## Isolasi tenant
 
@@ -63,7 +63,7 @@ Selain peran workspace, `users.platform_role` (`content_author`, `content_editor
 
 ## Pembayaran
 
-- Checkout di halaman hosted penyedia; Fredd tidak menerima atau menyimpan data kartu.
+- Checkout di halaman hosted penyedia; Fluctuz tidak menerima atau menyimpan data kartu.
 - Status langganan hanya berubah dari webhook penyedia yang tanda tangannya terverifikasi; idempoten per ID transaksi.
 
 ## Rate limit
@@ -74,4 +74,4 @@ Selain peran workspace, `users.platform_role` (`content_author`, `content_editor
 ## Lain-lain
 
 - `/api/docs` hanya di development.
-- Fitur LLM ("Tanya Fredd", insight) hanya menerima data workspace milik sesi dan menandai hasilnya "perlu diverifikasi".
+- Fitur LLM ("Tanya Fluctuz", insight) hanya menerima data workspace milik sesi dan menandai hasilnya "perlu diverifikasi".

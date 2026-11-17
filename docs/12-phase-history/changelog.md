@@ -15,7 +15,7 @@ Catatan per fase, terbaru di atas.
 
 ## 2026-11-15 · Rancangan artikel (blog)
 
-- Ditambahkan [articles.md](../06-domain-guides/articles.md): artikel dikelola dari dashboard oleh staf Fredd (peran platform), dengan status draf sampai terbit/jadwal, kategori, unggah gambar, revisi, API publik, dan revalidasi web. Endpoint, model data, keamanan, roadmap (Fase 7), glosarium, dan keputusan B-033 s.d. B-038 diperbarui. Hanya dokumen; belum ada kode.
+- Ditambahkan [articles.md](../06-domain-guides/articles.md): artikel dikelola dari dashboard oleh staf Fluctuz (peran platform), dengan status draf sampai terbit/jadwal, kategori, unggah gambar, revisi, API publik, dan revalidasi web. Endpoint, model data, keamanan, roadmap (Fase 7), glosarium, dan keputusan B-033 s.d. B-038 diperbarui. Hanya dokumen; belum ada kode.
 
 ## 2026-11-15 · Cabang
 
@@ -34,7 +34,7 @@ Catatan per fase, terbaru di atas.
 
 ## 2026-11-14 · Struktur folder backend
 
-- Struktur target `app/` (api, modules, core, db, devtools) + `alembic/`, `fixtures/`, `scripts/` menggantikan `src/fredd/` per domain (B-021).
+- Struktur target `app/` (api, modules, core, db, devtools) + `alembic/`, `fixtures/`, `scripts/` menggantikan `src/fluctuz/` per domain (B-021).
 - `api/v1/` dikelompokkan per fitur, bukan per role; alasan, isi folder, aturan lapisan, konvensi Python, penamaan, versi API, devtools, pertimbangan data engineering, dan susunan tes ditulis di `02-architecture/system-architecture.md` (B-022 s.d. B-026).
 - Auth guide, API conventions, testing, deployment, seeding, dan agent guide memakai path baru. Kode belum dipindah.
 
@@ -47,7 +47,7 @@ Catatan per fase, terbaru di atas.
 ## 2026-11-13 · Paket dan desain V.1
 
 - Acuan desain: Login Register V.1, Dashboard V.1, Struktur Data Baru V.1, Penyuluh V.1, Upgrade.
-- Halaman Upgrade: Fredd menjadi SaaS multi-tenant dengan paket dan kuota; dokumen baru `06-domain-guides/billing-and-plans.md`.
+- Halaman Upgrade: Fluctuz menjadi SaaS multi-tenant dengan paket dan kuota; dokumen baru `06-domain-guides/billing-and-plans.md`.
 - Auth: email + kata sandi ditambah di samping Google; model data, endpoint, model keamanan, glosarium, dan roadmap diperbarui.
 
 ## 2026-11-13 · Docker
@@ -67,7 +67,7 @@ Catatan per fase, terbaru di atas.
 
 ## 2026-11-13 · Perencanaan
 
-- Meninjau canvas desain Fredd (57 artboard).
+- Meninjau canvas desain Fluctuz (57 artboard).
 - Menyusun arsitektur, model data, konvensi API (Bahasa Inggris), model keamanan, mesin percakapan, dan kanal.
 - Frontend berubah dari usulan React + Vite menjadi Next.js karena ada website publik yang butuh SEO.
 - Belum ada kode.

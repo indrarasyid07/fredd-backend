@@ -209,7 +209,7 @@ Kode umum di bawah dipakai semua domain. Kode khusus domain ditambahkan di dokum
 | `out_of_range` | 422 | Angka di luar rentang | terisi |
 | `not_authenticated` | 401 | Belum login, cookie tidak ada, sesi habis atau dicabut | `null` |
 | `forbidden` | 403 | Peran tidak cukup, atau data milik workspace lain | `null` |
-| `csrf_rejected` | 403 | Header `Origin` bukan domain Fredd pada request yang mengubah data | `null` |
+| `csrf_rejected` | 403 | Header `Origin` bukan domain Fluctuz pada request yang mengubah data | `null` |
 | `plan_limit_reached` | 403 | Kuota paket habis (lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#kuota-dan-fitur)) | `null` |
 | `not_found` | 404 | Data atau route tidak ada | `null` |
 | `method_not_allowed` | 405 | Method HTTP tidak didukung route | `null` |
@@ -226,8 +226,8 @@ Pemetaan validasi Pydantic ke kode di atas dilakukan di satu tempat (`app/api/er
 |---|---|---|
 | `X-Request-ID` | Respons (dan opsional request) | Sama dengan `meta.request_id` |
 | `Retry-After` | Respons 429 | Detik sampai boleh mencoba lagi |
-| `Set-Cookie: fredd_session=…` | Respons login | Lihat [auth.md](../06-domain-guides/auth.md#sesi-dan-cookie) |
-| `Origin` | Request | Wajib cocok dengan domain Fredd untuk method selain GET/HEAD/OPTIONS |
+| `Set-Cookie: fluctuz_session=…` | Respons login | Lihat [auth.md](../06-domain-guides/auth.md#sesi-dan-cookie) |
+| `Origin` | Request | Wajib cocok dengan domain Fluctuz untuk method selain GET/HEAD/OPTIONS |
 
 ## Dokumentasi OpenAPI
 

@@ -3,7 +3,7 @@
 ## Komponen
 
 ```
-Browser ──► Caddy (fredd.id)
+Browser ──► Caddy (fluctuz.id)
               ├── /api/*       → FastAPI (api)
               ├── /webhooks/*  → FastAPI (api)
               └── /*           → Next.js (website publik + dashboard)
@@ -132,7 +132,7 @@ Folder fitur dibuat saat fiturnya mulai dikerjakan, bukan lebih awal. Pohon di a
 
 Pilihan yang dipertimbangkan:
 
-| Opsi | Contoh | Masalah untuk Fredd |
+| Opsi | Contoh | Masalah untuk Fluctuz |
 |---|---|---|
 | Per role | `v1/admin/`, `v1/editor/`, `v1/reviewer/` | Ketiga peran memakai endpoint yang **sama** dengan izin berbeda (`GET /reports` dipakai semua peran). Endpoint harus diduplikasi atau dipisah secara sembarang. Peran juga berubah per paket (Gratis hanya 1 pengguna, Growth punya "beberapa admin") |
 | Per aktor | `v1/dashboard/`, `v1/penyuluh/` | Penyuluh **tidak memakai REST API**; mereka lewat WhatsApp/Telegram yang masuk sebagai webhook. Folder `penyuluh/` akan kosong atau salah tempat |
@@ -293,7 +293,7 @@ def mount(app: FastAPI, settings: Settings) -> None:
 
 ### Pertimbangan data (data engineering)
 
-Fredd pada dasarnya pipeline data: pesan chat masuk → jawaban terstruktur → laporan → agregat dashboard dan ekspor. Struktur di atas memisahkan tahap-tahapnya:
+Fluctuz pada dasarnya pipeline data: pesan chat masuk → jawaban terstruktur → laporan → agregat dashboard dan ekspor. Struktur di atas memisahkan tahap-tahapnya:
 
 | Tahap | Tempat | Aturan |
 |---|---|---|

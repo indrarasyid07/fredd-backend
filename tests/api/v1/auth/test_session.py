@@ -24,7 +24,7 @@ async def test_me_without_cookie(client: AsyncClient) -> None:
 
 
 async def test_me_with_forged_cookie(client: AsyncClient) -> None:
-    client.cookies.set("fredd_session", "forged-token-value")
+    client.cookies.set("fluctuz_session", "forged-token-value")
     response = await client.get(ME)
     assert response.status_code == 401
 
@@ -36,15 +36,15 @@ async def test_me_with_expired_session(logged_in: AsyncClient, db: AsyncSession)
 
 
 async def test_logout_revokes_session(logged_in: AsyncClient) -> None:
-    token = logged_in.cookies["fredd_session"]
+    token = logged_in.cookies["fluctuz_session"]
 
     response = await logged_in.post(LOGOUT)
 
     assert response.status_code == 200
     body = response.json()
     assert body["success"] is True and body["data"] is None
-    assert 'fredd_session=""' in response.headers["set-cookie"]
-    logged_in.cookies.set("fredd_session", token)  # replaying the old cookie must fail
+    assert 'fluctuz_session=""' in response.headers["set-cookie"]
+    logged_in.cookies.set("fluctuz_session", token)  # replaying the old cookie must fail
     assert (await logged_in.get(ME)).status_code == 401
 
 

@@ -21,8 +21,8 @@ Padanan istilah domain (Bahasa Indonesia, dipakai di UI dan percakapan) dengan n
 | Kanal | `channel` | WhatsApp atau Telegram |
 | Percakapan | `conversation` | Sesi pengisian satu struktur oleh satu penyuluh |
 | Draf | `draft_answers` | Jawaban sementara sebelum dikirim |
-| Ambil alih | `takeover` | Admin membalas langsung, Fredd berhenti sementara |
-| Kembalikan ke Fredd | `release` | Akhir takeover |
+| Ambil alih | `takeover` | Admin membalas langsung, Fluctuz berhenti sementara |
+| Kembalikan ke Fluctuz | `release` | Akhir takeover |
 | Laporan / Data lapangan | `report` | Hasil pengisian yang sudah dikirim |
 | Kode laporan | `report.code` | `LP-2411-0248` |
 | Perlu ditinjau | `needs_review` | Dipicu aturan, mis. luas > 50 ha |

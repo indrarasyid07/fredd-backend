@@ -38,7 +38,7 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `plans`, `subscriptions`, `payments`, `usage_counters` | lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#model-data) | Paket, langganan, kuota |
 | `auth_tokens` | user_id, purpose (`verify_email`, `reset_password`), token_hash, expires_at, used_at | Token sekali pakai; hanya hash yang disimpan ([auth.md](../06-domain-guides/auth.md#tabel)) |
 | `articles`, `article_categories`, `article_media`, `article_revisions` | lihat [articles.md](../06-domain-guides/articles.md#model-data) | Blog; data platform, **tanpa `workspace_id`** |
-| `users.platform_role` | `content_author`, `content_editor`, atau null | Peran konten Fredd, diberikan lewat CLI |
+| `users.platform_role` | `content_author`, `content_editor`, atau null | Peran konten Fluctuz, diberikan lewat CLI |
 
 ## Detail penting
 

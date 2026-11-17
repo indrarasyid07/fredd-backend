@@ -53,7 +53,7 @@ async def test_register_then_verify_signs_in(
     token = _token(outbox)
     verified = await client.post(f"{BASE}/verify-email", json={"token": token})
     assert verified.status_code == 200
-    assert "fredd_session=" in verified.headers["set-cookie"]
+    assert "fluctuz_session=" in verified.headers["set-cookie"]
     assert (await client.get(f"{BASE}/me")).status_code == 200
     await db.refresh(user)
     assert user.email_verified_at is not None

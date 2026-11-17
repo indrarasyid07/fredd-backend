@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587  # STARTTLS
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "Fredd <no-reply@fredd.id>"
+    smtp_from: str = "Fluctuz <no-reply@fluctuz.id>"
 
     # Google sign-in. Empty id = the feature is off and the button answers "unavailable".
     google_client_id: str = ""

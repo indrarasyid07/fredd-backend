@@ -2,8 +2,8 @@ from fastapi import Request, Response
 
 from app.core.config import settings
 
-SESSION_COOKIE = "fredd_session"
-OAUTH_COOKIE = "fredd_oauth"  # Google sign-in state, 10 minutes
+SESSION_COOKIE = "fluctuz_session"
+OAUTH_COOKIE = "fluctuz_oauth"  # Google sign-in state, 10 minutes
 OAUTH_PATH = "/api/v1/auth/google"
 
 

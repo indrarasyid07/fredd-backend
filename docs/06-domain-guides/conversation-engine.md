@@ -55,9 +55,9 @@ idle → identifying → choosing_form → asking(step) → confirming_summary �
 
 ## Takeover
 
-- Admin mengambil alih (`taken_over_by` diisi lewat UPDATE bersyarat). Selama itu pesan penyuluh tetap disimpan dan ditampilkan ke admin, tetapi Fredd tidak membalas.
-- Worker membaca ulang status takeover tepat sebelum mengirim, agar balasan Fredd tidak menyela admin.
-- "Kembalikan ke Fredd" melanjutkan dari `step` saat ini.
+- Admin mengambil alih (`taken_over_by` diisi lewat UPDATE bersyarat). Selama itu pesan penyuluh tetap disimpan dan ditampilkan ke admin, tetapi Fluctuz tidak membalas.
+- Worker membaca ulang status takeover tepat sebelum mengirim, agar balasan Fluctuz tidak menyela admin.
+- "Kembalikan ke Fluctuz" melanjutkan dari `step` saat ini.
 
 ## Urutan pemrosesan
 
