@@ -8,9 +8,18 @@ Berlaku untuk `backend/docs`, `frontend/docs`, dan `infra/docs`.
 |---|---|
 | Isi dokumen | Bahasa Indonesia |
 | Nama file dan folder | Inggris, `kebab-case` |
-| Kode, endpoint API, nama tabel/kolom, nama variabel | Inggris |
+| Kode, endpoint API, **path URL dan route**, nama tabel/kolom, nama variabel | Inggris |
 | Teks yang dilihat pengguna (UI, pesan chat ke penyuluh) | Bahasa Indonesia |
 | Istilah domain | Lihat [glosarium](../06-domain-guides/glossary.md) untuk padanan Inggrisnya |
+
+## Path dan endpoint selalu Bahasa Inggris
+
+Semua path, baik endpoint API (`/api/v1/auth/password/forgot`) maupun route halaman web (`/login/forgot-password`), ditulis dalam Bahasa Inggris, `kebab-case`, huruf kecil. Ini berlaku juga untuk tautan yang dikirim lewat email, nama parameter query (`?token=`), dan segmen dinamis.
+
+- Yang Bahasa Indonesia hanya teks yang dilihat pengguna (label, judul, pesan).
+- Padanan istilah domain mengikuti [glosarium](../06-domain-guides/glossary.md): `extension-workers` (penyuluh), `forms` (struktur data), `reports` (laporan).
+- Contoh: `/login/register`, bukan `/login/daftar`; `/app/incoming-reports`, bukan `/app/laporan-masuk`.
+- Path yang sudah dipakai di tautan email atau dipublikasikan tidak diganti diam-diam; catat perubahannya di [decision log](../11-decisions/decision-log.md).
 
 ## Struktur
 
