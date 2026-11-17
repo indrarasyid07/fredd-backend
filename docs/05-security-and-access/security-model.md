@@ -40,13 +40,17 @@ Selain peran workspace, `users.platform_role` (`content_author`, `content_editor
 ## Webhook
 
 - WhatsApp: verifikasi `X-Hub-Signature-256` (HMAC-SHA256 dengan app secret) atas body mentah; tolak bila tidak cocok.
-- Telegram: `setWebhook` dengan `secret_token` acak per kanal; tolak bila header `X-Telegram-Bot-Api-Secret-Token` tidak cocok.
+- Telegram: `setWebhook` dengan `secret_token` acak untuk bot platform; tolak bila header `X-Telegram-Bot-Api-Secret-Token` tidak cocok.
 - Pesan disimpan dengan `UNIQUE (channel_id, external_id)` sehingga pengiriman ulang tidak dobel.
 
 ## Rahasia dan enkripsi
 
-- Token bot Telegram dan kredensial WhatsApp dienkripsi dengan `MultiFernet([key_new, key_old])`. Kunci dari env, bisa dirotasi tanpa memutus kanal.
-- Token tidak pernah dikembalikan ke frontend (hanya 6 karakter terakhir).
+- Token bot Telegram dan kredensial WhatsApp adalah rahasia **platform** (env atau secret manager), tidak lagi disimpan per organisasi. Bila kelak ada bot sendiri untuk Enterprise, kredensialnya dienkripsi dengan `MultiFernet([key_new, key_old])`.
+- Token tidak pernah dikembalikan ke frontend.
+
+## Kode gabung
+
+Kode gabung adalah rahasia setingkat undangan: acak 40 bit, tidak pernah turunan nama topik, hanya tampil ke admin dan reviewer organisasi pemiliknya, dibatasi percobaan salin (5 salah per jam per identitas chat), dan bisa dijeda, dibatasi, kedaluwarsa, dicabut, atau diganti. Klaim, persetujuan, pemblokiran, dan pembuatan ulang tercatat di `audit_logs`. Pesan dari identitas chat tanpa ikatan tidak boleh membuat percakapan, laporan, atau media di organisasi mana pun (diuji khusus). Rincian: [join-codes.md](../06-domain-guides/join-codes.md#keamanan-dan-penyalahgunaan).
 - Rahasia lain lewat env; tidak ada rahasia di repo.
 
 ## Berkas

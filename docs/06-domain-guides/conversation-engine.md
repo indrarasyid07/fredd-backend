@@ -11,7 +11,7 @@ Modul `conversations/`. Menjalankan satu `form_version` sebagai percakapan denga
 ## State
 
 ```
-idle → identifying → choosing_form → asking(step) → confirming_summary → submitted
+idle → joining → identifying → choosing_form → asking(step) → confirming_summary → submitted
                                    ↘ needs_help (setelah 3 kali gagal atau pertanyaan di luar alur)
                                    ↘ taken_over (admin membalas)
 ```
@@ -20,8 +20,8 @@ idle → identifying → choosing_form → asking(step) → confirming_summary �
 
 ## Langkah per pesan masuk
 
-1. Kenali penyuluh dari `phone_e164` / `telegram_chat_id`. Tidak dikenal → balas cara mendaftar, berhenti.
-2. Bila ada beberapa struktur aktif, tawarkan pilihan.
+1. Kenali penyuluh dari `chat_contexts` dan `extension_workers` (`phone_e164` / `telegram_chat_id`). Pesan yang berisi **kode gabung** yang dikenali memicu state `joining`: validasi kode, buat atau temukan ikatan, lalu lanjut. Tidak terikat dan bukan kode → balas cara bergabung, berhenti. Lihat [join-codes.md](join-codes.md).
+2. Bila ada beberapa struktur aktif, atau penyuluh terikat ke lebih dari satu topik (bisa di organisasi berbeda), tawarkan pilihan berisi nama organisasi dan topik.
 3. Validasi jawaban sesuai tipe `field`:
 
 | Tipe | Validasi deterministik | Fallback |

@@ -19,9 +19,11 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `users` | email (unik, huruf kecil), name, password_hash (null bila hanya Google), email_verified_at, google_sub (unik), organization, created_at, updated_at | Rincian: [auth.md](../06-domain-guides/auth.md#tabel) |
 | `members` | workspace_id, user_id, role (`admin`, `form_editor`, `reviewer`), approved_at | |
 | `sessions` | user_id, token_hash (unik), user_agent, ip, created_at, last_seen_at, expires_at, revoked_at | Token mentah hanya di cookie; `city` untuk halaman Keamanan diturunkan dari IP saat ditampilkan |
-| `channels` | workspace_id, type (`whatsapp`, `telegram`), credentials_encrypted, status, display_name, phone_number_id / bot_username | |
-| `extension_workers` | workspace_id, name, region_id, phone_e164, telegram_chat_id, verified_at, status | Unik per workspace: phone, telegram_chat_id |
-| `extension_worker_invites` | extension_worker_id, token_hash, channel, sent_at, accepted_at | |
+| `channels` | type (`whatsapp`, `telegram`), status, display_name, phone_number_id / bot_username, workspace_id (`NULL` = bot platform) | Bot bersama; kredensial di rahasia lingkungan, bukan di tabel ([join-codes.md](../06-domain-guides/join-codes.md)) |
+| `join_codes` | workspace_id, form_id, code (unik), status (`active`, `paused`, `revoked`), approval_mode (`auto`, `manual`), expires_at, max_uses, use_count, created_by, revoked_at | Satu `active` per form; dibuat otomatis saat form dibuat |
+| `chat_contexts` | channel_id, chat_id, extension_worker_id, updated_at | Topik aktif per identitas chat; unik (channel_id, chat_id) |
+| `extension_workers` | workspace_id, name, region_id, phone_e164, telegram_chat_id, joined_via_code_id, joined_at, status (`pending_approval`, `active`, `blocked`) | Dibuat saat klaim kode. Unik per workspace: phone, telegram_chat_id |
+| ~~`extension_worker_invites`~~ | - | Dihapus (B-048); digantikan `join_codes` |
 | `reference_data` | workspace_id, type (`region`, `commodity`, `farmer_group`, `unit`), value, aliases text[], parent_id | Alias untuk mencocokkan kata lokal |
 | `forms` | workspace_id, name, status (`draft`, `pilot`, `active`, `archived`), current_version_id | Struktur data |
 | `form_versions` | form_id, version, definition JSONB, published_at | Tidak pernah diubah setelah dipublikasikan |

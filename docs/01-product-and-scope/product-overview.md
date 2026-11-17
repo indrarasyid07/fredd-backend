@@ -21,7 +21,7 @@ Acuan desain: halaman canvas Login Register V.1, Dashboard V.1, Struktur Data Ba
 
 ## Alur utama admin
 
-1. **Persiapan:** hubungkan kanal, siapkan data rujukan (wilayah, komoditas, kelompok tani, satuan), undang dan verifikasi penyuluh.
+1. **Persiapan:** siapkan data rujukan (wilayah, komoditas, kelompok tani, satuan). Kanal sudah tersedia (satu bot WhatsApp dan satu Telegram untuk semua); penyuluh bergabung dengan mengirim kode gabung topik ([join-codes.md](../06-domain-guides/join-codes.md)).
 2. **Rancang:** informasi dasar, susun isian (teks, angka, pilihan, foto, lokasi, tanggal), aturan JIKA/MAKA dan validasi.
 3. **Uji:** pemeriksaan otomatis, uji di akun sendiri.
 4. **Pilot:** 2–3 penyuluh di satu wilayah, ukur tingkat selesai.

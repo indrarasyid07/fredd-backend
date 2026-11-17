@@ -18,7 +18,9 @@ Padanan istilah domain (Bahasa Indonesia, dipakai di UI dan percakapan) dengan n
 | Wilayah | `region` | Kabupaten/kecamatan/desa |
 | Komoditas | `commodity` | Padi, Jagung, Cabai, … |
 | Kelompok tani | `farmer_group` | |
-| Kanal | `channel` | WhatsApp atau Telegram |
+| Kanal | `channel` | WhatsApp atau Telegram; satu bot bersama untuk seluruh platform (B-048) |
+| Kode gabung | `join_code` | Kode otomatis per struktur data yang dikirim penyuluh ke bot untuk bergabung, contoh `K7M2-9QXA` |
+| Ikatan | `binding` | Hubungan identitas chat penyuluh dengan organisasi dan topik lewat kode gabung |
 | Percakapan | `conversation` | Sesi pengisian satu struktur oleh satu penyuluh |
 | Draf | `draft_answers` | Jawaban sementara sebelum dikirim |
 | Ambil alih | `takeover` | Admin membalas langsung, Fluctuz berhenti sementara |
@@ -35,7 +37,7 @@ Padanan istilah domain (Bahasa Indonesia, dipakai di UI dan percakapan) dengan n
 | Jam tenang | `quiet_hours` | Pengingat tidak dikirim |
 | Jam operasional | `operating_hours` | |
 | Pengingat | `reminder` | |
-| Undangan | `invite` | |
+| Undangan | `invite` | Tidak dipakai untuk penyuluh sejak B-048 (diganti kode gabung); tetap dipakai untuk anggota tim (`/members/invites`) |
 | Prospek (form landing page) | `lead` | |
 | Paket | `plan` | Gratis, Plus, Starter, Growth, Enterprise |
 | Artikel | `article` | Tulisan blog; jenis `post` atau `external` (liputan media) |

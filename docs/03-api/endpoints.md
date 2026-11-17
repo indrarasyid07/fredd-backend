@@ -63,8 +63,10 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 |---|---|---|
 | GET, POST | `/extension-workers` | reviewer / admin |
 | GET, PATCH, DELETE | `/extension-workers/{id}` | reviewer / admin |
-| POST | `/extension-workers/invites` | admin |
-| POST | `/extension-workers/invites/{id}/resend` | admin |
+| GET, PATCH | `/forms/{id}/join-code` | reviewer / admin (PATCH: admin) |
+| POST | `/forms/{id}/join-code/rotate` | admin |
+| POST | `/extension-workers/{id}/approve`, `/block` | admin |
+| ~~POST~~ | ~~`/extension-workers/invites`, `/invites/{id}/resend`~~ | dihapus (B-048) |
 
 ## Dashboard
 
@@ -107,12 +109,9 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 
 | Method | Path | Peran |
 |---|---|---|
-| GET | `/channels` | admin |
-| POST | `/channels/telegram` | admin (body: bot token) |
-| POST | `/channels/whatsapp` | admin (hasil Embedded Signup Meta) |
-| POST | `/channels/{id}/test` | admin |
-| DELETE | `/channels/{id}` | admin |
-| GET | `/channels/{id}/logs` | admin |
+| GET | `/bots` | semua anggota (hanya baca: nomor WhatsApp, username Telegram, status) |
+| GET | `/channels/logs` | admin (aktivitas pesan organisasi di bot bersama) |
+| ~~POST, DELETE~~ | ~~`/channels/telegram`, `/channels/whatsapp`, `/channels/{id}/test`, `/channels/{id}`~~ | dihapus (B-048): organisasi tidak menghubungkan kanal |
 
 ## Analitik
 
@@ -128,7 +127,7 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 |---|---|---|
 | GET | `/webhooks/whatsapp` | Verifikasi `hub.challenge` dari Meta |
 | POST | `/webhooks/whatsapp` | Pesan masuk + status; wajib `X-Hub-Signature-256` |
-| POST | `/webhooks/telegram/{channel_id}` | Wajib header `X-Telegram-Bot-Api-Secret-Token` |
+| POST | `/webhooks/telegram` | Wajib header `X-Telegram-Bot-Api-Secret-Token`; satu URL untuk bot platform |
 
 ## Paket dan tagihan
 
