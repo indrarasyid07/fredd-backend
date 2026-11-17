@@ -1,6 +1,8 @@
+import re
 from functools import cached_property
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,6 +12,16 @@ class Settings(BaseSettings):
     environment: Literal["development", "staging", "production"] = "development"
     database_url: str
     redis_url: str
+
+    @field_validator("database_url")
+    @classmethod
+    def _asyncpg_url(cls, url: str) -> str:
+        """Accept the plain URL that Neon and Vercel hand out and turn it into the asyncpg form."""
+        url = re.sub(r"^postgres(ql)?(\+\w+)?://", "postgresql+asyncpg://", url)
+        if "sslmode=" in url or "channel_binding=" in url:
+            url = re.sub(r"[?&](sslmode|channel_binding)=[^&]*", "", url)
+            url += ("&" if "?" in url else "?") + "ssl=require"
+        return url
 
     # Public URL of the web app; requests that change data must come from this origin.
     app_base_url: str = "http://localhost:3000"
