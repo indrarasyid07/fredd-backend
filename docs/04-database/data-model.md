@@ -15,25 +15,32 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 
 | Tabel | Kolom penting | Catatan |
 |---|---|---|
-| `workspaces` | name, timezone (`Asia/Jakarta`), operating_hours, quiet_hours, retention_conversations_months, retention_photos_months | |
-| `users` | email, name, google_sub | |
+| `workspaces` | name, type (`personal`/`organization`), timezone (`Asia/Jakarta`), operating_hours, quiet_hours, retention_conversations_months, retention_photos_months, require_sso | |
+| `users` | email (unik, huruf kecil), name, password_hash (null bila hanya Google), email_verified_at, google_sub (unik), organization, created_at, updated_at | Rincian: [auth.md](../06-domain-guides/auth.md#tabel) |
 | `members` | workspace_id, user_id, role (`admin`, `form_editor`, `reviewer`), approved_at | |
-| `sessions` | user_id, token_hash, user_agent, ip, city, expires_at, revoked_at | Token mentah hanya di cookie |
-| `channels` | workspace_id, type (`whatsapp`, `telegram`), credentials_encrypted, status, display_name, phone_number_id / bot_username | |
-| `extension_workers` | workspace_id, name, region_id, phone_e164, telegram_chat_id, verified_at, status | Unik per workspace: phone, telegram_chat_id |
-| `extension_worker_invites` | extension_worker_id, token_hash, channel, sent_at, accepted_at | |
+| `sessions` | user_id, token_hash (unik), user_agent, ip, created_at, last_seen_at, expires_at, revoked_at | Token mentah hanya di cookie; `city` untuk halaman Keamanan diturunkan dari IP saat ditampilkan |
+| `channels` | type (`whatsapp`, `telegram`), status, display_name, phone_number_id / bot_username, workspace_id (`NULL` = bot platform) | Bot bersama; kredensial di rahasia lingkungan, bukan di tabel ([join-codes.md](../06-domain-guides/join-codes.md)) |
+| `join_codes` | workspace_id, form_id, code (unik), status (`active`, `paused`, `revoked`), approval_mode (`auto`, `manual`), expires_at, max_uses, use_count, created_by, revoked_at | Satu `active` per form; dibuat otomatis saat form dibuat |
+| `chat_contexts` | channel_id, chat_id, extension_worker_id, updated_at | Topik aktif per identitas chat; unik (channel_id, chat_id) |
+| `extension_workers` | workspace_id, name, region_id, phone_e164, telegram_chat_id, joined_via_code_id, joined_at, status (`pending_approval`, `active`, `blocked`) | Dibuat saat klaim kode. Unik per workspace: phone, telegram_chat_id |
+| ~~`extension_worker_invites`~~ | - | Dihapus (B-048); digantikan `join_codes` |
 | `reference_data` | workspace_id, type (`region`, `commodity`, `farmer_group`, `unit`), value, aliases text[], parent_id | Alias untuk mencocokkan kata lokal |
 | `forms` | workspace_id, name, status (`draft`, `pilot`, `active`, `archived`), current_version_id | Struktur data |
 | `form_versions` | form_id, version, definition JSONB, published_at | Tidak pernah diubah setelah dipublikasikan |
 | `form_assignments` | form_version_id, extension_worker_id | Pilot = sebagian penyuluh |
 | `conversations` | workspace_id, extension_worker_id, form_version_id, channel_id, step, draft_answers JSONB, status, failed_attempts, last_inbound_at, taken_over_by, taken_over_at, next_reminder_at | `last_inbound_at` untuk jendela 24 jam WA |
 | `messages` | conversation_id, direction (`in`, `out`), body, media_key, external_id, channel_sent_at, processed_at, delivery_status | `UNIQUE (channel_id, external_id)` |
-| `reports` | workspace_id, code, form_version_id, extension_worker_id, conversation_id, answers JSONB, latitude, longitude, accuracy_m, region_id, commodity_id, condition, needs_review, received_at | Kolom filter disalin dari `answers` dan diindeks |
+| `reports` | workspace_id, code, form_version_id, extension_worker_id, conversation_id, answers JSONB, latitude, longitude, accuracy_m, region_id, commodity_id, condition, area_ha, plot_key, complete, needs_review, received_at | Kolom filter disalin dari `answers` dan diindeks |
+| `report_exports` | workspace_id, requested_by, params JSONB, status, object_key, row_count, error, created_at, finished_at, expires_at | Ekspor dashboard; lihat [dashboard.md](../06-domain-guides/dashboard.md#model-data-tambahan) |
 | `report_photos` | report_id, object_key, size_bytes, blur_score, ai_note | |
 | `report_follow_ups` | report_id, assignee_member_id, priority, status, note | |
 | `activity_events` | workspace_id, occurred_at, extension_worker_id, channel, type, details JSONB, status | Log Aktivitas Agent |
-| `audit_logs` | workspace_id, actor_user_id, action, target, metadata JSONB | Ekspor, ubah peran, publikasi, takeover, hapus |
-| `leads` | name, email, organization, message, source | Dari form landing page |
+| `audit_logs` | workspace_id (null untuk aksi platform, mis. artikel), actor_user_id, action, target, metadata JSONB | Ekspor, ubah peran, publikasi, takeover, hapus |
+| `leads` | name, email, organization, message, source | Dari form landing page dan "Hubungi kami" Enterprise |
+| `plans`, `subscriptions`, `payments`, `usage_counters` | lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#model-data) | Paket, langganan, kuota |
+| `auth_tokens` | user_id, purpose (`verify_email`, `reset_password`), token_hash, expires_at, used_at | Token sekali pakai; hanya hash yang disimpan ([auth.md](../06-domain-guides/auth.md#tabel)) |
+| `articles`, `article_categories`, `article_media`, `article_revisions` | lihat [articles.md](../06-domain-guides/articles.md#model-data) | Blog; data platform, **tanpa `workspace_id`** |
+| `users.platform_role` | `content_author`, `content_editor`, atau null | Peran konten Fluctuz, diberikan lewat CLI |
 
 ## Detail penting
 

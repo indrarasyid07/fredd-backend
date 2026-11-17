@@ -1,19 +1,27 @@
 # Endpoints
 
-Sketsa awal. Sumber kebenaran setelah implementasi adalah OpenAPI yang di-generate FastAPI. Semua di bawah prefix `/api/v1` kecuali webhook.
+Sketsa awal. Sumber kebenaran setelah implementasi adalah OpenAPI yang di-generate FastAPI. Semua respons JSON memakai [format standar](api-conventions.md#format-respons). Semua di bawah prefix `/api/v1` kecuali webhook.
 
 Kolom "Peran" = peran minimum: `reviewer` < `form_editor` < `admin`.
 
 ## Auth & sesi
 
-| Method | Path | Peran | Keterangan |
-|---|---|---|---|
-| GET | `/auth/google/login` | publik | Redirect ke Google |
-| GET | `/auth/google/callback` | publik | Buat sesi, set cookie |
-| POST | `/auth/logout` | login | Cabut sesi saat ini |
-| GET | `/auth/me` | login | User, workspace, peran |
-| GET | `/auth/sessions` | login | Sesi aktif milik user |
-| DELETE | `/auth/sessions/{id}` | login | Keluarkan sesi lain |
+Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/auth.md). Kolom "Irisan" = urutan pengerjaan; irisan 1-4 sudah dibangun (16 November 2026), `/auth/sessions` belum.
+
+| Irisan | Method | Path | Peran | Keterangan |
+|---|---|---|---|---|
+| 1 | POST | `/auth/login` | publik | Email + kata sandi → `MeResponse` + cookie sesi; rate limit |
+| 1 | POST | `/auth/logout` | opsional | Cabut sesi saat ini; selalu `200`, `data: null` |
+| 1 | GET | `/auth/me` | login | `MeResponse`: user + keanggotaan workspace |
+| 2 | POST | `/auth/register` | publik | Email, nama, instansi, kata sandi; kirim email verifikasi |
+| 2 | POST | `/auth/verify-email` | publik | Token dari email; sukses langsung membuat sesi |
+| 2 | POST | `/auth/verify-email/resend` | publik | Selalu `200` |
+| 3 | POST | `/auth/password/forgot` | publik | Selalu `200` (tidak membocorkan email terdaftar) |
+| 3 | POST | `/auth/password/reset` | publik | Token 30 menit + kata sandi baru; cabut semua sesi |
+| 4 | GET | `/auth/google/login` | publik | Redirect ke Google (bukan JSON) |
+| 4 | GET | `/auth/google/callback` | publik | Buat sesi, redirect ke `next` (bukan JSON) |
+| – | GET | `/auth/sessions` | login | Sesi aktif milik user |
+| – | DELETE | `/auth/sessions/{id}` | login | Keluarkan sesi lain |
 
 ## Workspace & anggota
 
@@ -55,44 +63,55 @@ Kolom "Peran" = peran minimum: `reviewer` < `form_editor` < `admin`.
 |---|---|---|
 | GET, POST | `/extension-workers` | reviewer / admin |
 | GET, PATCH, DELETE | `/extension-workers/{id}` | reviewer / admin |
-| POST | `/extension-workers/invites` | admin |
-| POST | `/extension-workers/invites/{id}/resend` | admin |
+| GET, PATCH | `/forms/{id}/join-code` | reviewer / admin (PATCH: admin) |
+| POST | `/forms/{id}/join-code/rotate` | admin |
+| POST | `/extension-workers/{id}/approve`, `/block` | admin |
+| ~~POST~~ | ~~`/extension-workers/invites`, `/invites/{id}/resend`~~ | dihapus (B-048) |
+
+## Dashboard
+
+Rancangan, belum dibangun. Rincian, skema respons, dan definisi angka: [dashboard.md](../06-domain-guides/dashboard.md).
+
+| Method | Path | Peran |
+|---|---|---|
+| GET | `/dashboard/summary?range=today\|7d\|30d` | reviewer (KPI, 7 hari, kondisi, wilayah teratas, status persiapan) |
+
+Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivitas di bawah.
 
 ## Laporan (field reports)
 
 | Method | Path | Peran |
 |---|---|---|
 | GET | `/reports` | reviewer (filter, cursor) |
-| GET | `/reports/map` | reviewer (agregat per wilayah + titik) |
+| GET | `/reports/map` | reviewer (agregat per wilayah + titik; [dashboard.md](../06-domain-guides/dashboard.md#get-reportsmaprangeform_idcondition)) |
+| GET | `/reports/count` | reviewer (jumlah untuk jendela unduh) |
 | GET | `/reports/photos` | reviewer (galeri) |
 | GET | `/reports/{id}` | reviewer |
 | PATCH | `/reports/{id}/review` | reviewer (tandai ditinjau) |
 | PUT | `/reports/{id}/follow-up` | reviewer (status, assignee, prioritas, catatan) |
-| GET | `/reports/export?format=xlsx` | form_editor |
+| POST | `/reports/exports` | form_editor (pekerjaan ekspor PDF/Excel/CSV; menggantikan `GET /reports/export`) |
+| GET | `/reports/exports/{id}` | pembuat / admin (status + tautan unduh) |
 
 ## Aktivitas & percakapan
 
 | Method | Path | Peran |
 |---|---|---|
 | GET | `/activity` | reviewer |
-| GET | `/events` | reviewer (SSE) |
+| GET | `/events` | reviewer (SSE; `report.created`, `report.updated`, `worker.activity`, `conversation.needs_help`, `export.ready`; [dashboard.md](../06-domain-guides/dashboard.md#event-realtime-sse)) |
 | GET | `/conversations?status=needs_help` | reviewer |
 | GET | `/conversations/{id}` | reviewer |
 | POST | `/conversations/{id}/takeover` | admin (409 bila sudah diambil admin lain) |
 | POST | `/conversations/{id}/messages` | admin (hanya pemilik takeover) |
-| POST | `/conversations/{id}/release` | admin (kembalikan ke Fredd) |
+| POST | `/conversations/{id}/release` | admin (kembalikan ke Fluctuz) |
 | POST | `/agent/pause`, `/agent/resume` | admin |
 
 ## Kanal
 
 | Method | Path | Peran |
 |---|---|---|
-| GET | `/channels` | admin |
-| POST | `/channels/telegram` | admin (body: bot token) |
-| POST | `/channels/whatsapp` | admin (hasil Embedded Signup Meta) |
-| POST | `/channels/{id}/test` | admin |
-| DELETE | `/channels/{id}` | admin |
-| GET | `/channels/{id}/logs` | admin |
+| GET | `/bots` | semua anggota (hanya baca: nomor WhatsApp, username Telegram, status) |
+| GET | `/channels/logs` | admin (aktivitas pesan organisasi di bot bersama) |
+| ~~POST, DELETE~~ | ~~`/channels/telegram`, `/channels/whatsapp`, `/channels/{id}/test`, `/channels/{id}`~~ | dihapus (B-048): organisasi tidak menghubungkan kanal |
 
 ## Analitik
 
@@ -108,7 +127,34 @@ Kolom "Peran" = peran minimum: `reviewer` < `form_editor` < `admin`.
 |---|---|---|
 | GET | `/webhooks/whatsapp` | Verifikasi `hub.challenge` dari Meta |
 | POST | `/webhooks/whatsapp` | Pesan masuk + status; wajib `X-Hub-Signature-256` |
-| POST | `/webhooks/telegram/{channel_id}` | Wajib header `X-Telegram-Bot-Api-Secret-Token` |
+| POST | `/webhooks/telegram` | Wajib header `X-Telegram-Bot-Api-Secret-Token`; satu URL untuk bot platform |
+
+## Paket dan tagihan
+
+Rincian: [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#endpoint).
+
+| Method | Path | Peran |
+|---|---|---|
+| GET | `/billing/plans?type=personal\|organization` | publik |
+| GET | `/billing/subscription`, `/billing/usage` | login |
+| POST | `/billing/checkout`, `/billing/cancel` | admin |
+| POST | `/webhooks/payments/{provider}` (tanpa `/api/v1`) | penyedia pembayaran, tanda tangan wajib |
+
+## Artikel
+
+Rancangan, belum dibangun. Rincian: [articles.md](../06-domain-guides/articles.md). Peran di kolom ini adalah **peran platform** (`content_author` < `content_editor`), bukan peran workspace.
+
+| Method | Path | Peran |
+|---|---|---|
+| GET | `/public/articles`, `/public/articles/{slug}`, `/public/article-categories` | publik |
+| GET, POST | `/articles` | content_author |
+| GET, PATCH, DELETE | `/articles/{id}` | content_author (draf milik sendiri) / content_editor |
+| POST | `/articles/{id}/submit` | content_author |
+| POST | `/articles/{id}/return`, `/publish`, `/schedule`, `/unpublish`, `/archive`, `/restore` | content_editor |
+| PUT | `/articles/{id}/featured` | content_editor |
+| GET, POST | `/articles/{id}/revisions`, `/articles/{id}/revisions/{rev}/restore` | content_author (lihat) / content_editor (pulihkan) |
+| POST | `/article-media` | content_author (multipart) |
+| GET, POST, PATCH, DELETE | `/article-categories` | GET content_author, sisanya content_editor |
 
 ## Publik (untuk website)
 

@@ -1,5 +1,7 @@
 # Messaging Channels
 
+> **Diubah 17 November 2026 (B-048):** seluruh platform memakai satu bot WhatsApp dan satu bot Telegram; organisasi dan topik dibedakan dengan kode gabung. Lihat [join-codes.md](join-codes.md). Bagian di bawah yang menyebut penghubungan kanal per organisasi, token yang ditempel admin, atau undangan lewat nomor sudah tidak berlaku dan ditandai.
+
 Modul `channels/`. Dua adapter tipis di atas httpx dengan satu antarmuka; tanpa framework bot.
 
 ```python
@@ -13,19 +15,19 @@ class Channel(Protocol):
 
 ## WhatsApp: Cloud API resmi
 
-Desain canvas memakai pindai QR (perangkat tertaut). Itu jalur tidak resmi (Baileys / whatsapp-web.js): melanggar ToS dan berisiko nomor diblokir, terutama untuk pesan proaktif seperti pengingat. Fredd memakai **WhatsApp Business Cloud API** (langsung ke Meta atau lewat BSP).
+Desain canvas memakai pindai QR (perangkat tertaut). Itu jalur tidak resmi (Baileys / whatsapp-web.js): melanggar ToS dan berisiko nomor diblokir, terutama untuk pesan proaktif seperti pengingat. Fluctuz memakai **WhatsApp Business Cloud API** (langsung ke Meta atau lewat BSP).
 
 Konsekuensi:
 
-- Layar "Hubungkan Kanal" WhatsApp diganti alur **Embedded Signup** Meta (login Facebook → pilih WABA → pilih nomor).
+- ~~Layar "Hubungkan Kanal" WhatsApp diganti alur Embedded Signup Meta.~~ Tidak berlaku: satu nomor dan satu WABA dimiliki Fluctuz. Admin organisasi tidak menghubungkan apa pun; mereka membagikan kode gabung.
 - **Jendela layanan 24 jam.** Teks bebas dan tombol hanya boleh dikirim dalam 24 jam sejak pesan terakhir penyuluh (`conversations.last_inbound_at`). Di luar itu adapter otomatis memakai template. Template yang perlu didaftarkan dan disetujui Meta:
 
 | Template | Kategori | Isi |
 |---|---|---|
-| `fredd_intro` | utility | Perkenalan saat struktur dipublikasikan |
-| `fredd_invite` | utility | Undangan + tautan verifikasi |
-| `fredd_resume` | utility | "Laporan {1} berhenti di langkah {2}. Lanjutkan?" + tombol |
-| `fredd_reminder` | utility | Pengingat laporan rutin |
+| `fluctuz_intro` | utility | Perkenalan saat struktur dipublikasikan |
+| ~~`fluctuz_invite`~~ | - | Dihapus: penyuluh yang memulai chat dengan kode, jadi tidak ada pesan undangan dari bisnis |
+| `fluctuz_resume` | utility | "Laporan {1} berhenti di langkah {2}. Lanjutkan?" + tombol |
+| `fluctuz_reminder` | utility | Pengingat laporan rutin |
 
 - **Batas format:** reply buttons maks 3, list message maks 10 baris.
 - **Media:** URL unduhan dari Meta cepat kedaluwarsa; worker langsung mengunduh ke S3.
@@ -34,9 +36,9 @@ Konsekuensi:
 
 ## Telegram: Bot API
 
-- Admin membuat bot di @BotFather dan menempel token (alur desain sudah benar).
-- Backend memanggil `getMe` (uji koneksi) lalu `setWebhook` ke `/webhooks/telegram/{channel_id}` dengan `secret_token` acak.
-- Tidak ada jendela 24 jam, tetapi penyuluh harus menekan Start dulu sebelum bot bisa mengirim pesan; tautan undangan memakai `t.me/<bot>?start=<invite_token>` untuk sekaligus memverifikasi.
+- Satu bot milik Fluctuz dibuat operator di @BotFather; token disimpan sebagai rahasia lingkungan, bukan per organisasi.
+- Operator memanggil `getMe` lalu `setWebhook` sekali ke `/webhooks/telegram` dengan `secret_token` acak.
+- Tidak ada jendela 24 jam, tetapi penyuluh harus menekan Start dulu; tautan kode gabung `t.me/<bot>?start=<kode>` sekaligus memulai dan mengikat penyuluh ke topik.
 - Setiap tombol inline yang ditekan dijawab `answerCallbackQuery` agar tombol tidak terus berputar.
 - Batas ~30 pesan/detik per bot; pengiriman massal (pengumuman) lewat antrean.
 

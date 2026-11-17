@@ -1,0 +1,8 @@
+{
+  "password": "rahasia123",
+  "users": [
+    { "email": "dina@contoh.id", "name": "Dina Admin" },
+    { "email": "fajar@contoh.id", "name": "Fajar Editor Form" },
+    { "email": "rani@contoh.id", "name": "Rani Reviewer" }
+  ]
+}

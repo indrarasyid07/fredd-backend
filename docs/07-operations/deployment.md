@@ -1,21 +1,28 @@
 # Deployment
 
-Layanan, reverse proxy, database, backup, dan observabilitas diatur di [infra/docs](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/README.md):
+Layanan, reverse proxy, database, backup, dan observabilitas diatur di [infra/docs](https://gitlab.com/databiota-fredd/infra/-/blob/development/docs/README.md):
 
-- Topologi dan layanan: [infrastructure-architecture.md](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/02-architecture/infrastructure-architecture.md)
-- Deploy, Caddy, observabilitas: [infra deployment](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/07-operations/deployment.md)
-- Postgres, Redis, backup, restore: [database-operations.md](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/04-database/database-operations.md)
-- Development lokal: [local-development.md](https://gitlab.com/databiota-fredd/infra/-/blob/main/docs/06-domain-guides/local-development.md)
+- Topologi dan layanan: [infrastructure-architecture.md](https://gitlab.com/databiota-fredd/infra/-/blob/development/docs/02-architecture/infrastructure-architecture.md)
+- Deploy, Caddy, observabilitas: [infra deployment](https://gitlab.com/databiota-fredd/infra/-/blob/development/docs/07-operations/deployment.md)
+- Postgres, Redis, backup, restore: [database-operations.md](https://gitlab.com/databiota-fredd/infra/-/blob/development/docs/04-database/database-operations.md)
+- Development lokal: [local-development.md](https://gitlab.com/databiota-fredd/infra/-/blob/development/docs/06-domain-guides/local-development.md)
 
 Dokumen ini hanya berisi hal yang khusus aplikasi backend.
 
 ## Proses
 
+
 | Proses | Perintah |
 |---|---|
-| API | `uvicorn fredd.main:app --proxy-headers` |
-| Worker | `arq fredd.worker.WorkerSettings` |
+| API | `uvicorn app.main:app --proxy-headers` |
+| Worker | `arq app.worker.WorkerSettings` |
 | Migrasi (sekali per deploy) | `alembic upgrade head` |
+
+## Image Docker
+
+[`Dockerfile`](../../Dockerfile): `python:3.14-slim` + uv 0.13.7, dependensi dari `uv.lock` (`uv sync --locked --no-dev`), user non-root `fluctuz`, health check ke `/api/v1/health`. `.dockerignore` mengecualikan `.env`, `.venv`, cache, `docs/`, dan `tests/`.
+
+Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command berbeda. Env diberikan oleh compose, bukan file `.env` di dalam image. Menjalankan secara lokal: lihat [local-development](https://gitlab.com/databiota-fredd/infra/-/blob/development/docs/06-domain-guides/local-development.md).
 
 ## Konfigurasi (env)
 
@@ -23,7 +30,8 @@ Dokumen ini hanya berisi hal yang khusus aplikasi backend.
 |---|---|
 | `DATABASE_URL` | `postgresql+asyncpg://…` |
 | `REDIS_URL` | |
-| `APP_BASE_URL` | `https://fredd.id` (untuk Origin check, callback OAuth, webhook) |
+| `APP_BASE_URL` | `https://fluctuz.id` (untuk Origin check, callback OAuth, webhook) |
+| `ALLOWED_ORIGINS` | Origin tambahan yang lolos cek CSRF, dipisah koma; development: `http://localhost:3000,http://localhost:8080` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | |
 | `ENCRYPTION_KEYS` | Daftar kunci Fernet dipisah koma, terbaru di depan |
 | `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | WhatsApp Cloud API |
