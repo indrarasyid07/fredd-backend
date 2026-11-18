@@ -24,9 +24,10 @@ def already_registered() -> tuple[str, str]:
 
 
 def reset_password(token: str) -> tuple[str, str]:
+    link = _url(f"/login/reset-password?token={token}")
     return "Atur ulang kata sandi Fluctuz", (
         "Halo,\n\nKami menerima permintaan mengatur ulang kata sandi akun Fluctuz Anda. Buka "
-        f"tautan ini (berlaku 30 menit, sekali pakai):\n\n{_url(f'/login/reset-password?token={token}')}"
+        f"tautan ini (berlaku 30 menit, sekali pakai):\n\n{link}"
         "\n\nJika Anda tidak memintanya, abaikan email ini; kata sandi Anda tidak berubah."
         "\n\nTim Fluctuz\n"
     )

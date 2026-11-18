@@ -31,4 +31,12 @@ Urut dari risiko tertinggi:
 
 ## CI
 
-Setiap push: `ruff check`, `ruff format --check`, `pyright`, `pytest`. Ekspor `openapi.json` dan bandingkan dengan yang di-commit agar frontend tahu ada perubahan kontrak.
+GitHub Actions (`.github/workflows/ci.yml`) berjalan pada setiap PR dan push ke `development`/`main`, dengan service Postgres 17 dan Redis 8:
+
+1. `uv sync --locked`, `ruff check`, `ruff format --check` (folder `docs/` dikecualikan), `pyright`.
+2. Satu head Alembic (`alembic heads` harus satu baris) agar dua migrasi paralel ketahuan sebelum merge.
+3. `pytest --cov=app`: laporan cakupan tampil di log CI, belum ada ambang wajib.
+4. Ekspor `openapi.json` lalu `git diff --exit-code`: kontrak yang berubah wajib ikut di-commit.
+5. Khusus PR: pesan commit dicek terhadap larangan atribusi alat dan referensi desain (`00-governance/commit-conventions.md`).
+
+Dependabot (`.github/dependabot.yml`) membuka PR mingguan (Senin) ke `development` untuk dependency uv dan action GitHub, dikelompokkan (B-058).
