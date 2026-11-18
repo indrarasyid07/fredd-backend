@@ -2,6 +2,11 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Akun demo dengan peran berbeda (Langkah 1.7)
+
+- `scripts.seed demo` kini juga membuat workspace Organisasi "Fluctuz Indonesia" dengan Dina (`admin`), Fajar (`form_editor`), dan Rani (`reviewer`); idempoten lewat `settings.seed_key`. Service `workspaces.seed_organization` (khusus seed).
+- 2 tes baru (total 88).
+
 ## 2026-11-18 · Nilai kondisi tanaman (keputusan D2)
 
 - Satu set nilai di semua dokumen: `healthy` / `attention` / `infected` (B-052). Glosarium, `data-model.md`, dan contoh di `api-conventions.md` disamakan; kode backend belum memakai nilai ini.
