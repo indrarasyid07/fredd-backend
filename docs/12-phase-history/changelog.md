@@ -2,6 +2,20 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Workspace aktif dan peran nyata (Langkah 1.3)
+
+- `/auth/me` kini mengisi `memberships` (hanya yang disetujui; Perorangan dulu). Bentuk `MeResponse` tidak berubah, jadi `openapi.json` tetap.
+- Header `X-Workspace-Id` memilih workspace aktif; dependency `CurrentMember` (`app/api/deps.py`) memvalidasinya. Kode error baru `workspace_required` (400) dan `workspace_not_found` (404) (B-051).
+- Tes bisa memakai `TEST_DATABASE_URL` agar tetap di Postgres lokal saat `DATABASE_URL` menunjuk pooler bersama (Neon).
+- 10 tes baru (total 72).
+
+## 2026-11-18 · Workspaces dan anggota (Langkah 1.1–1.2)
+
+- Modul `workspaces`: tabel `workspaces` dan `members` (migrasi `773a0a432ada`). Satu workspace Perorangan per user dijaga database; Organisasi tidak dibatasi (B-049, keputusan D13).
+- Workspace Perorangan paket Gratis dengan user sebagai `admin` dibuat otomatis saat verifikasi email, login Google, login, dan `create_user` (B-050). Migrasi juga membuatkannya untuk user yang sudah terverifikasi.
+- Belum ada endpoint baru; `openapi.json` tidak berubah. `memberships` di `/auth/me` menyusul di Langkah 1.3.
+- 11 tes baru (total 63).
+
 ## 2026-11-16 · Rancangan dashboard
 
 - Ditambahkan [dashboard.md](../06-domain-guides/dashboard.md): definisi tiap angka, endpoint `summary`, `reports/map`, `reports/{id}`, `reports/count`, ekspor, event SSE, kolom dan tabel tambahan, performa, tes wajib, dan irisan. `GET /reports/export` diganti `POST /reports/exports`. Keputusan B-044 s.d. B-047. Hanya dokumen; belum ada kode.

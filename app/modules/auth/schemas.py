@@ -1,7 +1,8 @@
 import uuid
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+from app.modules.workspaces.schemas import MembershipOut
 
 
 def _normalize_email(value: object) -> object:
@@ -48,13 +49,6 @@ class UserOut(BaseModel):
     id: uuid.UUID
     email: str
     name: str
-
-
-class MembershipOut(BaseModel):
-    workspace_id: uuid.UUID
-    workspace_name: str
-    workspace_type: Literal["personal", "organization"]
-    role: Literal["admin", "form_editor", "reviewer"]
 
 
 class MeResponse(BaseModel):

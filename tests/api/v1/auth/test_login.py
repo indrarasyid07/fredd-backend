@@ -18,7 +18,8 @@ async def test_login_sets_session_cookie_and_returns_me(
     assert body["success"] is True
     assert body["message"] == "Berhasil masuk."
     assert body["data"]["user"] == {"id": str(user.id), "email": user.email, "name": user.name}
-    assert body["data"]["memberships"] == []
+    [membership] = body["data"]["memberships"]
+    assert (membership["workspace_type"], membership["role"]) == ("personal", "admin")
 
     cookie = response.headers["set-cookie"]
     assert cookie.startswith("fluctuz_session=")
