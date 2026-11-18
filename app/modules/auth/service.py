@@ -27,6 +27,7 @@ from app.modules.auth.schemas import (
     ResetPasswordRequest,
     UserOut,
 )
+from app.modules.workspaces import service as workspaces_service
 
 LOGIN_WINDOW_SECONDS = 15 * 60
 LOGIN_LIMIT_PER_EMAIL = 5  # failures per ip + email
@@ -64,6 +65,8 @@ async def login(
         new_hash = await asyncio.to_thread(hash_password, password)
         await repository.update_password_hash(db, user, new_hash)
 
+    # Also covers users verified before the workspaces module existed.
+    await _ensure_workspace(db, user)
     token = await _start_session(db, user, ip=ip, user_agent=user_agent)
     await db.commit()
     await rate_limit.reset(email_key)
@@ -86,6 +89,11 @@ async def _start_session(
         expires_at=now + timedelta(days=settings.session_ttl_days),
     )
     return token
+
+
+async def _ensure_workspace(db: AsyncSession, user: User) -> None:
+    """Every verified user owns a personal workspace (ROADMAP 1.2); the caller commits."""
+    await workspaces_service.ensure_personal_workspace(db, user_id=user.id, user_name=user.name)
 
 
 async def logout(db: AsyncSession, token: str) -> None:
@@ -132,6 +140,7 @@ async def create_user(db: AsyncSession, *, email: str, name: str, password: str)
     user = await repository.create_user(
         db, email=email, name=name.strip(), password_hash=password_hash, email_verified_at=now_utc()
     )
+    await _ensure_workspace(db, user)
     await db.commit()
     return user
 
@@ -214,6 +223,7 @@ async def verify_email(
     if user is None:
         raise errors.InvalidToken(field="token")
     await repository.mark_email_verified(db, user, now)
+    await _ensure_workspace(db, user)
     session_token = await _start_session(db, user, ip=ip, user_agent=user_agent)
     await db.commit()
     return session_token, await get_me(db, user)
@@ -268,6 +278,7 @@ async def login_with_google(
             )
         else:
             await repository.link_google(db, user, profile.sub, now)
+    await _ensure_workspace(db, user)
     token = await _start_session(db, user, ip=ip, user_agent=user_agent)
     await db.commit()
     return token
