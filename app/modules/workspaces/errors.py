@@ -1,4 +1,4 @@
-from app.core.errors import AppError, NotFound
+from app.core.errors import AppError, Forbidden, NotFound
 
 
 class WorkspaceRequired(AppError):
@@ -12,3 +12,9 @@ class WorkspaceNotFound(NotFound):
 
     code = "workspace_not_found"
     message = "Workspace tidak ditemukan."
+
+
+class RoleTooLow(Forbidden):
+    """Approved member of the active workspace, but the role is below what the action needs."""
+
+    message = "Peran Anda di workspace ini tidak cukup untuk tindakan ini."
