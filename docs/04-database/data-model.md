@@ -65,12 +65,12 @@ WHERE id = :id AND taken_over_by IS NULL;
     { "key": "farmer_name", "type": "text", "question": "Siapa nama petaninya?", "required": true },
     { "key": "land_area_ha", "type": "number", "question": "Berapa luas lahan (ha)?", "min": 0, "max": 500, "review_above": 50 },
     { "key": "condition", "type": "choice", "question": "Bagaimana kondisi tanamannya?",
-      "options": [{"value": "healthy", "label": "Sehat"}, {"value": "needs_attention", "label": "Perlu perhatian"}, {"value": "infested", "label": "Terserang"}] },
+      "options": [{"value": "healthy", "label": "Sehat"}, {"value": "attention", "label": "Perlu perhatian"}, {"value": "infected", "label": "Terserang"}] },
     { "key": "photos", "type": "photo", "min": 1, "max": 3 },
     { "key": "location", "type": "location", "max_accuracy_m": 50 }
   ],
   "rules": [
-    { "if": { "field": "condition", "equals": "infested" }, "then": { "require": "photos" } }
+    { "if": { "field": "condition", "equals": "infected" }, "then": { "require": "photos" } }
   ]
 }
 ```

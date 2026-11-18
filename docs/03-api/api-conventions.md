@@ -168,7 +168,7 @@ Satu respons bisa berisi beberapa error (mis. dua field gagal validasi). `messag
 Daftar memakai pagination berbasis cursor. `data` berisi array; info halaman ada di `meta.pagination`.
 
 ```
-GET /api/v1/reports?form_id=…&region_id=…&channel=whatsapp&from=2026-11-01&to=2026-11-13&condition=infested&limit=50&cursor=eyJpZCI6…&sort=-received_at
+GET /api/v1/reports?form_id=…&region_id=…&channel=whatsapp&from=2026-11-01&to=2026-11-13&condition=infected&limit=50&cursor=eyJpZCI6…&sort=-received_at
 ```
 
 ```json
