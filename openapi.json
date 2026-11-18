@@ -494,6 +494,196 @@
         }
       }
     },
+    "/api/v1/workspace": {
+      "get": {
+        "tags": [
+          "workspace"
+        ],
+        "summary": "Get Workspace",
+        "operationId": "get_workspace_api_v1_workspace_get",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_WorkspaceOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workspace"
+        ],
+        "summary": "Update Workspace",
+        "operationId": "update_workspace_api_v1_workspace_patch",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_WorkspaceOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/members": {
       "get": {
         "tags": [
@@ -1883,6 +2073,54 @@
         ],
         "title": "ApiResponse[NoneType]"
       },
+      "ApiResponse_WorkspaceOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[WorkspaceOut]"
+      },
       "ApiResponse_list_AuditLogOut__": {
         "properties": {
           "success": {
@@ -2493,6 +2731,39 @@
         ],
         "title": "Meta"
       },
+      "OperatingHours": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "title": "End"
+          },
+          "days": {
+            "items": {
+              "type": "integer",
+              "maximum": 7.0,
+              "minimum": 1.0
+            },
+            "type": "array",
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "days"
+        ],
+        "title": "OperatingHours",
+        "description": "Working days (1 = Monday ... 7 = Sunday) and hours."
+      },
       "Pagination": {
         "properties": {
           "next_cursor": {
@@ -2522,6 +2793,27 @@
           "has_more"
         ],
         "title": "Pagination"
+      },
+      "QuietHours": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "title": "End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "QuietHours",
+        "description": "No reminders to extension workers between `start` and `end` (may cross midnight)."
       },
       "RegisterRequest": {
         "properties": {
@@ -2628,6 +2920,136 @@
         ],
         "title": "UpdateMemberRequest"
       },
+      "UpdateWorkspaceRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "org_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "government",
+                  "research",
+                  "company",
+                  "cooperative",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Type"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Asia/Jakarta",
+                  "Asia/Makassar",
+                  "Asia/Jayapura"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "date_format": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "day_month_year",
+                  "numeric"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Format"
+          },
+          "week_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "monday",
+                  "sunday"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week Start"
+          },
+          "operating_hours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperatingHours"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quiet_hours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuietHours"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retention_conversations_months": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 120.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Conversations Months"
+          },
+          "retention_photos_months": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 120.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Photos Months"
+          }
+        },
+        "type": "object",
+        "title": "UpdateWorkspaceRequest",
+        "description": "Only the fields present change. `operating_hours` / `quiet_hours` set to null clear them."
+      },
       "UserOut": {
         "properties": {
           "id": {
@@ -2691,6 +3113,129 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WorkspaceOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "organization"
+            ],
+            "title": "Type"
+          },
+          "org_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "government",
+                  "research",
+                  "company",
+                  "cooperative",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Type"
+          },
+          "timezone": {
+            "type": "string",
+            "enum": [
+              "Asia/Jakarta",
+              "Asia/Makassar",
+              "Asia/Jayapura"
+            ],
+            "title": "Timezone"
+          },
+          "date_format": {
+            "type": "string",
+            "enum": [
+              "day_month_year",
+              "numeric"
+            ],
+            "title": "Date Format"
+          },
+          "week_start": {
+            "type": "string",
+            "enum": [
+              "monday",
+              "sunday"
+            ],
+            "title": "Week Start"
+          },
+          "operating_hours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperatingHours"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quiet_hours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuietHours"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retention_conversations_months": {
+            "type": "integer",
+            "title": "Retention Conversations Months"
+          },
+          "retention_photos_months": {
+            "type": "integer",
+            "title": "Retention Photos Months"
+          },
+          "require_sso": {
+            "type": "boolean",
+            "title": "Require Sso"
+          },
+          "member_count": {
+            "type": "integer",
+            "title": "Member Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type",
+          "org_type",
+          "timezone",
+          "date_format",
+          "week_start",
+          "operating_hours",
+          "quiet_hours",
+          "retention_conversations_months",
+          "retention_photos_months",
+          "require_sso",
+          "member_count",
+          "created_at"
+        ],
+        "title": "WorkspaceOut"
       }
     }
   }
