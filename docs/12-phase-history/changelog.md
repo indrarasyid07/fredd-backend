@@ -2,6 +2,13 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Workspaces dan anggota (Langkah 1.1–1.2)
+
+- Modul `workspaces`: tabel `workspaces` dan `members` (migrasi `773a0a432ada`). Satu workspace Perorangan per user dijaga database; Organisasi tidak dibatasi (B-049, keputusan D13).
+- Workspace Perorangan paket Gratis dengan user sebagai `admin` dibuat otomatis saat verifikasi email, login Google, login, dan `create_user` (B-050). Migrasi juga membuatkannya untuk user yang sudah terverifikasi.
+- Belum ada endpoint baru; `openapi.json` tidak berubah. `memberships` di `/auth/me` menyusul di Langkah 1.3.
+- 11 tes baru (total 63).
+
 ## 2026-11-16 · Rancangan dashboard
 
 - Ditambahkan [dashboard.md](../06-domain-guides/dashboard.md): definisi tiap angka, endpoint `summary`, `reports/map`, `reports/{id}`, `reports/count`, ekspor, event SSE, kolom dan tabel tambahan, performa, tes wajib, dan irisan. `GET /reports/export` diganti `POST /reports/exports`. Keputusan B-044 s.d. B-047. Hanya dokumen; belum ada kode.

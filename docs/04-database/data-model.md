@@ -15,9 +15,9 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 
 | Tabel | Kolom penting | Catatan |
 |---|---|---|
-| `workspaces` | name, type (`personal`/`organization`), timezone (`Asia/Jakarta`), operating_hours, quiet_hours, retention_conversations_months, retention_photos_months, require_sso | |
+| `workspaces` | name, type (`personal`/`organization`), personal_owner_id (unik; wajib untuk `personal`, kosong untuk `organization`), timezone (`Asia/Jakarta`), operating_hours JSONB, quiet_hours JSONB, retention_conversations_months (12), retention_photos_months (24), require_sso, settings JSONB | Satu workspace Perorangan per user; Organisasi tidak dibatasi (B-049) |
 | `users` | email (unik, huruf kecil), name, password_hash (null bila hanya Google), email_verified_at, google_sub (unik), organization, created_at, updated_at | Rincian: [auth.md](../06-domain-guides/auth.md#tabel) |
-| `members` | workspace_id, user_id, role (`admin`, `form_editor`, `reviewer`), approved_at | |
+| `members` | workspace_id, user_id, role (`admin`, `form_editor`, `reviewer`), approved_at | Unik (workspace_id, user_id). `approved_at` kosong = belum disetujui, tanpa akses |
 | `sessions` | user_id, token_hash (unik), user_agent, ip, created_at, last_seen_at, expires_at, revoked_at | Token mentah hanya di cookie; `city` untuk halaman Keamanan diturunkan dari IP saat ditampilkan |
 | `channels` | type (`whatsapp`, `telegram`), status, display_name, phone_number_id / bot_username, workspace_id (`NULL` = bot platform) | Bot bersama; kredensial di rahasia lingkungan, bukan di tabel ([join-codes.md](../06-domain-guides/join-codes.md)) |
 | `join_codes` | workspace_id, form_id, code (unik), status (`active`, `paused`, `revoked`), approval_mode (`auto`, `manual`), expires_at, max_uses, use_count, created_by, revoked_at | Satu `active` per form; dibuat otomatis saat form dibuat |

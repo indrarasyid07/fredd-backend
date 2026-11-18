@@ -303,7 +303,7 @@ class RegisterRequest(BaseModel):
 - **`resend`** selalu `200`; hanya mengirim bila email ada dan belum terverifikasi.
 - **Rate limit** (Redis, window tetap, dihitung per permintaan): `register` 10 per jam per IP; `resend` 3 per jam per email dan 20 per jam per IP; `verify-email` 30 per jam per IP.
 - **Tautan di email:** `{APP_BASE_URL}/login/verify-email?token=…`. Halaman web-nya belum dibangun; sementara itu token bisa dikirim langsung ke `verify-email`.
-- Workspace Perorangan paket Gratis dibuat setelah verifikasi **begitu modul workspaces ada**; sampai saat itu `memberships` kosong dan `organization` hanya disimpan di user.
+- Workspace Perorangan paket Gratis (user sebagai `admin`) dibuat saat verifikasi email, daftar/masuk Google, dan `create_user`; login juga membuatnya bila akun lama belum punya (B-050). `memberships` di `/auth/me` baru diisi di Langkah 1.3; `organization` tetap hanya disimpan di user.
 
 ### Pengiriman email
 
