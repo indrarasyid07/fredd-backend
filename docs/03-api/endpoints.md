@@ -27,7 +27,7 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 
 | Method | Path | Peran |
 |---|---|---|
-| GET, PATCH | `/workspace` | reviewer / admin |
+| GET, PATCH | `/workspace` | reviewer / admin — **ada** (Langkah 1.5): pengaturan workspace aktif (nama, jenis organisasi, zona waktu WIB/WITA/WIT, format tanggal, awal pekan, jam operasional, jam tenang, retensi, `member_count`). `PATCH` hanya mengubah field yang dikirim; `null` menghapus jam operasional/jam tenang; tercatat `workspace.updated` (B-057) |
 | GET | `/members` | admin — **ada** (Langkah 1.6): daftar anggota + `last_active_at`, pagination cursor |
 | GET, POST | `/members/invites` | admin — **ada** (Langkah 1.6): daftar undangan terbuka (`pending`/`expired`), undang `{email, role}` (email yang sama → undangan lama diganti); anggota aktif → `409 already_member`; workspace Perorangan → `409 personal_workspace` (B-055) |
 | POST | `/members/invites/{id}/resend` | admin — **ada**: tautan baru + 7 hari lagi; tautan lama mati |

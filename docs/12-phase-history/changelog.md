@@ -2,6 +2,16 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Pengaturan workspace (Langkah 1.5)
+
+- `GET /workspace` (semua anggota) dan `PATCH /workspace` (admin) untuk workspace aktif: nama, jenis organisasi, zona waktu, format tanggal, awal pekan, jam operasional, jam tenang, retensi (B-057). Tanpa migrasi.
+- Perubahan tercatat di `audit_logs` (`workspace.updated`, berisi nama field yang berubah).
+- 8 tes baru (total 120).
+
+## 2026-11-18 · Penyedia email (keputusan D5)
+
+- Email transaksional memakai Brevo lewat SMTP (B-056); tidak ada perubahan kode. `.env.example` dan `auth.md` menyebut host Brevo.
+
 ## 2026-11-18 · Undangan anggota dan log audit (Langkah 1.6 bagian 2)
 
 - Tabel `member_invites` (migrasi `b85d87b57eeb`). `GET/POST /members/invites`, `POST /members/invites/{id}/resend`, `DELETE /members/invites/{id}` (admin); `POST /invites/preview` (publik) dan `POST /invites/accept` (login) untuk halaman `/invite/[token]` (B-055).

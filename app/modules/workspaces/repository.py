@@ -2,8 +2,9 @@
 
 import uuid
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -101,3 +102,18 @@ async def update_member_role(
     await db.execute(
         update(Member).where(Member.id == member.id).values(role=role, approved_at=approved_at)
     )
+
+
+async def count_approved_members(db: AsyncSession, workspace_id: uuid.UUID) -> int:
+    return (
+        await db.scalar(
+            select(func.count())
+            .select_from(Member)
+            .where(Member.workspace_id == workspace_id, Member.approved_at.is_not(None))
+        )
+        or 0
+    )
+
+
+async def update_workspace(db: AsyncSession, workspace: Workspace, values: dict[str, Any]) -> None:
+    await db.execute(update(Workspace).where(Workspace.id == workspace.id).values(**values))
