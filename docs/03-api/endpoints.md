@@ -29,9 +29,13 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 |---|---|---|
 | GET, PATCH | `/workspace` | reviewer / admin |
 | GET | `/members` | admin — **ada** (Langkah 1.6): daftar anggota + `last_active_at`, pagination cursor |
-| POST | `/members/invites` | admin |
+| GET, POST | `/members/invites` | admin — **ada** (Langkah 1.6): daftar undangan terbuka (`pending`/`expired`), undang `{email, role}` (email yang sama → undangan lama diganti); anggota aktif → `409 already_member`; workspace Perorangan → `409 personal_workspace` (B-055) |
+| POST | `/members/invites/{id}/resend` | admin — **ada**: tautan baru + 7 hari lagi; tautan lama mati |
+| DELETE | `/members/invites/{id}` | admin — **ada**: batalkan undangan; id workspace lain → `404 invite_not_found` |
+| POST | `/invites/preview` | publik — **ada**: `{token}` → nama workspace, email, peran, pengundang; tidak berlaku → `404 invite_invalid` |
+| POST | `/invites/accept` | login (tanpa `X-Workspace-Id`) — **ada**: `{token}` → langsung jadi anggota aktif; email beda → `403 invite_email_mismatch` |
 | PATCH, DELETE | `/members/{id}` | admin — **ada**: ubah peran (`{role}`), keluarkan; admin terakhir → `409 last_admin`; id workspace lain → `404 member_not_found`; tercatat di `audit_logs` |
-| GET | `/audit-logs` | admin |
+| GET | `/audit-logs` | admin — **ada**: terbaru dulu, pagination cursor; `actor_name`, `action`, `target`, `details` |
 | POST | `/workspace/export` | admin |
 | DELETE | `/workspace` | admin (konfirmasi nama workspace di body) |
 

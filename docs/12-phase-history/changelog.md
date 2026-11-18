@@ -2,6 +2,14 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Undangan anggota dan log audit (Langkah 1.6 bagian 2)
+
+- Tabel `member_invites` (migrasi `b85d87b57eeb`). `GET/POST /members/invites`, `POST /members/invites/{id}/resend`, `DELETE /members/invites/{id}` (admin); `POST /invites/preview` (publik) dan `POST /invites/accept` (login) untuk halaman `/invite/[token]` (B-055).
+- Tautan berlaku 7 hari, sekali pakai, penerima langsung aktif; email lewat SMTP yang ada (dev: dicatat di log).
+- `GET /audit-logs` (admin, terbaru dulu). Aksi baru tercatat: `member.invited`, `member.invite_resent`, `member.invite_revoked`, `member.joined`.
+- Login Google kini boleh kembali ke `/invite/...` (`safe_next`).
+- 14 tes baru (total 112).
+
 ## 2026-11-18 · Anggota workspace (Langkah 1.6 bagian 1)
 
 - `GET /members`, `PATCH /members/{id}`, `DELETE /members/{id}` (admin). Admin terakhir dilindungi (`409 last_admin`); id dari workspace lain → `404 member_not_found` (B-054).
