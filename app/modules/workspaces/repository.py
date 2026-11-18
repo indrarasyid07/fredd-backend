@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,3 +68,36 @@ async def get_approved_membership(
         )
     ).first()
     return (row[0], row[1]) if row else None
+
+
+async def get_organization_by_seed_key(db: AsyncSession, seed_key: str) -> Workspace | None:
+    return await db.scalar(
+        select(Workspace).where(
+            Workspace.type == "organization", Workspace.settings["seed_key"].astext == seed_key
+        )
+    )
+
+
+async def create_organization(
+    db: AsyncSession, *, name: str, settings: dict[str, str]
+) -> Workspace:
+    workspace = Workspace(name=name, type="organization", settings=settings)
+    db.add(workspace)
+    await db.flush()
+    return workspace
+
+
+async def get_member(
+    db: AsyncSession, *, workspace_id: uuid.UUID, user_id: uuid.UUID
+) -> Member | None:
+    return await db.scalar(
+        select(Member).where(Member.workspace_id == workspace_id, Member.user_id == user_id)
+    )
+
+
+async def update_member_role(
+    db: AsyncSession, member: Member, role: str, approved_at: datetime
+) -> None:
+    await db.execute(
+        update(Member).where(Member.id == member.id).values(role=role, approved_at=approved_at)
+    )

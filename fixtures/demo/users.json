@@ -1,8 +1,24 @@
 {
   "password": "rahasia123",
+  "workspace": {
+    "name": "Fluctuz Indonesia",
+    "seed_key": "demo"
+  },
   "users": [
-    { "email": "dina@contoh.id", "name": "Dina Admin" },
-    { "email": "fajar@contoh.id", "name": "Fajar Editor Form" },
-    { "email": "rani@contoh.id", "name": "Rani Reviewer" }
+    {
+      "email": "dina@contoh.id",
+      "name": "Dina Admin",
+      "role": "admin"
+    },
+    {
+      "email": "fajar@contoh.id",
+      "name": "Fajar Editor Form",
+      "role": "form_editor"
+    },
+    {
+      "email": "rani@contoh.id",
+      "name": "Rani Reviewer",
+      "role": "reviewer"
+    }
   ]
 }

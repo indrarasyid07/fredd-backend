@@ -97,3 +97,28 @@ def check_role(member: ActiveMember, min_role: Role) -> ActiveMember:
     if not role_at_least(member.role, min_role):
         raise errors.RoleTooLow()
     return member
+
+
+async def seed_organization(
+    db: AsyncSession, *, name: str, seed_key: str, members: list[tuple[uuid.UUID, Role]]
+) -> Workspace:
+    """Development seed only: an organization found by `seed_key`, with each user at the given role.
+
+    Idempotent: reruns reuse the workspace and reset roles to the fixture's values.
+    """
+    workspace = await repository.get_organization_by_seed_key(db, seed_key)
+    if workspace is None:
+        workspace = await repository.create_organization(
+            db, name=name, settings={"seed_key": seed_key}
+        )
+    now = now_utc()
+    for user_id, role in members:
+        member = await repository.get_member(db, workspace_id=workspace.id, user_id=user_id)
+        if member is None:
+            await repository.create_member(
+                db, workspace_id=workspace.id, user_id=user_id, role=role, approved_at=now
+            )
+        elif member.role != role or member.approved_at is None:
+            await repository.update_member_role(db, member, role, now)
+    await db.commit()
+    return workspace

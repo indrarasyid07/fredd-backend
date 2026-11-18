@@ -12,7 +12,7 @@ Sumber data wilayah: kode wilayah Kemendagri (Permendagri terbaru); simpan kode 
 
 ## Status
 
-Baru set `demo` bagian akun yang ada: `uv run python -m scripts.seed demo` membuat tiga user dari `fixtures/demo/users.json` (hanya development; kata sandi dipublikasikan di berkas itu).
+Baru set `demo` bagian akun dan workspace yang ada: `uv run python -m scripts.seed demo` membuat tiga user dari `fixtures/demo/users.json` (hanya development; kata sandi dipublikasikan di berkas itu), masing-masing dengan workspace Perorangan, lalu memasukkan mereka ke workspace Organisasi **"Fluctuz Indonesia"** dengan peran berbeda (Langkah 1.7). Workspace itu dikenali lewat `settings.seed_key = "demo"`, jadi menjalankan ulang tidak membuat duplikat dan mengembalikan peran ke nilai di fixture.
 
 | Email | Nama | Kata sandi |
 |---|---|---|
@@ -20,6 +20,12 @@ Baru set `demo` bagian akun yang ada: `uv run python -m scripts.seed demo` membu
 | `fajar@contoh.id` | Fajar Editor Form | `rahasia123` |
 | `rani@contoh.id` | Rani Reviewer | `rahasia123` |
 
-Peran workspace (admin, editor form, reviewer) dipasang setelah modul workspaces ada; saat ini ketiganya hanya akun biasa. Set `reference` dan `templates`, serta workspace, penyuluh, dan laporan di `demo`, belum dibuat.
+| Akun | Peran di "Fluctuz Indonesia" |
+|---|---|
+| `dina@contoh.id` | `admin` |
+| `fajar@contoh.id` | `form_editor` |
+| `rani@contoh.id` | `reviewer` |
+
+Setelah masuk, pindah ke "Fluctuz Indonesia" dari menu akun (bawaannya workspace Perorangan). Set `reference` dan `templates`, serta penyuluh dan laporan di `demo` (Langkah 4.1), belum dibuat.
 
 Data demo tidak boleh berisi nomor HP sungguhan; pakai rentang `+62 811-0000-xxxx`.
