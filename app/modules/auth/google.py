@@ -35,8 +35,8 @@ def redirect_uri() -> str:
 
 
 def safe_next(next_path: str | None) -> str:
-    """Same-site dashboard paths only; anything else becomes /app (no open redirect)."""
-    ok = next_path and next_path.startswith("/app") and not next_path.startswith("//")
+    """Same-site dashboard or invite paths only; anything else becomes /app (no open redirect)."""
+    ok = next_path and next_path.startswith(("/app", "/invite/")) and not next_path.startswith("//")
     return next_path if ok and next_path and "\\" not in next_path else "/app"
 
 

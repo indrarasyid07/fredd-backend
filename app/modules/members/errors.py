@@ -1,4 +1,4 @@
-from app.core.errors import AppError, NotFound
+from app.core.errors import AppError, Conflict, Forbidden, NotFound
 
 
 class MemberNotFound(NotFound):
@@ -13,4 +13,36 @@ class LastAdmin(AppError):
     code = "last_admin"
     message = (
         "Workspace harus punya minimal satu Administrator. Jadikan anggota lain Administrator dulu."
+    )
+
+
+class InviteNotFound(NotFound):
+    code = "invite_not_found"
+    message = "Undangan tidak ditemukan."
+
+
+class InviteInvalid(NotFound):
+    """Unknown, used, revoked or expired link; one message so a link reveals nothing more."""
+
+    code = "invite_invalid"
+    message = (
+        "Undangan ini tidak berlaku lagi: sudah dipakai, dibatalkan, atau kedaluwarsa. "
+        "Minta Administrator workspace mengirim ulang undangan."
+    )
+
+
+class InviteEmailMismatch(Forbidden):
+    code = "invite_email_mismatch"
+    message = "Undangan ini untuk email lain. Masuk dengan akun email yang menerima undangan."
+
+
+class AlreadyMember(Conflict):
+    code = "already_member"
+    message = "Email ini sudah menjadi anggota workspace."
+
+
+class PersonalWorkspace(Conflict):
+    code = "personal_workspace"
+    message = (
+        "Workspace perorangan hanya untuk satu orang. Undang anggota dari workspace organisasi."
     )
