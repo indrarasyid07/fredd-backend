@@ -120,3 +120,43 @@ def outbox(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, str]]:
 
     monkeypatch.setattr(mail, "send_email", fake_send)
     return sent
+
+
+# --- Workspaces and roles (interface 1): shared by every domain's tests ---------------------------
+
+
+async def add_member(db: AsyncSession, workspace_id: object, *, email: str, role: str) -> User:
+    """Create a verified user (with their own personal workspace) and add them to `workspace_id`."""
+    from app.core.time import now_utc
+    from app.modules.workspaces.models import Member
+
+    member_user = await auth_service.create_user(
+        db, email=email, name=email.split("@")[0].title(), password=PASSWORD
+    )
+    db.add(
+        Member(workspace_id=workspace_id, user_id=member_user.id, role=role, approved_at=now_utc())
+    )
+    await db.flush()
+    return member_user
+
+
+async def sign_in(client: AsyncClient, email: str, workspace_id: object) -> AsyncClient:
+    """Log `client` in as `email` and make `workspace_id` the active workspace for its requests."""
+    response = await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+    assert response.status_code == 200
+    client.headers["X-Workspace-Id"] = str(workspace_id)
+    return client
+
+
+@pytest.fixture
+async def organization(db: AsyncSession, user: User):  # noqa: ANN201
+    """An organization workspace where the `user` fixture (Dina) is admin."""
+    from app.core.time import now_utc
+    from app.modules.workspaces.models import Member, Workspace
+
+    org = Workspace(name="Dinas Pertanian Cianjur", type="organization")
+    db.add(org)
+    await db.flush()
+    db.add(Member(workspace_id=org.id, user_id=user.id, role="admin", approved_at=now_utc()))
+    await db.flush()
+    return org

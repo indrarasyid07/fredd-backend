@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
 from app.modules.workspaces import errors, repository
+from app.modules.workspaces.constants import ROLES, Role
 from app.modules.workspaces.models import Member, Workspace
 from app.modules.workspaces.schemas import MembershipOut
 
@@ -85,3 +86,14 @@ async def get_active_member(
         raise errors.WorkspaceNotFound()
     member, workspace = found
     return ActiveMember(workspace=workspace, member=member)
+
+
+def role_at_least(role: str, min_role: Role) -> bool:
+    """reviewer < form_editor < admin (security-model.md#peran)."""
+    return ROLES.index(role) >= ROLES.index(min_role)  # pyright: ignore[reportArgumentType]
+
+
+def check_role(member: ActiveMember, min_role: Role) -> ActiveMember:
+    if not role_at_least(member.role, min_role):
+        raise errors.RoleTooLow()
+    return member

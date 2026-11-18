@@ -1,6 +1,6 @@
 """HTTP dependencies shared by every feature router."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Annotated
 
 from fastapi import Depends, Header, Request
@@ -12,6 +12,7 @@ from app.modules.auth import errors as auth_errors
 from app.modules.auth import service as auth_service
 from app.modules.auth.models import User
 from app.modules.workspaces import service as workspaces_service
+from app.modules.workspaces.constants import Role
 from app.modules.workspaces.service import ActiveMember
 
 
@@ -48,6 +49,25 @@ async def get_current_member(
 
 
 CurrentMember = Annotated[ActiveMember, Depends(get_current_member)]
+
+
+def require_role(min_role: Role) -> Callable[[ActiveMember], Awaitable[ActiveMember]]:
+    """Dependency factory: the active member, or 403 `forbidden` when the role is below `min_role`.
+
+    Order: reviewer < form_editor < admin. A workspace the user does not belong to is still 404
+    (from `get_current_member`), so the role check never reveals other workspaces.
+    """
+
+    async def dependency(member: CurrentMember) -> ActiveMember:
+        return workspaces_service.check_role(member, min_role)
+
+    return dependency
+
+
+# Use in routers as `member: EditorMember`; see docs/05-security-and-access/security-model.md.
+ReviewerMember = Annotated[ActiveMember, Depends(require_role("reviewer"))]
+EditorMember = Annotated[ActiveMember, Depends(require_role("form_editor"))]
+AdminMember = Annotated[ActiveMember, Depends(require_role("admin"))]
 
 
 def client_ip(request: Request) -> str | None:

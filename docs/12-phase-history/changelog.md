@@ -2,6 +2,13 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Penjaga peran (Langkah 1.4)
+
+- `require_role(min_role)` dan alias `ReviewerMember`, `EditorMember`, `AdminMember` di `app/api/deps.py`; peran kurang → `403 forbidden`, workspace lain tetap 404. Antarmuka 1 (TEAM-WORKFLOW) lengkap.
+- Mixin `WorkspaceOwned` dan helper `in_workspace()` di `app/db/base.py` untuk tabel milik tenant.
+- Fixture tes bersama: `organization`, `add_member()`, `sign_in()`.
+- B-006 (sesi, bukan JWT) diterima. 14 tes baru (total 86); `openapi.json` tidak berubah.
+
 ## 2026-11-18 · Workspace aktif dan peran nyata (Langkah 1.3)
 
 - `/auth/me` kini mengisi `memberships` (hanya yang disetujui; Perorangan dulu). Bentuk `MeResponse` tidak berubah, jadi `openapi.json` tetap.
