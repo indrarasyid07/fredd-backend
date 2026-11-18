@@ -2,6 +2,14 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Anggota workspace (Langkah 1.6 bagian 1)
+
+- `GET /members`, `PATCH /members/{id}`, `DELETE /members/{id}` (admin). Admin terakhir dilindungi (`409 last_admin`); id dari workspace lain → `404 member_not_found` (B-054).
+- Tabel `audit_logs` (migrasi `cabb4cf95dd1`); perubahan peran dan pengeluaran anggota tercatat.
+- Helper pagination cursor pertama: `app/core/pagination.py` (+ `Limit`/`Cursor` di `app/api/pagination.py`), dipakai endpoint daftar berikutnya.
+- Peran tetap tiga (B-053, PRD D14). Undangan email dan `GET /audit-logs` menyusul.
+- 10 tes baru (total 98).
+
 ## 2026-11-18 · Akun demo dengan peran berbeda (Langkah 1.7)
 
 - `scripts.seed demo` kini juga membuat workspace Organisasi "Fluctuz Indonesia" dengan Dina (`admin`), Fajar (`form_editor`), dan Rani (`reviewer`); idempoten lewat `settings.seed_key`. Service `workspaces.seed_organization` (khusus seed).

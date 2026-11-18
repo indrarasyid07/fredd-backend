@@ -28,9 +28,9 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 | Method | Path | Peran |
 |---|---|---|
 | GET, PATCH | `/workspace` | reviewer / admin |
-| GET | `/members` | admin |
+| GET | `/members` | admin — **ada** (Langkah 1.6): daftar anggota + `last_active_at`, pagination cursor |
 | POST | `/members/invites` | admin |
-| PATCH, DELETE | `/members/{id}` | admin |
+| PATCH, DELETE | `/members/{id}` | admin — **ada**: ubah peran (`{role}`), keluarkan; admin terakhir → `409 last_admin`; id workspace lain → `404 member_not_found`; tercatat di `audit_logs` |
 | GET | `/audit-logs` | admin |
 | POST | `/workspace/export` | admin |
 | DELETE | `/workspace` | admin (konfirmasi nama workspace di body) |
