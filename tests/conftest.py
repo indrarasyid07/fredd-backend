@@ -15,7 +15,9 @@ from dotenv import dotenv_values
 
 # Point the app at the test database *before* anything imports app.core.config.
 _env = {**dotenv_values(Path(__file__).parents[1] / ".env"), **os.environ}
-_base_db_url = _env["DATABASE_URL"]
+# TEST_DATABASE_URL keeps tests on a local server when DATABASE_URL points at a shared/pooled one
+# (a PgBouncer pooler cannot roll each test back).
+_base_db_url = _env.get("TEST_DATABASE_URL") or _env["DATABASE_URL"]
 TEST_DB_NAME = _base_db_url.rsplit("/", 1)[1] + "_test"
 os.environ["DATABASE_URL"] = _base_db_url.rsplit("/", 1)[0] + "/" + TEST_DB_NAME
 os.environ["REDIS_URL"] = _env["REDIS_URL"].rsplit("/", 1)[0] + "/15"

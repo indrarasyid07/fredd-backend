@@ -38,3 +38,33 @@ async def create_member(
     db.add(member)
     await db.flush()
     return member
+
+
+async def list_approved_memberships(
+    db: AsyncSession, user_id: uuid.UUID
+) -> list[tuple[Member, Workspace]]:
+    rows = await db.execute(
+        select(Member, Workspace)
+        .join(Workspace, Workspace.id == Member.workspace_id)
+        .where(Member.user_id == user_id, Member.approved_at.is_not(None))
+        # Personal first, then organizations by name.
+        .order_by((Workspace.type == "personal").desc(), Workspace.name)
+    )
+    return [(m, w) for m, w in rows.all()]
+
+
+async def get_approved_membership(
+    db: AsyncSession, *, user_id: uuid.UUID, workspace_id: uuid.UUID
+) -> tuple[Member, Workspace] | None:
+    row = (
+        await db.execute(
+            select(Member, Workspace)
+            .join(Workspace, Workspace.id == Member.workspace_id)
+            .where(
+                Member.user_id == user_id,
+                Member.workspace_id == workspace_id,
+                Member.approved_at.is_not(None),
+            )
+        )
+    ).first()
+    return (row[0], row[1]) if row else None
