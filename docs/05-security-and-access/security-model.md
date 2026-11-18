@@ -31,13 +31,16 @@ Diterapkan sebagai dependency FastAPI di `app/api/deps.py` (Langkah 1.4). Fronte
 ```python
 from app.api.deps import AdminMember, EditorMember, ReviewerMember
 
-@router.get("")                      # lihat data: semua peran
+
+@router.get("")  # lihat data: semua peran
 async def list_forms(member: ReviewerMember, db: DB): ...
 
-@router.post("")                     # ubah struktur data / ekspor
+
+@router.post("")  # ubah struktur data / ekspor
 async def create_form(member: EditorMember, db: DB): ...
 
-@router.post("/{id}/members")        # kelola anggota, penyuluh, kanal, pengaturan
+
+@router.post("/{id}/members")  # kelola anggota, penyuluh, kanal, pengaturan
 async def invite(member: AdminMember, db: DB): ...
 ```
 
@@ -83,6 +86,7 @@ Kode gabung adalah rahasia setingkat undangan: acak 40 bit, tidak pernah turunan
 - Nama petani dan nomor HP penyuluh bisa disamarkan saat ekspor.
 - Retensi: percakapan 12 bulan, foto 24 bulan (dapat diatur per workspace), dijalankan cron.
 - Log audit untuk ekspor, ubah peran, publikasi struktur, ambil alih, hapus workspace.
+- Undangan anggota (B-055): token acak 256 bit, hanya hash disimpan, sekali pakai, 7 hari; hanya email yang diundang yang bisa menerima; token lewat body agar tidak tercatat di log akses; undang, kirim ulang, batal, dan bergabung tercatat di `audit_logs`.
 
 ## Pembayaran
 

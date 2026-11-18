@@ -35,6 +35,7 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `report_photos` | report_id, object_key, size_bytes, blur_score, ai_note | |
 | `report_follow_ups` | report_id, assignee_member_id, priority, status, note | |
 | `activity_events` | workspace_id, occurred_at, extension_worker_id, channel, type, details JSONB, status | Log Aktivitas Agent |
+| `member_invites` | workspace_id, email (huruf kecil), role, token_hash, invited_by_user_id, sent_at, expires_at, accepted_at, revoked_at | Undangan anggota (B-055). Unik (workspace_id, email) selama terbuka (`accepted_at` dan `revoked_at` kosong) |
 | `audit_logs` | workspace_id (null untuk aksi platform, mis. artikel), actor_user_id, action, target, metadata JSONB | Ekspor, ubah peran, publikasi, takeover, hapus |
 | `leads` | name, email, organization, message, source | Dari form landing page dan "Hubungi kami" Enterprise |
 | `plans`, `subscriptions`, `payments`, `usage_counters` | lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#model-data) | Paket, langganan, kuota |
