@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import DateTime, ForeignKey, MetaData, Select, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
@@ -38,9 +39,9 @@ class WorkspaceOwned:
         return mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
 
 
-def in_workspace[T: tuple](
-    stmt: Select[T], model: type[WorkspaceOwned], workspace_id: uuid.UUID
-) -> Select[T]:
+def in_workspace[S: Select[*tuple[Any, ...]]](
+    stmt: S, model: type[WorkspaceOwned] | Any, workspace_id: uuid.UUID
+) -> S:
     """Scope a query to one workspace. Repositories of tenant tables take `workspace_id` as a
     required argument and pass it here, so a query without a tenant filter is a visible mistake."""
     return stmt.where(model.workspace_id == workspace_id)
