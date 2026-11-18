@@ -2,6 +2,10 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Nilai kondisi tanaman (keputusan D2)
+
+- Satu set nilai di semua dokumen: `healthy` / `attention` / `infected` (B-052). Glosarium, `data-model.md`, dan contoh di `api-conventions.md` disamakan; kode backend belum memakai nilai ini.
+
 ## 2026-11-18 · Penjaga peran (Langkah 1.4)
 
 - `require_role(min_role)` dan alias `ReviewerMember`, `EditorMember`, `AdminMember` di `app/api/deps.py`; peran kurang → `403 forbidden`, workspace lain tetap 404. Antarmuka 1 (TEAM-WORKFLOW) lengkap.
