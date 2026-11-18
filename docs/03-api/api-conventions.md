@@ -208,7 +208,7 @@ Kode umum di bawah dipakai semua domain. Kode khusus domain ditambahkan di dokum
 | `too_short` / `too_long` | 422 | Panjang teks di luar batas | terisi |
 | `out_of_range` | 422 | Angka di luar rentang | terisi |
 | `not_authenticated` | 401 | Belum login, cookie tidak ada, sesi habis atau dicabut | `null` |
-| `forbidden` | 403 | Peran tidak cukup di workspace aktif | `null` |
+| `forbidden` | 403 | Peran tidak cukup di workspace aktif (`require_role`) | `null` |
 | `workspace_required` | 400 | Endpoint data tenant dipanggil tanpa header `X-Workspace-Id` | `null` |
 | `workspace_not_found` | 404 | `X-Workspace-Id` rusak, tidak ada, milik orang lain, atau keanggotaannya belum disetujui (sengaja 404, bukan 403) | `null` |
 | `csrf_rejected` | 403 | Header `Origin` bukan domain Fluctuz pada request yang mengubah data | `null` |
