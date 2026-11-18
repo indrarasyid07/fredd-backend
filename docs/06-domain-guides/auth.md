@@ -311,7 +311,7 @@ class RegisterRequest(BaseModel):
 
 | Variabel | Arti |
 |---|---|
-| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Server pengirim. Penyedia belum dipilih; semua yang mendukung SMTP + STARTTLS cocok |
+| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Server pengirim. Penyedia: **Brevo** (`smtp-relay.brevo.com`, B-056); kode tetap generik, penyedia lain yang mendukung SMTP + STARTTLS bisa dipakai tanpa ubah kode |
 | (`SMTP_HOST` kosong) | Development: isi email, termasuk tautannya, ditulis ke log API (cara mengambil tautan saat mengembangkan). Produksi: dicatat sebagai error, email tidak terkirim |
 
 Isi email ada di `app/modules/auth/emails.py`.
