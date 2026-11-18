@@ -122,8 +122,8 @@ async def resolve_session(db: AsyncSession, token: str) -> User:
 
 
 async def get_me(db: AsyncSession, user: User) -> MeResponse:
-    # Memberships arrive with the workspaces module.
-    return MeResponse(user=UserOut.model_validate(user), memberships=[])
+    memberships = await workspaces_service.list_memberships(db, user.id)
+    return MeResponse(user=UserOut.model_validate(user), memberships=memberships)
 
 
 _STRONG_PASSWORD = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,128}$")

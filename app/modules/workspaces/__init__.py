@@ -1,3 +1,3 @@
-from app.modules.workspaces import service
+from app.modules.workspaces import errors, schemas, service
 
-__all__ = ["service"]
+__all__ = ["errors", "schemas", "service"]
