@@ -1,0 +1,29 @@
+{
+  "update_id": 510000015,
+  "message": {
+    "message_id": 19,
+    "from": {
+      "id": 700100200,
+      "is_bot": false,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "language_code": "id"
+    },
+    "chat": {
+      "id": 700100200,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "type": "private"
+    },
+    "date": 1795400019,
+    "voice": {
+      "file_id": "AwACAgUAAxk-voice",
+      "file_unique_id": "AgADvo",
+      "duration": 4,
+      "mime_type": "audio/ogg",
+      "file_size": 15000
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "update_id": 510000003,
+  "message": {
+    "message_id": 13,
+    "from": {
+      "id": 700100200,
+      "is_bot": false,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "language_code": "id"
+    },
+    "chat": {
+      "id": 700100200,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "type": "private"
+    },
+    "date": 1795400013,
+    "photo": [
+      {
+        "file_id": "AgACAgUAAxk-small",
+        "file_unique_id": "AQADs",
+        "file_size": 1200,
+        "width": 90,
+        "height": 67
+      },
+      {
+        "file_id": "AgACAgUAAxk-large",
+        "file_unique_id": "AQADl",
+        "file_size": 98000,
+        "width": 1280,
+        "height": 960
+      }
+    ],
+    "caption": "lahan blok A"
+  }
+}

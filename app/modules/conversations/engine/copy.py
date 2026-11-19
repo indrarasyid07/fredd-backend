@@ -25,6 +25,7 @@ THREE_FAILS = "Sudah 3 kali jawaban belum sesuai. Mau bagaimana?"
 VOICE_LATER = "Pesan suara belum bisa saya baca untuk pertanyaan ini. Mohon ketik jawabannya."
 SUBMIT_FIRST = "Laporan siap dikirim. Tekan *Kirim sekarang* atau *Ubah jawaban*."
 CONFIRM_FIRST = "Mohon jawab *Ya* atau *Ubah* dulu."
+EDITED = "Pesan yang diubah tidak saya baca. Mohon kirim ulang jawabannya sebagai pesan baru."
 
 # Why an answer was not accepted, with an example (chat-ux.md moment 3).
 NOT_A_NUMBER = "Format belum sesuai. Tulis angka, contoh: 1,5"

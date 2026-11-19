@@ -46,6 +46,10 @@ class Settings(BaseSettings):
 
     # The platform's shared bots (B-048), shown with join codes. Empty = no share links yet.
     telegram_bot_username: str = ""  # without @, e.g. FluctuzBot
+    # Bot API token and the secret Telegram echoes in X-Telegram-Bot-Api-Secret-Token.
+    # Empty secret = the Telegram webhook is off (404). One bot per environment (roadmap 3.0).
+    telegram_bot_token: str = ""
+    telegram_webhook_secret: str = ""
     whatsapp_public_number: str = ""  # digits with country code, e.g. 6281100000000
 
     @property
