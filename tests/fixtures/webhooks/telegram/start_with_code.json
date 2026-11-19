@@ -1,0 +1,30 @@
+{
+  "update_id": 510000002,
+  "message": {
+    "message_id": 12,
+    "from": {
+      "id": 700100200,
+      "is_bot": false,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "language_code": "id"
+    },
+    "chat": {
+      "id": 700100200,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "type": "private"
+    },
+    "date": 1795400012,
+    "text": "/start K7M29QXA",
+    "entities": [
+      {
+        "offset": 0,
+        "length": 6,
+        "type": "bot_command"
+      }
+    ]
+  }
+}

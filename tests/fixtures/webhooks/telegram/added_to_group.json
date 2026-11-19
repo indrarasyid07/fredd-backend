@@ -1,0 +1,35 @@
+{
+  "update_id": 510000012,
+  "my_chat_member": {
+    "chat": {
+      "id": -1001234567890,
+      "title": "Penyuluh Garut",
+      "type": "supergroup"
+    },
+    "from": {
+      "id": 700100200,
+      "is_bot": false,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "language_code": "id"
+    },
+    "date": 1795400031,
+    "old_chat_member": {
+      "user": {
+        "id": 8000000001,
+        "is_bot": true,
+        "first_name": "Fluctuz"
+      },
+      "status": "left"
+    },
+    "new_chat_member": {
+      "user": {
+        "id": 8000000001,
+        "is_bot": true,
+        "first_name": "Fluctuz"
+      },
+      "status": "member"
+    }
+  }
+}

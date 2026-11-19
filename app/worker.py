@@ -12,11 +12,14 @@ import datetime as dt
 from taskiq import TaskiqEvents, TaskiqScheduler, TaskiqState
 from taskiq.schedule_sources import LabelScheduleSource
 
+import app.db.models  # noqa: F401  every table, so foreign keys resolve in jobs
 from app.core import jobs as core_jobs
 from app.core.logging import configure_logging
 from app.core.queue import broker
 from app.core.redis import redis
 from app.db.session import engine
+from app.modules.channels import telegram
+from app.modules.conversations import jobs as conversation_jobs
 
 HEARTBEAT_KEY = "worker:heartbeat"
 
@@ -28,6 +31,7 @@ async def _startup(_: TaskiqState) -> None:
 
 @broker.on_event(TaskiqEvents.WORKER_SHUTDOWN)
 async def _shutdown(_: TaskiqState) -> None:
+    await telegram.get_client().aclose()
     await redis.aclose()
     await engine.dispose()
 
@@ -40,4 +44,4 @@ async def heartbeat_job() -> None:
 
 scheduler = TaskiqScheduler(broker=broker, sources=[LabelScheduleSource(broker)])
 
-__all__ = ["broker", "core_jobs", "heartbeat_job", "scheduler"]
+__all__ = ["broker", "conversation_jobs", "core_jobs", "heartbeat_job", "scheduler"]

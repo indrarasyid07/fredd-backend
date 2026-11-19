@@ -1,0 +1,38 @@
+{
+  "update_id": 510000013,
+  "my_chat_member": {
+    "chat": {
+      "id": 700100200,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "type": "private"
+    },
+    "from": {
+      "id": 700100200,
+      "is_bot": false,
+      "first_name": "Budi",
+      "last_name": "Santoso",
+      "username": "budi_tani",
+      "language_code": "id"
+    },
+    "date": 1795400040,
+    "old_chat_member": {
+      "user": {
+        "id": 8000000001,
+        "is_bot": true,
+        "first_name": "Fluctuz"
+      },
+      "status": "member"
+    },
+    "new_chat_member": {
+      "user": {
+        "id": 8000000001,
+        "is_bot": true,
+        "first_name": "Fluctuz"
+      },
+      "status": "kicked",
+      "until_date": 0
+    }
+  }
+}

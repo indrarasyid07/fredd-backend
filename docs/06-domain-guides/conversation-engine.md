@@ -88,4 +88,7 @@ Tes: tabel kasus + tes properti **hypothesis** (bilangan bulat berpemisah ribuan
 
 ## Urutan pemrosesan
 
+**Ada (3.5):** `process_chat_job(channel_id, chat_id)` mengambil kunci Redis `chat-lock:{channel_id}:{chat_id}` (`SET NX`, 120 dtk); job lain untuk chat yang sama langsung keluar, dan pemegang kunci memeriksa ulang pesan baru setelah melepasnya. Pesan diurutkan `channel_sent_at`, lalu `update_id` Telegram (tanggal Telegram hanya sampai detik). Balasan dicatat sebagai baris keluar `pending` dalam transaksi yang sama dengan `processed_at`, lalu dikirim satu per satu: `sent` + `external_id`, `uncertain` saat timeout (tidak dikirim ulang otomatis), atau `failed` (403 → penyuluh `unreachable`). Chat tanpa ikatan hanya dibalas cara bergabung (satu kali per rombongan pesan) dan tidak membuat apa pun di organisasi mana pun; klaim kode menyusul di 3.6, alur laporan di 3.7.
+
+
 Satu job Taskiq per chat (B-XXX). Job mengambil kunci Redis `chat:{channel_id}:{chat_id}` (hanya satu pemroses per chat; job lain untuk chat yang sama keluar tanpa kerja), membaca semua pesan `processed_at IS NULL` urut `channel_sent_at`, memprosesnya satu per satu, lalu memeriksa ulang pesan baru sebelum melepas kunci. Ini menjamin "Ya" lalu "Ubah" diproses sesuai urutan kirim.

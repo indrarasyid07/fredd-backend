@@ -42,6 +42,15 @@ Konsekuensi:
 - Setiap tombol inline yang ditekan dijawab `answerCallbackQuery` agar tombol tidak terus berputar.
 - Batas ~30 pesan/detik per bot; pengiriman massal (pengumuman) lewat antrean.
 
+### Yang sudah ada (Langkah 3.5)
+
+- `POST /webhooks/telegram` (`app/api/webhooks/telegram.py`): mati (404) tanpa `TELEGRAM_WEBHOOK_SECRET`; header `X-Telegram-Bot-Api-Secret-Token` dibandingkan dengan `hmac.compare_digest` (salah → 401); body > 256 KB → 413; JSON rusak tetap 200 (agar Telegram tidak mengirim ulang selamanya). Update disimpan lalu job `conversations.process` diantrekan; tidak ada pemrosesan di dalam request.
+- Adapter `app/modules/channels/telegram.py`: `parse_update` murni, `TelegramClient` (httpx, `sendMessage` dengan `parse_mode=HTML`, `answerCallbackQuery`, `leaveChat`). Galat dan log tidak pernah memuat URL (berisi token); logger `httpx` dinaikkan ke WARNING.
+- Filter (3.5a): hanya chat privat. Pesan grup diabaikan, bot keluar (`leaveChat`) bila dimasukkan ke grup. `edited_message` tidak mengubah jawaban (balasan: kirim ulang sebagai pesan baru). Live location: hanya posisi awal; perpindahannya (edit) diabaikan. Stiker/kontak/polling → jenis `other`. `my_chat_member` → `kicked` = penyuluh memblokir bot → `extension_workers.status = unreachable` di semua organisasinya.
+- `external_id`: masuk `update:<update_id>` (idempoten per bot), keluar `message:<chat_id>:<message_id>` (id pesan Telegram unik per chat).
+- Tombol: `callback_data` ≤ 64 byte (lebih → galat saat kirim); ≤ 3 tombol pendek satu baris, selain itu satu tombol per baris. `ask_location` → keyboard balasan "📍 Kirim lokasi" (dirapikan di 3.8 bila digabung dengan tombol inline).
+- Payload contoh di `tests/fixtures/webhooks/telegram/` (dibentuk dari Bot API; ganti dengan rekaman bot dev saat tersedia).
+
 ## Pesan gagal
 
 Pesan keluar yang gagal dicoba ulang maks 3 kali dengan backoff. Setelah itu muncul di Integrasi Kanal › Aktivitas koneksi dan di daftar "Susul yang gagal".
