@@ -10,6 +10,7 @@ dependencies = [
     "asyncpg>=0.32.0",
     "email-validator>=2.3.0",
     "fastapi>=0.162.5",
+    "geoalchemy2>=0.18",
     "httpx>=0.28.1",
     "pydantic-settings>=2.16.2",
     "redis>=8.1.0",
@@ -22,11 +23,14 @@ dev = [
     "pyright>=1.1.414",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.17.5",
 ]
 
 [tool.ruff]
 line-length = 100
+# Code samples in docs are illustrations, not code to lint or format.
+extend-exclude = ["docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]

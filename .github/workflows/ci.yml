@@ -1,0 +1,84 @@
+name: ci
+
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  commit-messages:
+    # Project rule (docs/00-governance/commit-conventions.md): no AI/tool attribution,
+    # no design file references in commit messages.
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check commit messages
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git log "$BASE..$HEAD" --format='%h %s%n%b' \
+              | grep -n -i -E 'co-authored|generated with|artifact|canvas|artboard|v\.1'; then
+            echo "::error::Pesan commit memuat atribusi alat atau referensi desain (lihat commit-conventions.md)."
+            exit 1
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: fluctuz
+          POSTGRES_PASSWORD: fluctuz
+          POSTGRES_DB: fluctuz
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fluctuz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8
+        ports: ["6380:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://fluctuz:fluctuz@127.0.0.1:5433/fluctuz
+      REDIS_URL: redis://127.0.0.1:6380/0
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Typecheck
+        run: uv run pyright
+      - name: Single Alembic head
+        run: |
+          heads="$(uv run alembic heads)"
+          echo "$heads"
+          test "$(echo "$heads" | wc -l)" -eq 1
+      - name: Test
+        run: uv run pytest --cov=app --cov-report=term-missing:skip-covered
+      - name: openapi.json up to date
+        run: |
+          uv run python -m scripts.export_openapi
+          git diff --exit-code openapi.json \
+            || { echo "::error::openapi.json usang. Jalankan: uv run python -m scripts.export_openapi"; exit 1; }

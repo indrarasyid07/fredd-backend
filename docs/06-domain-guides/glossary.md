@@ -29,7 +29,7 @@ Padanan istilah domain (Bahasa Indonesia, dipakai di UI dan percakapan) dengan n
 | Kode laporan | `report.code` | `LP-2411-0248` |
 | Perlu ditinjau | `needs_review` | Dipicu aturan, mis. luas > 50 ha |
 | Tindak lanjut | `follow_up` | |
-| Kondisi tanaman: Sehat / Perlu perhatian / Terserang | `healthy` / `needs_attention` / `infested` | |
+| Kondisi tanaman: Sehat / Perlu perhatian / Terserang | `healthy` / `attention` / `infected` | Diputuskan D2 / B-052. "Terserang" mencakup hama dan penyakit |
 | Aktivitas Agent | `activity` / `activity_event` | Log kejadian |
 | Perlu bantuan admin | `needs_help` | Status percakapan |
 | Pilot | `pilot` | Publikasi ke sebagian penyuluh |

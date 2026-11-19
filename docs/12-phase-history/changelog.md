@@ -2,6 +2,62 @@
 
 Catatan per fase, terbaru di atas.
 
+## 2026-11-18 · Pengaturan workspace (Langkah 1.5)
+
+- `GET /workspace` (semua anggota) dan `PATCH /workspace` (admin) untuk workspace aktif: nama, jenis organisasi, zona waktu, format tanggal, awal pekan, jam operasional, jam tenang, retensi (B-057). Tanpa migrasi.
+- Perubahan tercatat di `audit_logs` (`workspace.updated`, berisi nama field yang berubah).
+- 8 tes baru (total 120).
+
+## 2026-11-18 · Penyedia email (keputusan D5)
+
+- Email transaksional memakai Brevo lewat SMTP (B-056); tidak ada perubahan kode. `.env.example` dan `auth.md` menyebut host Brevo.
+
+## 2026-11-18 · Undangan anggota dan log audit (Langkah 1.6 bagian 2)
+
+- Tabel `member_invites` (migrasi `b85d87b57eeb`). `GET/POST /members/invites`, `POST /members/invites/{id}/resend`, `DELETE /members/invites/{id}` (admin); `POST /invites/preview` (publik) dan `POST /invites/accept` (login) untuk halaman `/invite/[token]` (B-055).
+- Tautan berlaku 7 hari, sekali pakai, penerima langsung aktif; email lewat SMTP yang ada (dev: dicatat di log).
+- `GET /audit-logs` (admin, terbaru dulu). Aksi baru tercatat: `member.invited`, `member.invite_resent`, `member.invite_revoked`, `member.joined`.
+- Login Google kini boleh kembali ke `/invite/...` (`safe_next`).
+- 14 tes baru (total 112).
+
+## 2026-11-18 · Anggota workspace (Langkah 1.6 bagian 1)
+
+- `GET /members`, `PATCH /members/{id}`, `DELETE /members/{id}` (admin). Admin terakhir dilindungi (`409 last_admin`); id dari workspace lain → `404 member_not_found` (B-054).
+- Tabel `audit_logs` (migrasi `cabb4cf95dd1`); perubahan peran dan pengeluaran anggota tercatat.
+- Helper pagination cursor pertama: `app/core/pagination.py` (+ `Limit`/`Cursor` di `app/api/pagination.py`), dipakai endpoint daftar berikutnya.
+- Peran tetap tiga (B-053, PRD D14). Undangan email dan `GET /audit-logs` menyusul.
+- 10 tes baru (total 98).
+
+## 2026-11-18 · Akun demo dengan peran berbeda (Langkah 1.7)
+
+- `scripts.seed demo` kini juga membuat workspace Organisasi "Fluctuz Indonesia" dengan Dina (`admin`), Fajar (`form_editor`), dan Rani (`reviewer`); idempoten lewat `settings.seed_key`. Service `workspaces.seed_organization` (khusus seed).
+- 2 tes baru (total 88).
+
+## 2026-11-18 · Nilai kondisi tanaman (keputusan D2)
+
+- Satu set nilai di semua dokumen: `healthy` / `attention` / `infected` (B-052). Glosarium, `data-model.md`, dan contoh di `api-conventions.md` disamakan; kode backend belum memakai nilai ini.
+
+## 2026-11-18 · Penjaga peran (Langkah 1.4)
+
+- `require_role(min_role)` dan alias `ReviewerMember`, `EditorMember`, `AdminMember` di `app/api/deps.py`; peran kurang → `403 forbidden`, workspace lain tetap 404. Antarmuka 1 (TEAM-WORKFLOW) lengkap.
+- Mixin `WorkspaceOwned` dan helper `in_workspace()` di `app/db/base.py` untuk tabel milik tenant.
+- Fixture tes bersama: `organization`, `add_member()`, `sign_in()`.
+- B-006 (sesi, bukan JWT) diterima. 14 tes baru (total 86); `openapi.json` tidak berubah.
+
+## 2026-11-18 · Workspace aktif dan peran nyata (Langkah 1.3)
+
+- `/auth/me` kini mengisi `memberships` (hanya yang disetujui; Perorangan dulu). Bentuk `MeResponse` tidak berubah, jadi `openapi.json` tetap.
+- Header `X-Workspace-Id` memilih workspace aktif; dependency `CurrentMember` (`app/api/deps.py`) memvalidasinya. Kode error baru `workspace_required` (400) dan `workspace_not_found` (404) (B-051).
+- Tes bisa memakai `TEST_DATABASE_URL` agar tetap di Postgres lokal saat `DATABASE_URL` menunjuk pooler bersama (Neon).
+- 10 tes baru (total 72).
+
+## 2026-11-18 · Workspaces dan anggota (Langkah 1.1–1.2)
+
+- Modul `workspaces`: tabel `workspaces` dan `members` (migrasi `773a0a432ada`). Satu workspace Perorangan per user dijaga database; Organisasi tidak dibatasi (B-049, keputusan D13).
+- Workspace Perorangan paket Gratis dengan user sebagai `admin` dibuat otomatis saat verifikasi email, login Google, login, dan `create_user` (B-050). Migrasi juga membuatkannya untuk user yang sudah terverifikasi.
+- Belum ada endpoint baru; `openapi.json` tidak berubah. `memberships` di `/auth/me` menyusul di Langkah 1.3.
+- 11 tes baru (total 63).
+
 ## 2026-11-16 · Rancangan dashboard
 
 - Ditambahkan [dashboard.md](../06-domain-guides/dashboard.md): definisi tiap angka, endpoint `summary`, `reports/map`, `reports/{id}`, `reports/count`, ekspor, event SSE, kolom dan tabel tambahan, performa, tes wajib, dan irisan. `GET /reports/export` diganti `POST /reports/exports`. Keputusan B-044 s.d. B-047. Hanya dokumen; belum ada kode.

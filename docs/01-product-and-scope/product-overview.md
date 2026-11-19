@@ -61,6 +61,6 @@ Bisa menyusul setelah v1 (kecuali sudah dijanjikan ke klien):
 4. Penyedia LLM dan speech-to-text.
 5. Hosting dan syarat lokasi data (harus di Indonesia atau tidak).
 6. Sumber tile peta (PMTiles sendiri atau penyedia berbayar).
-7. Canvas V.1 menambah konsep baru yang belum ada di model data: folder proyek, antrean tinjauan (lolos otomatis / perlu ditinjau / diminta ulang), pemeriksaan otomatis per laporan, kualitas data penyuluh, peran koordinator wilayah, tautan undangan bersama berkuota, serta menu Spatial dan Sensors. Rincian: `frontend/docs/06-domain-guides/ui/README.md`.
+7. Canvas V.1 menambah konsep baru yang belum ada di model data: folder proyek, antrean tinjauan (lolos otomatis / perlu ditinjau / diminta ulang), pemeriksaan otomatis per laporan, kualitas data penyuluh, peran koordinator wilayah, tautan undangan bersama berkuota, serta menu Spatial dan Sensors. Rincian: `fredd-frontend/docs/06-domain-guides/ui/README.md`.
 8. ~~Layar ganda ("copy") di canvas~~: tidak relevan, acuan desain hanya halaman V.1 dan Upgrade.
 9. Penyedia pembayaran, faktur/PPN, dan perilaku saat kuota habis (lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#pertanyaan-terbuka)).

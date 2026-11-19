@@ -1,6 +1,6 @@
 # Auth
 
-Fitur `auth`: endpoint di `app/api/v1/auth/`, logika di `app/modules/auth/`. Masuk, keluar, sesi, daftar, verifikasi email, reset kata sandi, dan Google. Desain layar: [frontend ui/auth.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/auth.md). Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons). Model keamanan umum: [security-model.md](../05-security-and-access/security-model.md).
+Fitur `auth`: endpoint di `app/api/v1/auth/`, logika di `app/modules/auth/`. Masuk, keluar, sesi, daftar, verifikasi email, reset kata sandi, dan Google. Desain layar: [frontend ui/auth.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/auth.md). Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons). Model keamanan umum: [security-model.md](../05-security-and-access/security-model.md).
 
 ## Irisan pengerjaan
 
@@ -41,7 +41,7 @@ class UserOut(BaseModel):
     name: str
 
 
-class MembershipOut(BaseModel):  # terisi setelah modul workspaces ada
+class MembershipOut(BaseModel):  # app/modules/workspaces/schemas.py; hanya keanggotaan yang disetujui
     workspace_id: UUID
     workspace_name: str
     workspace_type: Literal["personal", "organization"]
@@ -303,18 +303,20 @@ class RegisterRequest(BaseModel):
 - **`resend`** selalu `200`; hanya mengirim bila email ada dan belum terverifikasi.
 - **Rate limit** (Redis, window tetap, dihitung per permintaan): `register` 10 per jam per IP; `resend` 3 per jam per email dan 20 per jam per IP; `verify-email` 30 per jam per IP.
 - **Tautan di email:** `{APP_BASE_URL}/login/verify-email?token=…`. Halaman web-nya belum dibangun; sementara itu token bisa dikirim langsung ke `verify-email`.
-- Workspace Perorangan paket Gratis dibuat setelah verifikasi **begitu modul workspaces ada**; sampai saat itu `memberships` kosong dan `organization` hanya disimpan di user.
+- Workspace Perorangan paket Gratis (user sebagai `admin`) dibuat saat verifikasi email, daftar/masuk Google, dan `create_user`; login juga membuatnya bila akun lama belum punya (B-050). `/auth/me` mengembalikan `memberships` yang sudah disetujui (Perorangan dulu, lalu Organisasi urut nama); workspace aktif dipilih dengan header `X-Workspace-Id` (B-051); `organization` tetap hanya disimpan di user.
 
 ### Pengiriman email
 
-`app/core/mail.py`: SMTP dengan STARTTLS, teks polos, dijalankan lewat `BackgroundTasks` setelah respons terkirim (server email yang lambat tidak menunda respons dan tidak membocorkan ada tidaknya akun). `send_email` tidak pernah melempar error; kegagalan dicatat di log.
+`app/core/mail.py`: SMTP dengan STARTTLS, `multipart/alternative` (teks polos + HTML bermerek Fluctuz), dijalankan lewat `BackgroundTasks` setelah respons terkirim (server email yang lambat tidak menunda respons dan tidak membocorkan ada tidaknya akun). `send_email` tidak pernah melempar error; kegagalan dicatat di log.
 
 | Variabel | Arti |
 |---|---|
-| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Server pengirim. Penyedia belum dipilih; semua yang mendukung SMTP + STARTTLS cocok |
+| `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Server pengirim. Penyedia: **Brevo** (`smtp-relay.brevo.com`, B-056); kode tetap generik, penyedia lain yang mendukung SMTP + STARTTLS bisa dipakai tanpa ubah kode |
 | (`SMTP_HOST` kosong) | Development: isi email, termasuk tautannya, ditulis ke log API (cara mengambil tautan saat mengembangkan). Produksi: dicatat sebagai error, email tidak terkirim |
 
-Isi email ada di `app/modules/auth/emails.py`.
+Isi email ada di `app/modules/auth/emails.py` (undangan anggota: `app/modules/members/emails.py`). Setiap email adalah satu `Email` (subjek, paragraf, tombol opsional, catatan kecil); bagian teks dan HTML dibangun dari data yang sama sehingga isinya selalu sama. HTML memakai tabel dan gaya inline (didukung klien email umum), logo berupa teks karena banyak klien memblokir gambar, semua isi di-escape, dan tautan tombol juga ditulis utuh untuk klien yang tidak menampilkan tombol (B-XXX). Kirim dengan `background.add_task(mail.send, alamat, email)`.
+
+Log `app.*` diteruskan ke stderr oleh `app/core/logging.py` (dipanggil `create_app`); tanpa itu uvicorn membuang `logger.info` dari kode aplikasi, termasuk email development di atas. Log terstruktur JSON menyusul di Langkah 0.4.
 
 ## Irisan 3: Lupa kata sandi
 

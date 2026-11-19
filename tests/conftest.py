@@ -1,7 +1,8 @@
 """Shared fixtures.
 
-Tests use their own database (`<dev db>_test`) and Redis db 15, so development
-data is never touched.
+Tests use their own database (`<dev db>_test`) and Redis db `TEST_REDIS_DB`
+(default 15), so development data is never touched. Give each worktree its own
+DATABASE_URL and TEST_REDIS_DB to run test suites side by side on one machine.
 Every test runs inside a transaction that is rolled back, even when the code under test commits.
 """
 
@@ -15,10 +16,13 @@ from dotenv import dotenv_values
 
 # Point the app at the test database *before* anything imports app.core.config.
 _env = {**dotenv_values(Path(__file__).parents[1] / ".env"), **os.environ}
-_base_db_url = _env["DATABASE_URL"]
+# TEST_DATABASE_URL keeps tests on a local server when DATABASE_URL points at a shared/pooled one
+# (a PgBouncer pooler cannot roll each test back).
+_base_db_url = _env.get("TEST_DATABASE_URL") or _env["DATABASE_URL"]
 TEST_DB_NAME = _base_db_url.rsplit("/", 1)[1] + "_test"
 os.environ["DATABASE_URL"] = _base_db_url.rsplit("/", 1)[0] + "/" + TEST_DB_NAME
-os.environ["REDIS_URL"] = _env["REDIS_URL"].rsplit("/", 1)[0] + "/15"
+_test_redis_db = int(_env.get("TEST_REDIS_DB") or 15)
+os.environ["REDIS_URL"] = _env["REDIS_URL"].rsplit("/", 1)[0] + f"/{_test_redis_db}"
 os.environ["ENVIRONMENT"] = "development"
 os.environ["APP_BASE_URL"] = "http://localhost:3000"
 os.environ["ALLOWED_ORIGINS"] = ""
@@ -108,13 +112,62 @@ async def logged_in(client: AsyncClient, user: User) -> AsyncClient:
     return client
 
 
-@pytest.fixture
-def outbox(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, str]]:
-    """Capture outgoing email as (to, subject, body) instead of sending it."""
-    sent: list[tuple[str, str, str]] = []
+class Outbox(list[tuple[str, str, str]]):
+    """Sent email as (to, subject, text body); `html[i]` is the HTML part of item i, or None."""
 
-    async def fake_send(to: str, subject: str, body: str) -> None:
+    def __init__(self) -> None:
+        super().__init__()
+        self.html: list[str | None] = []
+
+
+@pytest.fixture
+def outbox(monkeypatch: pytest.MonkeyPatch) -> Outbox:
+    """Capture outgoing email instead of sending it."""
+    sent = Outbox()
+
+    async def fake_send(to: str, subject: str, body: str, html: str | None = None) -> None:
         sent.append((to, subject, body))
+        sent.html.append(html)
 
     monkeypatch.setattr(mail, "send_email", fake_send)
     return sent
+
+
+# --- Workspaces and roles (interface 1): shared by every domain's tests ---------------------------
+
+
+async def add_member(db: AsyncSession, workspace_id: object, *, email: str, role: str) -> User:
+    """Create a verified user (with their own personal workspace) and add them to `workspace_id`."""
+    from app.core.time import now_utc
+    from app.modules.workspaces.models import Member
+
+    member_user = await auth_service.create_user(
+        db, email=email, name=email.split("@")[0].title(), password=PASSWORD
+    )
+    db.add(
+        Member(workspace_id=workspace_id, user_id=member_user.id, role=role, approved_at=now_utc())
+    )
+    await db.flush()
+    return member_user
+
+
+async def sign_in(client: AsyncClient, email: str, workspace_id: object) -> AsyncClient:
+    """Log `client` in as `email` and make `workspace_id` the active workspace for its requests."""
+    response = await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+    assert response.status_code == 200
+    client.headers["X-Workspace-Id"] = str(workspace_id)
+    return client
+
+
+@pytest.fixture
+async def organization(db: AsyncSession, user: User):  # noqa: ANN201
+    """An organization workspace where the `user` fixture (Dina) is admin."""
+    from app.core.time import now_utc
+    from app.modules.workspaces.models import Member, Workspace
+
+    org = Workspace(name="Dinas Pertanian Cianjur", type="organization")
+    db.add(org)
+    await db.flush()
+    db.add(Member(workspace_id=org.id, user_id=user.id, role="admin", approved_at=now_utc()))
+    await db.flush()
+    return org

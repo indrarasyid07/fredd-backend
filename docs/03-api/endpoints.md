@@ -27,11 +27,15 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 
 | Method | Path | Peran |
 |---|---|---|
-| GET, PATCH | `/workspace` | reviewer / admin |
-| GET | `/members` | admin |
-| POST | `/members/invites` | admin |
-| PATCH, DELETE | `/members/{id}` | admin |
-| GET | `/audit-logs` | admin |
+| GET, PATCH | `/workspace` | reviewer / admin — **ada** (Langkah 1.5): pengaturan workspace aktif (nama, jenis organisasi, zona waktu WIB/WITA/WIT, format tanggal, awal pekan, jam operasional, jam tenang, retensi, `member_count`). `PATCH` hanya mengubah field yang dikirim; `null` menghapus jam operasional/jam tenang; tercatat `workspace.updated` (B-057) |
+| GET | `/members` | admin — **ada** (Langkah 1.6): daftar anggota + `last_active_at`, pagination cursor |
+| GET, POST | `/members/invites` | admin — **ada** (Langkah 1.6): daftar undangan terbuka (`pending`/`expired`), undang `{email, role}` (email yang sama → undangan lama diganti); anggota aktif → `409 already_member`; workspace Perorangan → `409 personal_workspace` (B-055) |
+| POST | `/members/invites/{id}/resend` | admin — **ada**: tautan baru + 7 hari lagi; tautan lama mati |
+| DELETE | `/members/invites/{id}` | admin — **ada**: batalkan undangan; id workspace lain → `404 invite_not_found` |
+| POST | `/invites/preview` | publik — **ada**: `{token}` → nama workspace, email, peran, pengundang; tidak berlaku → `404 invite_invalid` |
+| POST | `/invites/accept` | login (tanpa `X-Workspace-Id`) — **ada**: `{token}` → langsung jadi anggota aktif; email beda → `403 invite_email_mismatch` |
+| PATCH, DELETE | `/members/{id}` | admin — **ada**: ubah peran (`{role}`), keluarkan; admin terakhir → `409 last_admin`; id workspace lain → `404 member_not_found`; tercatat di `audit_logs` |
+| GET | `/audit-logs` | admin — **ada**: terbaru dulu, pagination cursor; `actor_name`, `action`, `target`, `details` |
 | POST | `/workspace/export` | admin |
 | DELETE | `/workspace` | admin (konfirmasi nama workspace di body) |
 
@@ -39,21 +43,23 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 
 | Method | Path | Peran |
 |---|---|---|
-| GET, POST | `/forms` | reviewer / form_editor |
-| GET, PATCH | `/forms/{id}` | reviewer / form_editor (hanya draf) |
+| GET, POST | `/forms` | reviewer / form_editor. **Ada**: daftar terbaru dulu (cursor); POST membuat form `draft` + versi 1 sebagai draf |
+| GET, PATCH | `/forms/{id}` | reviewer / form_editor (hanya draf). **Ada**: PATCH = autosave wizard (`name`, `description`, `definition`, `settings`); tanpa draf → 409 `form_not_editable` |
+| GET | `/form-templates` | reviewer. **Ada**: katalog template wizard per sektor |
 | GET | `/forms/{id}/versions` | reviewer |
-| POST | `/forms/{id}/validate` | form_editor (periksa otomatis) |
+| POST | `/forms/{id}/validate` | form_editor (periksa otomatis). **Ada**: selalu 200 dengan `{valid, errors[], warnings[]}`; tiap masalah punya `code`, `message`, `field` bertitik (`fields.2.question`); tanpa draf → 409 |
 | POST | `/forms/{id}/test-runs` | form_editor (uji di akun sendiri) |
 | POST | `/forms/{id}/pilot` | admin (body: daftar extension_worker_id) |
-| POST | `/forms/{id}/publish` | admin |
-| POST | `/forms/{id}/archive` | admin |
+| POST | `/forms/{id}/publish` | admin. **Ada**: draf → versi terbit (`published_at`, `current_version_id`), status `active`, audit `form.publish`; masih ada masalah → 422 `form_has_problems`; tanpa draf → 409 `form_not_editable`; diarsipkan → 409 `form_archived` |
+| POST | `/forms/{id}/archive` | admin. **Ada**: status `archived`, audit `form.archive`, idempoten; form arsip tidak bisa diubah atau dipublikasikan |
 | GET | `/form-templates` | form_editor |
 
 ## Data rujukan
 
 | Method | Path | Peran |
 |---|---|---|
-| GET, POST | `/reference-data?type=region\|commodity\|farmer_group\|unit` | reviewer / form_editor |
+| GET, POST | `/reference-data?type=region\|commodity\|farmer_group\|unit` | reviewer / form_editor. **GET ada**: filter `parent_id`, `level`, `q` (nama/alias), `geometry=true` (GeoJSON, maks. 50 baris); data platform + milik workspace |
+| GET | `/reference-data/locate?lat=&lng=` | reviewer. **Ada**: kecamatan, kab/kota, provinsi dari titik GPS |
 | PATCH, DELETE | `/reference-data/{id}` | form_editor |
 | POST | `/reference-data/import` | form_editor (CSV) |
 
@@ -63,7 +69,7 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 |---|---|---|
 | GET, POST | `/extension-workers` | reviewer / admin |
 | GET, PATCH, DELETE | `/extension-workers/{id}` | reviewer / admin |
-| GET, PATCH | `/forms/{id}/join-code` | reviewer / admin (PATCH: admin) |
+| GET, PATCH | `/forms/{id}/join-code` | reviewer / admin (PATCH: admin). **Ada**: kode (`K7M2-9QXA`), status, `approval_mode`, `max_uses`, `expires_at`, `use_count`, `claimable` (kode aktif dan form pilot/aktif), tautan WhatsApp/Telegram (null bila bot belum diatur). PATCH: `status` (`active`/`paused`), `approval_mode`, `max_uses`, `expires_at` |
 | POST | `/forms/{id}/join-code/rotate` | admin |
 | POST | `/extension-workers/{id}/approve`, `/block` | admin |
 | ~~POST~~ | ~~`/extension-workers/invites`, `/invites/{id}/resend`~~ | dihapus (B-048) |

@@ -27,6 +27,7 @@ from app.modules.auth.schemas import (
     ResetPasswordRequest,
     UserOut,
 )
+from app.modules.workspaces import service as workspaces_service
 
 LOGIN_WINDOW_SECONDS = 15 * 60
 LOGIN_LIMIT_PER_EMAIL = 5  # failures per ip + email
@@ -64,6 +65,8 @@ async def login(
         new_hash = await asyncio.to_thread(hash_password, password)
         await repository.update_password_hash(db, user, new_hash)
 
+    # Also covers users verified before the workspaces module existed.
+    await _ensure_workspace(db, user)
     token = await _start_session(db, user, ip=ip, user_agent=user_agent)
     await db.commit()
     await rate_limit.reset(email_key)
@@ -86,6 +89,11 @@ async def _start_session(
         expires_at=now + timedelta(days=settings.session_ttl_days),
     )
     return token
+
+
+async def _ensure_workspace(db: AsyncSession, user: User) -> None:
+    """Every verified user owns a personal workspace (ROADMAP 1.2); the caller commits."""
+    await workspaces_service.ensure_personal_workspace(db, user_id=user.id, user_name=user.name)
 
 
 async def logout(db: AsyncSession, token: str) -> None:
@@ -114,8 +122,8 @@ async def resolve_session(db: AsyncSession, token: str) -> User:
 
 
 async def get_me(db: AsyncSession, user: User) -> MeResponse:
-    # Memberships arrive with the workspaces module.
-    return MeResponse(user=UserOut.model_validate(user), memberships=[])
+    memberships = await workspaces_service.list_memberships(db, user.id)
+    return MeResponse(user=UserOut.model_validate(user), memberships=memberships)
 
 
 _STRONG_PASSWORD = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,128}$")
@@ -132,6 +140,7 @@ async def create_user(db: AsyncSession, *, email: str, name: str, password: str)
     user = await repository.create_user(
         db, email=email, name=name.strip(), password_hash=password_hash, email_verified_at=now_utc()
     )
+    await _ensure_workspace(db, user)
     await db.commit()
     return user
 
@@ -184,9 +193,9 @@ async def register(
     if user.email_verified_at is None:  # new, or signed up before and never verified
         token = await _issue_token(db, user, "verify_email", VERIFY_TTL)
         await db.commit()
-        background.add_task(mail.send_email, user.email, *emails.verify_email(token))
+        background.add_task(mail.send, user.email, emails.verify_email(token))
     else:
-        background.add_task(mail.send_email, user.email, *emails.already_registered())
+        background.add_task(mail.send, user.email, emails.already_registered())
 
 
 async def resend_verification(
@@ -198,7 +207,7 @@ async def resend_verification(
     if user is not None and user.email_verified_at is None:
         token = await _issue_token(db, user, "verify_email", VERIFY_TTL)
         await db.commit()
-        background.add_task(mail.send_email, user.email, *emails.verify_email(token))
+        background.add_task(mail.send, user.email, emails.verify_email(token))
 
 
 async def verify_email(
@@ -214,6 +223,7 @@ async def verify_email(
     if user is None:
         raise errors.InvalidToken(field="token")
     await repository.mark_email_verified(db, user, now)
+    await _ensure_workspace(db, user)
     session_token = await _start_session(db, user, ip=ip, user_agent=user_agent)
     await db.commit()
     return session_token, await get_me(db, user)
@@ -228,7 +238,7 @@ async def forgot_password(
     if user is not None:
         token = await _issue_token(db, user, "reset_password", RESET_TTL)
         await db.commit()
-        background.add_task(mail.send_email, user.email, *emails.reset_password(token))
+        background.add_task(mail.send, user.email, emails.reset_password(token))
 
 
 async def reset_password(db: AsyncSession, data: ResetPasswordRequest, *, ip: str | None) -> None:
@@ -268,6 +278,7 @@ async def login_with_google(
             )
         else:
             await repository.link_google(db, user, profile.sub, now)
+    await _ensure_workspace(db, user)
     token = await _start_session(db, user, ip=ip, user_agent=user_agent)
     await db.commit()
     return token

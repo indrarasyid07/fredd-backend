@@ -26,7 +26,29 @@ Cookie `SameSite=Lax` + middleware yang menolak request selain GET/HEAD/OPTIONS 
 | Kelola kanal | ya | tidak | tidak |
 | Kelola anggota dan pengaturan | ya | tidak | tidak |
 
-Diterapkan sebagai dependency FastAPI (`require_role("admin")`). Frontend menyembunyikan tombol sesuai peran, tetapi backend yang menolak.
+Diterapkan sebagai dependency FastAPI di `app/api/deps.py` (Langkah 1.4). Frontend menyembunyikan tombol sesuai peran (`can()`), tetapi backend yang menolak.
+
+```python
+from app.api.deps import AdminMember, EditorMember, ReviewerMember
+
+
+@router.get("")  # lihat data: semua peran
+async def list_forms(member: ReviewerMember, db: DB): ...
+
+
+@router.post("")  # ubah struktur data / ekspor
+async def create_form(member: EditorMember, db: DB): ...
+
+
+@router.post("/{id}/members")  # kelola anggota, penyuluh, kanal, pengaturan
+async def invite(member: AdminMember, db: DB): ...
+```
+
+- Urutan `reviewer < form_editor < admin`; `require_role(min_role)` membuat dependency untuk tingkat lain bila perlu.
+- Urutan pemeriksaan: tanpa sesi `401 not_authenticated` → tanpa `X-Workspace-Id` `400 workspace_required` → bukan anggota yang disetujui `404 workspace_not_found` → peran kurang `403 forbidden`. Admin workspace lain tetap mendapat 404.
+- `workspace_id` untuk query selalu `member.workspace_id`, tidak pernah dari body/query.
+- Tabel milik tenant memakai mixin `WorkspaceOwned` (`app/db/base.py`); repository-nya menerima `workspace_id` sebagai argumen wajib dan memakai `in_workspace(stmt, Model, workspace_id)`.
+- Tes domain lain: fixture `organization` dan helper `add_member(...)` / `sign_in(...)` di `tests/conftest.py`.
 
 ## Peran platform (konten)
 
@@ -64,6 +86,7 @@ Kode gabung adalah rahasia setingkat undangan: acak 40 bit, tidak pernah turunan
 - Nama petani dan nomor HP penyuluh bisa disamarkan saat ekspor.
 - Retensi: percakapan 12 bulan, foto 24 bulan (dapat diatur per workspace), dijalankan cron.
 - Log audit untuk ekspor, ubah peran, publikasi struktur, ambil alih, hapus workspace.
+- Undangan anggota (B-055): token acak 256 bit, hanya hash disimpan, sekali pakai, 7 hari; hanya email yang diundang yang bisa menerima; token lewat body agar tidak tercatat di log akses; undang, kirim ulang, batal, dan bergabung tercatat di `audit_logs`.
 
 ## Pembayaran
 

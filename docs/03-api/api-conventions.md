@@ -168,7 +168,7 @@ Satu respons bisa berisi beberapa error (mis. dua field gagal validasi). `messag
 Daftar memakai pagination berbasis cursor. `data` berisi array; info halaman ada di `meta.pagination`.
 
 ```
-GET /api/v1/reports?form_id=…&region_id=…&channel=whatsapp&from=2026-11-01&to=2026-11-13&condition=infested&limit=50&cursor=eyJpZCI6…&sort=-received_at
+GET /api/v1/reports?form_id=…&region_id=…&channel=whatsapp&from=2026-11-01&to=2026-11-13&condition=infected&limit=50&cursor=eyJpZCI6…&sort=-received_at
 ```
 
 ```json
@@ -208,7 +208,10 @@ Kode umum di bawah dipakai semua domain. Kode khusus domain ditambahkan di dokum
 | `too_short` / `too_long` | 422 | Panjang teks di luar batas | terisi |
 | `out_of_range` | 422 | Angka di luar rentang | terisi |
 | `not_authenticated` | 401 | Belum login, cookie tidak ada, sesi habis atau dicabut | `null` |
-| `forbidden` | 403 | Peran tidak cukup, atau data milik workspace lain | `null` |
+| `forbidden` | 403 | Peran tidak cukup di workspace aktif (`require_role`) | `null` |
+| `last_admin` | 409 | Mengubah peran atau mengeluarkan Administrator terakhir workspace | `null` |
+| `workspace_required` | 400 | Endpoint data tenant dipanggil tanpa header `X-Workspace-Id` | `null` |
+| `workspace_not_found` | 404 | `X-Workspace-Id` rusak, tidak ada, milik orang lain, atau keanggotaannya belum disetujui (sengaja 404, bukan 403) | `null` |
 | `csrf_rejected` | 403 | Header `Origin` bukan domain Fluctuz pada request yang mengubah data | `null` |
 | `plan_limit_reached` | 403 | Kuota paket habis (lihat [billing-and-plans.md](../06-domain-guides/billing-and-plans.md#kuota-dan-fitur)) | `null` |
 | `not_found` | 404 | Data atau route tidak ada | `null` |
@@ -228,6 +231,7 @@ Pemetaan validasi Pydantic ke kode di atas dilakukan di satu tempat (`app/api/er
 | `Retry-After` | Respons 429 | Detik sampai boleh mencoba lagi |
 | `Set-Cookie: fluctuz_session=…` | Respons login | Lihat [auth.md](../06-domain-guides/auth.md#sesi-dan-cookie) |
 | `Origin` | Request | Wajib cocok dengan domain Fluctuz untuk method selain GET/HEAD/OPTIONS |
+| `X-Workspace-Id` | Request | Workspace aktif untuk semua endpoint data tenant; harus salah satu `memberships` dari `/auth/me`. Divalidasi per request oleh dependency `get_current_member` (`CurrentMember`), dan `workspace_id` di query selalu diambil dari situ (B-051). Endpoint akun (`/auth/*`) tidak memakainya |
 
 ## Dokumentasi OpenAPI
 
