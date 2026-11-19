@@ -10,7 +10,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 import httpx
 
@@ -187,6 +187,15 @@ class TelegramError(Exception):
         self.timed_out = timed_out
 
 
+class BotApi(Protocol):
+    """What the chat pipeline needs from a bot: the real client, the devtools stand-in, or a
+    test fake."""
+
+    async def send(self, chat_id: str, out: Outbound) -> str: ...
+    async def answer_callback(self, callback_id: str) -> None: ...
+    async def leave_chat(self, chat_id: str) -> None: ...
+
+
 class TelegramClient:
     def __init__(self, token: str, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
         self._http = httpx.AsyncClient(
@@ -222,6 +231,27 @@ class TelegramClient:
             params["reply_markup"] = markup
         result = await self.call("sendMessage", **params)
         return str(result["message_id"])
+
+    async def get_updates(self, offset: int | None, wait_seconds: int) -> list[dict[str, Any]]:
+        """Long polling for development bots (no public URL needed)."""
+        params: dict[str, Any] = {
+            "timeout": wait_seconds,
+            "allowed_updates": ["message", "edited_message", "callback_query", "my_chat_member"],
+        }
+        if offset is not None:
+            params["offset"] = offset
+        try:
+            response = await self._http.post(
+                "getUpdates", json=params, timeout=httpx.Timeout(wait_seconds + 10.0, connect=5.0)
+            )
+        except httpx.TimeoutException:
+            return []
+        except httpx.HTTPError as exc:
+            raise TelegramError(None, type(exc).__name__) from None
+        data = response.json()
+        if not data.get("ok"):
+            raise TelegramError(data.get("error_code"), str(data.get("description", ""))[:200])
+        return list(data.get("result") or [])
 
     async def answer_callback(self, callback_id: str) -> None:
         # Stops the button's loading spinner; Telegram wants it within seconds.
