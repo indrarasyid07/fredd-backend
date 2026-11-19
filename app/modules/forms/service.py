@@ -10,6 +10,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import InvalidCursor
@@ -18,15 +19,18 @@ from app.modules.forms.models import Form, FormTemplate, FormTemplateSector, For
 from app.modules.forms.schemas import (
     CreateFormRequest,
     DraftFormDefinition,
+    FormCheckOut,
     FormDefinition,
     FormDetailOut,
     FormDraftOut,
     FormOut,
+    FormProblem,
     FormSettings,
     FormTemplateOut,
     FormTemplateSectorOut,
     TemplateChipOut,
     UpdateFormRequest,
+    find_problems,
 )
 from app.modules.reference_data import service as reference_data
 
@@ -176,6 +180,67 @@ async def update_form(
     await db.refresh(form)
     await db.refresh(draft)
     return await _detail(db, form, draft)
+
+
+async def check_form(db: AsyncSession, workspace_id: uuid.UUID, form_id: uuid.UUID) -> FormCheckOut:
+    """Automatic checks of the draft before publishing (POST /forms/{id}/validate): the strict
+    FormDefinition rules as errors, plus warnings that do not block."""
+    form = await get_form(db, workspace_id, form_id)
+    draft = (await repository.get_drafts(db, [form.id])).get(form.id)
+    if draft is None:
+        raise errors.FormNotEditable()
+    draft_definition = DraftFormDefinition.model_validate(draft.definition)
+    problems = [
+        FormProblem(code=code, message=message, field=path)
+        for path, code, message in find_problems(draft_definition)
+    ]
+    if not problems:
+        # Anything the strict model still rejects (should not happen) is reported generically.
+        try:
+            FormDefinition.model_validate(draft.definition)
+        except ValidationError as exc:
+            problems = [_problem(e) for e in exc.errors()]
+    return FormCheckOut(valid=not problems, errors=problems, warnings=_warnings(draft.definition))
+
+
+_EMPTY = {
+    "label": ("label_required", "Nama isian belum diisi."),
+    "question": ("question_required", "Pertanyaan untuk penyuluh belum diisi."),
+}
+
+
+def _problem(error: Any) -> FormProblem:
+    loc = tuple(error.get("loc", ()))
+    path = ".".join(str(p) for p in loc) or None
+    ctx = error.get("ctx") or {}
+    if ctx.get("app_code"):
+        return FormProblem(code=ctx["app_code"], message=str(error["msg"]), field=path)
+    kind = error.get("type", "")
+    if loc == ("fields",) and kind == "too_short":
+        return FormProblem(code="no_fields", message="Tambahkan minimal satu isian.", field=path)
+    if kind in ("string_too_short", "missing") and loc and loc[-1] in _EMPTY:
+        if loc[-2:-1] and isinstance(loc[-2], int) and "options" in loc:
+            code, message = "option_label_required", "Nama pilihan belum diisi."
+        else:
+            code, message = _EMPTY[str(loc[-1])]
+        return FormProblem(code=code, message=message, field=path)
+    return FormProblem(code="invalid_value", message="Isian ini belum benar.", field=path)
+
+
+def _warnings(definition: dict[str, Any]) -> list[FormProblem]:
+    fields = definition.get("fields") or []
+    if fields and not any(f.get("role") == "condition" for f in fields):
+        return [
+            FormProblem(
+                code="no_condition_field",
+                message=(
+                    "Belum ada isian kondisi tanaman. Peta dan ringkasan kondisi di dashboard "
+                    "akan kosong untuk struktur ini."
+                ),
+                field=None,
+            )
+        ]
+    return []
 
 
 # --- Template catalogue ------------------------------------------------------------------------

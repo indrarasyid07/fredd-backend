@@ -78,7 +78,7 @@ def test_field_constraints(index: int, change: dict[str, Any], expected: tuple[s
 
 def test_one_field_per_role() -> None:
     data = crop_survey()
-    data["fields"].append({**data["fields"][2], "key": "land_area_2"})
+    data["fields"].append({**data["fields"][2], "key": "land_area_2", "label": "Luas lahan 2"})
     assert problems(data) == [("fields.5.role", "duplicate_role")]
 
 

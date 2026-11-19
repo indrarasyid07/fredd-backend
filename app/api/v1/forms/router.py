@@ -10,7 +10,13 @@ from app.api.deps import DB, EditorMember, ReviewerMember
 from app.api.pagination import Cursor, Limit, decode_cursor, encode_cursor
 from app.api.responses import ApiErrorResponse, ApiResponse, Pagination, ok
 from app.modules.forms import service
-from app.modules.forms.schemas import CreateFormRequest, FormDetailOut, FormOut, UpdateFormRequest
+from app.modules.forms.schemas import (
+    CreateFormRequest,
+    FormCheckOut,
+    FormDetailOut,
+    FormOut,
+    UpdateFormRequest,
+)
 
 router = APIRouter()
 
@@ -51,3 +57,13 @@ async def update_form(form_id: uuid.UUID, body: UpdateFormRequest, member: Edito
         await service.update_form(db, member.workspace.id, form_id, body),
         message="Perubahan tersimpan.",
     )
+
+
+@router.post(
+    "/{form_id}/validate",
+    response_model=ApiResponse[FormCheckOut],
+    responses={**_GUARDS, 409: _ERR},
+)
+async def validate_form(form_id: uuid.UUID, member: EditorMember, db: DB):
+    """Automatic checks of the draft. Problems are data, not a failed request: always 200."""
+    return ok(await service.check_form(db, member.workspace.id, form_id))

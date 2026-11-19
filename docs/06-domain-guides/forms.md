@@ -17,6 +17,10 @@ Kode: `app/modules/forms/` (`schemas.py` = `FormDefinition`, `service.py` = anta
 - `forms.settings` (`FormSettings`): `template_code`, `sector_code`, `province_id` + `regency_ids` (wilayah kerja dari `reference_data`: provinsi platform dan, opsional, kab/kota di dalamnya; kosong = seluruh provinsi; id lain → `422 unknown_region` dengan `field` bertitik), `commodities`, `frequency` (`daily`/`weekly`/`event`), `agent_style` (`ramah`/`singkat`/`formal`), `voice_to_text`, `blur_retry`.
 - Katalog template (`GET /form-templates`): tabel platform `form_template_sectors` dan `form_templates`, seed `templates`. Isian awal tetap diturunkan wizard dari `description` template.
 
+## Pemeriksaan otomatis (Langkah 2.5)
+
+`POST /forms/{id}/validate` memeriksa draf dan **selalu menjawab 200** (masalah adalah data, bukan permintaan yang gagal): `{valid, errors[], warnings[]}`, tiap item `{code, message, field}` dengan `field` bertitik relatif terhadap definisi (`fields.2.question`, `fields.3.options.1.label`, `rules.0.then.require`; kosong = seluruh struktur). Semua masalah dilaporkan sekaligus (`find_problems` di `schemas.py`, di atas `DraftFormDefinition`): isian kosong (`no_fields`, `label_required`, `question_required`, `option_label_required`), plus semua aturan `FormDefinition` di bawah, termasuk `duplicate_field_label` dan `duplicate_option_label` (kunci dibuat dari label, jadi label kembar tidak tertangkap oleh pemeriksaan kunci). Peringatan tidak menghalangi publikasi: `no_condition_field` (tidak ada isian berperan `condition`). Label pilihan di draf juga boleh kosong.
+
 ## `FormDefinition`
 
 ```
@@ -80,8 +84,9 @@ Definisi yang tidak valid menghasilkan `422 validation_error` dengan **satu item
 
 | `code` | Arti |
 |---|---|
-| `duplicate_field_key` | Dua isian memakai `key` yang sama |
-| `options_too_few` / `options_not_allowed` / `duplicate_option` | Pilihan kurang dari 2 / ada di isian bukan pilihan / `value` ganda |
+| `duplicate_field_key` / `duplicate_field_label` | Dua isian memakai `key` / nama yang sama |
+| `no_fields` / `label_required` / `question_required` / `option_label_required` | Belum ada isian / nama isian, pertanyaan, atau nama pilihan kosong (pemeriksaan 2.5) |
+| `options_too_few` / `options_not_allowed` / `duplicate_option` / `duplicate_option_label` | Pilihan kurang dari 2 / ada di isian bukan pilihan / `value` ganda / nama pilihan ganda |
 | `bounds_not_allowed` / `invalid_range` / `negative_count` | `min`/`max` di tipe yang tidak memakainya / `min > max` / jumlah negatif |
 | `review_above_not_allowed` / `unit_not_allowed` / `accuracy_not_allowed` | Properti di tipe yang salah |
 | `invalid_answer_mode` | Cara menjawab tidak berlaku untuk tipenya, atau ganda |

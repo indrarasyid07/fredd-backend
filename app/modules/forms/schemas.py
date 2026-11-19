@@ -120,6 +120,12 @@ MESSAGES: dict[str, LiteralString] = {
     "options_too_few": "Isian pilihan butuh minimal 2 pilihan.",
     "options_not_allowed": "Hanya isian pilihan yang punya daftar pilihan.",
     "duplicate_option": "Pilihan ini sudah ada.",
+    "duplicate_option_label": "Nama pilihan ini sudah dipakai pilihan lain.",
+    "duplicate_field_label": "Nama isian ini sudah dipakai isian lain.",
+    "no_fields": "Tambahkan minimal satu isian.",
+    "label_required": "Nama isian belum diisi.",
+    "question_required": "Pertanyaan untuk penyuluh belum diisi.",
+    "option_label_required": "Nama pilihan belum diisi.",
     "bounds_not_allowed": "Batas minimal/maksimal tidak berlaku untuk tipe ini.",
     "invalid_range": "Batas maksimal harus lebih besar dari batas minimal.",
     "negative_count": "Jumlah minimal tidak boleh negatif.",
@@ -147,16 +153,32 @@ class _Problems:
         error = PydanticCustomError(code, MESSAGES[code], {"app_code": code})
         self.items.append(InitErrorDetails(type=error, loc=loc, input=value))
 
+    def found(self) -> list[tuple[str, str, str]]:
+        """(dotted path, code, message) of every problem."""
+        return [
+            (".".join(str(x) for x in item["loc"]), item["type"].type, item["type"].message())  # type: ignore[union-attr]
+            for item in self.items
+        ]
+
     def raise_if_any(self, model: BaseModel) -> None:
         if self.items:
             raise ValidationError.from_exception_data(type(model).__name__, self.items)
 
 
+def _same(text: str) -> str:
+    return " ".join(text.lower().split())
+
+
 def _check_fields(fields: list[FieldDefinition], p: _Problems) -> None:
     seen: set[str] = set()
+    labels: set[str] = set()
     roles: set[str] = set()
     for i, f in enumerate(fields):
         at = ("fields", i)
+        # Keys are made from labels (with a suffix on clashes), so twin labels pass the key check.
+        if _same(f.label) and _same(f.label) in labels:
+            p.add((*at, "label"), "duplicate_field_label", f.label)
+        labels.add(_same(f.label))
         if f.key in seen:
             p.add((*at, "key"), "duplicate_field_key", f.key)
         seen.add(f.key)
@@ -170,6 +192,10 @@ def _check_fields(fields: list[FieldDefinition], p: _Problems) -> None:
         for j, value in enumerate(values):
             if value in values[:j]:
                 p.add((*at, "options", j, "value"), "duplicate_option", value)
+        option_labels = [_same(o.label) for o in f.options]
+        for j, label in enumerate(option_labels):
+            if label and label in option_labels[:j]:
+                p.add((*at, "options", j, "label"), "duplicate_option_label", f.options[j].label)
 
         if f.type not in BOUNDED_TYPES and (f.min is not None or f.max is not None):
             p.add((*at, "min"), "bounds_not_allowed", f.min)
@@ -206,7 +232,7 @@ def _check_fields(fields: list[FieldDefinition], p: _Problems) -> None:
                 p.add((*at, "unit"), "invalid_area_unit", f.unit)
 
 
-def _check_rules(d: FormDefinition, p: _Problems) -> None:
+def _check_rules(d: FormDefinition | DraftFormDefinition, p: _Problems) -> None:
     for i, rule in enumerate(d.rules):
         at = ("rules", i)
         source = d.field(rule.if_.field)
@@ -228,19 +254,47 @@ def _check_rules(d: FormDefinition, p: _Problems) -> None:
 # --- Drafts, settings and API shapes (roadmap 2.3) -------------------------------------------
 
 
+class DraftChoiceOption(ChoiceOption):
+    label: str = Field(default="", max_length=100)
+
+
 class DraftFieldDefinition(FieldDefinition):
-    """A field while the wizard is still editing it: label and question may be empty."""
+    """A field while the wizard is still editing it: label, question and option labels may be
+    empty."""
 
     label: str = Field(default="", max_length=100)
     question: str = Field(default="", max_length=500)
+    options: list[DraftChoiceOption] = Field(default_factory=list, max_length=MAX_OPTIONS)  # type: ignore[assignment]
 
 
 class DraftFormDefinition(_Strict):
-    """What autosave stores. Shape is checked, completeness is not (that is FormDefinition's job
-    at validate/publish), so saving never fails halfway through an edit."""
+    """What autosave stores. Shape is checked, completeness is not (that is find_problems' and
+    FormDefinition's job at validate/publish), so saving never fails halfway through an edit."""
 
     fields: list[DraftFieldDefinition] = Field(default_factory=list, max_length=MAX_FIELDS)
     rules: list[Rule] = Field(default_factory=list, max_length=MAX_RULES)
+
+    def field(self, key: str) -> DraftFieldDefinition | None:
+        return next((f for f in self.fields if f.key == key), None)
+
+
+def find_problems(draft: DraftFormDefinition) -> list[tuple[str, str, str]]:
+    """Everything that keeps a draft from becoming a FormDefinition, all at once:
+    (dotted path, code, Indonesian message)."""
+    p = _Problems()
+    if not draft.fields:
+        p.add(("fields",), "no_fields", None)
+    for i, f in enumerate(draft.fields):
+        if not f.label.strip():
+            p.add(("fields", i, "label"), "label_required", f.label)
+        if not f.question.strip():
+            p.add(("fields", i, "question"), "question_required", f.question)
+        for j, option in enumerate(f.options):
+            if not option.label.strip():
+                p.add(("fields", i, "options", j, "label"), "option_label_required", option.label)
+    _check_fields(draft.fields, p)  # type: ignore[arg-type]
+    _check_rules(draft, p)
+    return p.found()
 
 
 class FormSettings(_Strict):
@@ -324,3 +378,19 @@ class FormTemplateSectorOut(BaseModel):
     chips_label: str
     chips: list[TemplateChipOut]
     templates: list[FormTemplateOut]
+
+
+class FormProblem(BaseModel):
+    """One finding of POST /forms/{id}/validate; `field` is a dotted path into the definition
+    (`fields.2.question`), null for the form as a whole."""
+
+    code: str
+    message: str
+    field: str | None
+
+
+class FormCheckOut(BaseModel):
+    # True when there are no errors; warnings never block publishing.
+    valid: bool
+    errors: list[FormProblem]
+    warnings: list[FormProblem]
