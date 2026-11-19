@@ -117,3 +117,7 @@ async def count_approved_members(db: AsyncSession, workspace_id: uuid.UUID) -> i
 
 async def update_workspace(db: AsyncSession, workspace: Workspace, values: dict[str, Any]) -> None:
     await db.execute(update(Workspace).where(Workspace.id == workspace.id).values(**values))
+
+
+async def get_name(db: AsyncSession, workspace_id: uuid.UUID) -> str | None:
+    return await db.scalar(select(Workspace.name).where(Workspace.id == workspace_id))

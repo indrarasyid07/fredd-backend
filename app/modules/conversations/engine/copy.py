@@ -25,6 +25,22 @@ THREE_FAILS = "Sudah 3 kali jawaban belum sesuai. Mau bagaimana?"
 VOICE_LATER = "Pesan suara belum bisa saya baca untuk pertanyaan ini. Mohon ketik jawabannya."
 SUBMIT_FIRST = "Laporan siap dikirim. Tekan *Kirim sekarang* atau *Ubah jawaban*."
 CONFIRM_FIRST = "Mohon jawab *Ya* atau *Ubah* dulu."
+# --- Joining with a code (join-codes.md) ---
+CODE_UNKNOWN = "Kode tidak dikenali. Periksa kode dari admin Anda, contoh: K7M2-9QXA."
+CODE_CLOSED = "Kode ini sudah tidak menerima anggota baru. Hubungi admin Anda untuk kode terbaru."
+KEEP = "Ya, tetap"
+NOT_MINE = "Bukan, ganti"
+ADD_TOPIC = "Tambah topik"
+CANCEL = "Batal"
+AFTER_KEEP = (
+    "Siap. Saya Fluctuz, asisten yang membantu mencatat laporan lapangan. "
+    "Ketik *mulai* untuk melapor."
+)
+AFTER_CHANGE = (
+    "Baik, tidak jadi bergabung. Kirim kode yang benar dari admin Anda, contoh: K7M2-9QXA."
+)
+CHOICE_EXPIRED = "Pilihan ini sudah kedaluwarsa. Kirim kodenya sekali lagi."
+CANCELLED = "Baik, topik Anda tidak berubah."
 EDITED = "Pesan yang diubah tidak saya baca. Mohon kirim ulang jawabannya sebagai pesan baru."
 
 # Why an answer was not accepted, with an example (chat-ux.md moment 3).
@@ -123,3 +139,59 @@ def number(value: Decimal) -> str:
 
 def date(value: dt.date) -> str:
     return f"{value.day} {_MONTHS[value.month - 1]} {value.year}"
+
+
+def topic_title(organization: str, topic: str) -> str:
+    return f"{organization} · {topic}"
+
+
+def consent(organization: str, privacy_url: str) -> str:
+    """UU PDP No. 27/2022: who controls the data. Draft wording, to be approved (roadmap 3.0)."""
+    text = (
+        f"Data laporan Anda dikelola oleh {organization} sebagai pengendali data, "
+        "dengan Fluctuz sebagai pemroses data."
+    )
+    return f"{text} Kebijakan privasi: {privacy_url}" if privacy_url else text
+
+
+def joined(name: str | None, organization: str, topic: str, privacy_url: str) -> str:
+    hello = f"Halo {name}!" if name else "Halo!"
+    return (
+        f"{hello} Anda bergabung di *{topic_title(organization, topic)}*. "
+        "Laporan Anda akan masuk ke topik ini seterusnya. Sudah benar?\n\n"
+        + consent(organization, privacy_url)
+    )
+
+
+def topic_not_open(topic: str) -> str:
+    return f"{topic} belum dibuka. Coba lagi setelah admin mengaktifkannya."
+
+
+def waiting_approval(organization: str) -> str:
+    return (
+        f"Permintaan Anda sudah dikirim ke admin {organization}. "
+        "Saya kabari di sini setelah disetujui."
+    )
+
+
+def already_joined(organization: str, topic: str) -> str:
+    title = topic_title(organization, topic)
+    return f"Anda sudah tergabung di *{title}*. Ketik *mulai* untuk melapor."
+
+
+def switch_or_add(organization: str, topic: str) -> str:
+    return (
+        f"Kode ini untuk *{topic_title(organization, topic)}*. "
+        "Pindah ke topik ini, atau tambahkan tanpa melepas yang lama?"
+    )
+
+
+def switch_to(topic: str) -> str:
+    return f"Pindah ke {topic}"
+
+
+def switched(organization: str, topic: str, privacy_url: str) -> str:
+    return (
+        f"Siap, laporan berikutnya masuk ke *{topic_title(organization, topic)}*. "
+        "Ketik *mulai* untuk melapor.\n\n" + consent(organization, privacy_url)
+    )

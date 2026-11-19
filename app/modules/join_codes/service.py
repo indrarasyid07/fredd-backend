@@ -1,20 +1,26 @@
 """Join codes (B-048): one per data structure, created with it.
 
 Other modules call `create_for_form` (forms, when a structure is created). The bot side
-(claiming a code) comes with the conversation engine (roadmap 3.6).
+(claiming a code) calls `find_claimable` and `take_use` (roadmap 3.6).
 """
 
 import secrets
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Literal
 from urllib.parse import quote
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.time import now_utc
+from app.modules.forms import service as forms
 from app.modules.join_codes import errors, repository
 from app.modules.join_codes.constants import ALPHABET, CLAIMABLE_FORM_STATUSES, LENGTH
 from app.modules.join_codes.models import JoinCode
 from app.modules.join_codes.schemas import JoinCodeOut, UpdateJoinCodeRequest
+from app.modules.workspaces import service as workspaces
 
 
 def new_code() -> str:
@@ -101,3 +107,43 @@ def _out(join_code: JoinCode, form_status: str) -> JoinCodeOut:
         whatsapp_url=whatsapp,
         telegram_url=telegram,
     )
+
+
+ClaimProblem = Literal["unknown", "closed", "not_open"]
+
+
+@dataclass(frozen=True)
+class Claimable:
+    join_code: JoinCode
+    form_id: uuid.UUID
+    form_name: str
+    organization: str
+
+
+async def find_claimable(db: AsyncSession, code: str) -> Claimable | ClaimProblem:
+    """What a code sent to the bot opens. `closed` covers paused, revoked, expired, full and
+    archived structures alike: the person only needs to ask the admin for a new code."""
+    join_code = await repository.get_by_code(db, code)
+    if join_code is None:
+        return "unknown"
+    form = await forms.get_form(db, join_code.workspace_id, join_code.form_id)
+    now = now_utc()
+    if (
+        join_code.status != "active"
+        or form.status == "archived"
+        or (join_code.expires_at is not None and join_code.expires_at <= now)
+        or (join_code.max_uses is not None and join_code.use_count >= join_code.max_uses)
+    ):
+        return "closed"
+    if form.status not in CLAIMABLE_FORM_STATUSES:
+        return "not_open"
+    return Claimable(
+        join_code=join_code,
+        form_id=form.id,
+        form_name=form.name,
+        organization=await workspaces.get_name(db, join_code.workspace_id),
+    )
+
+
+async def take_use(db: AsyncSession, join_code_id: uuid.UUID, now: datetime) -> bool:
+    return await repository.take_use(db, join_code_id, now)
