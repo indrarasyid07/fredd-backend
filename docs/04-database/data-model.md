@@ -25,8 +25,8 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `extension_workers` | workspace_id, name, region_id, phone_e164, telegram_chat_id, joined_via_code_id, joined_at, status (`pending_approval`, `active`, `blocked`) | Dibuat saat klaim kode. Unik per workspace: phone, telegram_chat_id |
 | ~~`extension_worker_invites`~~ | - | Dihapus (B-048); digantikan `join_codes` |
 | `reference_data` | workspace_id, type (`region`, `commodity`, `farmer_group`, `unit`), value, aliases text[], parent_id | Alias untuk mencocokkan kata lokal |
-| `forms` | workspace_id, name, status (`draft`, `pilot`, `active`, `archived`), current_version_id | Struktur data |
-| `form_versions` | form_id, version, definition JSONB, published_at | Tidak pernah diubah setelah dipublikasikan |
+| `forms` | workspace_id, name, description, status (`draft`, `pilot`, `active`, `archived`), current_version_id, created_by_user_id | Struktur data; `current_version_id` = versi terbit yang dipakai percakapan baru |
+| `form_versions` | workspace_id, form_id, version, definition JSONB, published_at, published_by_user_id | `published_at` kosong = draf (paling banyak satu per form, bisa diubah); tidak pernah diubah setelah dipublikasikan |
 | `form_assignments` | form_version_id, extension_worker_id | Pilot = sebagian penyuluh |
 | `conversations` | workspace_id, extension_worker_id, form_version_id, channel_id, step, draft_answers JSONB, status, failed_attempts, last_inbound_at, taken_over_by, taken_over_at, next_reminder_at | `last_inbound_at` untuk jendela 24 jam WA |
 | `messages` | conversation_id, direction (`in`, `out`), body, media_key, external_id, channel_sent_at, processed_at, delivery_status | `UNIQUE (channel_id, external_id)` |
@@ -58,17 +58,17 @@ WHERE id = :id AND taken_over_by IS NULL;
 
 **Lokasi.** `latitude`/`longitude` `double precision` + indeks pada `region_id`. Agregasi peta = `GROUP BY region_id`. PostGIS ditambahkan bila nanti butuh kueri spasial (titik dalam poligon desa, radius).
 
-**`form_versions.definition`** divalidasi oleh model Pydantic sebelum disimpan:
+**`form_versions.definition`** divalidasi oleh model Pydantic `FormDefinition` (`app/modules/forms/schemas.py`) sebelum disimpan. Aturan lengkap, tipe isian, dan kode galat: [forms.md](../06-domain-guides/forms.md).
 
 ```json
 {
   "fields": [
-    { "key": "farmer_name", "type": "text", "question": "Siapa nama petaninya?", "required": true },
-    { "key": "land_area_ha", "type": "number", "question": "Berapa luas lahan (ha)?", "min": 0, "max": 500, "review_above": 50 },
-    { "key": "condition", "type": "choice", "question": "Bagaimana kondisi tanamannya?",
+    { "key": "farmer_name", "type": "short_text", "label": "Nama petani", "question": "Siapa nama petaninya?", "required": true },
+    { "key": "land_area", "type": "number", "label": "Luas lahan", "question": "Berapa luas lahan?", "unit": "ha", "min": 0, "max": 500, "review_above": 50, "role": "area" },
+    { "key": "condition", "type": "single_choice", "label": "Kondisi tanaman", "question": "Bagaimana kondisi tanamannya?", "role": "condition",
       "options": [{"value": "healthy", "label": "Sehat"}, {"value": "attention", "label": "Perlu perhatian"}, {"value": "infected", "label": "Terserang"}] },
-    { "key": "photos", "type": "photo", "min": 1, "max": 3 },
-    { "key": "location", "type": "location", "max_accuracy_m": 50 }
+    { "key": "photos", "type": "photo", "label": "Foto lahan", "question": "Boleh kirim 1 sampai 3 foto?", "min": 1, "max": 3 },
+    { "key": "location", "type": "location", "label": "Lokasi lahan", "question": "Di mana lahannya?", "max_accuracy_m": 50 }
   ],
   "rules": [
     { "if": { "field": "condition", "equals": "infected" }, "then": { "require": "photos" } }

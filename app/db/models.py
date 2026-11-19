@@ -3,6 +3,7 @@
 from app.db.base import Base
 from app.modules.audit.models import AuditLog
 from app.modules.auth.models import AuthToken, Session, User
+from app.modules.forms.models import Form, FormVersion
 from app.modules.members.models import MemberInvite
 from app.modules.workspaces.models import Member, Workspace
 
@@ -10,6 +11,8 @@ __all__ = [
     "AuditLog",
     "AuthToken",
     "Base",
+    "Form",
+    "FormVersion",
     "Member",
     "MemberInvite",
     "Session",

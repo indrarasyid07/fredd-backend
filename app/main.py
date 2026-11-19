@@ -6,11 +6,13 @@ from fastapi import FastAPI
 from app.api import errors
 from app.api.middleware.csrf import CsrfMiddleware
 from app.api.middleware.request_id import RequestIdMiddleware
+from app.api.openapi import include_schemas
 from app.api.router import mount
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.redis import redis
 from app.db.session import engine
+from app.modules.forms.schemas import FormDefinition
 
 
 @asynccontextmanager
@@ -34,6 +36,9 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestIdMiddleware)
     errors.register(app)
     mount(app)
+    # Interface 2 (TEAM-WORKFLOW): read by the conversation engine and reports. Drop this once
+    # the /forms endpoints (roadmap 2.3) reference it.
+    include_schemas(app, FormDefinition)
     return app
 
 

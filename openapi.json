@@ -3236,6 +3236,311 @@
           "created_at"
         ],
         "title": "WorkspaceOut"
+      },
+      "ChoiceOption": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Value",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "pattern": "^#[0-9A-Fa-f]{6}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Color"
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "ChoiceOption",
+        "type": "object"
+      },
+      "FieldDefinition": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Key",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "short_text",
+              "long_text",
+              "number",
+              "single_choice",
+              "multi_choice",
+              "datetime",
+              "location",
+              "photo",
+              "video",
+              "voice",
+              "document",
+              "signature"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Min"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Max"
+          },
+          "review_above": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Review Above"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unit"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/ChoiceOption"
+            },
+            "maxItems": 30,
+            "title": "Options",
+            "type": "array"
+          },
+          "answer_modes": {
+            "items": {
+              "enum": [
+                "type",
+                "voice",
+                "range",
+                "choose",
+                "pick",
+                "name",
+                "map",
+                "live",
+                "send",
+                "camera",
+                "photo",
+                "file",
+                "draw"
+              ],
+              "type": "string"
+            },
+            "title": "Answer Modes",
+            "type": "array"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "enum": [
+                  "condition",
+                  "area"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Role"
+          },
+          "max_accuracy_m": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "maximum": 10000,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Max Accuracy M"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "label",
+          "question"
+        ],
+        "title": "FieldDefinition",
+        "type": "object"
+      },
+      "FormDefinition": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldDefinition"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/Rule"
+            },
+            "maxItems": 50,
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "title": "FormDefinition",
+        "type": "object"
+      },
+      "Rule": {
+        "additionalProperties": false,
+        "description": "IF `if.field` equals `if.equals` THEN `then` (JIKA ... MAKA ... in the UI).",
+        "properties": {
+          "if": {
+            "$ref": "#/components/schemas/RuleCondition"
+          },
+          "then": {
+            "$ref": "#/components/schemas/RuleAction"
+          }
+        },
+        "required": [
+          "if",
+          "then"
+        ],
+        "title": "Rule",
+        "type": "object"
+      },
+      "RuleAction": {
+        "additionalProperties": false,
+        "properties": {
+          "require": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Require"
+          },
+          "needs_review": {
+            "default": false,
+            "title": "Needs Review",
+            "type": "boolean"
+          }
+        },
+        "title": "RuleAction",
+        "type": "object"
+      },
+      "RuleCondition": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Field",
+            "type": "string"
+          },
+          "equals": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Equals"
+          }
+        },
+        "required": [
+          "field",
+          "equals"
+        ],
+        "title": "RuleCondition",
+        "type": "object"
       }
     }
   }
