@@ -1,7 +1,8 @@
 """Shared fixtures.
 
-Tests use their own database (`<dev db>_test`) and Redis db 15, so development
-data is never touched.
+Tests use their own database (`<dev db>_test`) and Redis db `TEST_REDIS_DB`
+(default 15), so development data is never touched. Give each worktree its own
+DATABASE_URL and TEST_REDIS_DB to run test suites side by side on one machine.
 Every test runs inside a transaction that is rolled back, even when the code under test commits.
 """
 
@@ -20,7 +21,8 @@ _env = {**dotenv_values(Path(__file__).parents[1] / ".env"), **os.environ}
 _base_db_url = _env.get("TEST_DATABASE_URL") or _env["DATABASE_URL"]
 TEST_DB_NAME = _base_db_url.rsplit("/", 1)[1] + "_test"
 os.environ["DATABASE_URL"] = _base_db_url.rsplit("/", 1)[0] + "/" + TEST_DB_NAME
-os.environ["REDIS_URL"] = _env["REDIS_URL"].rsplit("/", 1)[0] + "/15"
+_test_redis_db = int(_env.get("TEST_REDIS_DB") or 15)
+os.environ["REDIS_URL"] = _env["REDIS_URL"].rsplit("/", 1)[0] + f"/{_test_redis_db}"
 os.environ["ENVIRONMENT"] = "development"
 os.environ["APP_BASE_URL"] = "http://localhost:3000"
 os.environ["ALLOWED_ORIGINS"] = ""

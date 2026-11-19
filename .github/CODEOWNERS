@@ -1,0 +1,4 @@
+# Owners per path. The team is small for now, so both maintainers own every path
+# and either one can approve. Split this per domain (D1-D5, see the workspace
+# TEAM-WORKFLOW.md) once each domain has its own owner.
+*  @keselyoleren @indrarasyid07
