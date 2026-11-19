@@ -2486,6 +2486,118 @@
         }
       }
     },
+    "/api/v1/forms/{form_id}/validate": {
+      "post": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "Validate Form",
+        "description": "Automatic checks of the draft. Problems are data, not a failed request: always 200.",
+        "operationId": "validate_form_api_v1_forms__form_id__validate_post",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FormCheckOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/form-templates": {
       "get": {
         "tags": [
@@ -2699,6 +2811,54 @@
           "meta"
         ],
         "title": "ApiResponse[AcceptedInvite]"
+      },
+      "ApiResponse_FormCheckOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormCheckOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[FormCheckOut]"
       },
       "ApiResponse_FormDetailOut_": {
         "properties": {
@@ -3445,42 +3605,6 @@
         ],
         "title": "AuditLogOut"
       },
-      "ChoiceOption": {
-        "properties": {
-          "value": {
-            "type": "string",
-            "maxLength": 50,
-            "minLength": 1,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "title": "Value"
-          },
-          "label": {
-            "type": "string",
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Label"
-          },
-          "color": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^#[0-9A-Fa-f]{6}$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Color"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "value",
-          "label"
-        ],
-        "title": "ChoiceOption"
-      },
       "CreateFormRequest": {
         "properties": {
           "name": {
@@ -3538,6 +3662,41 @@
           "role"
         ],
         "title": "CreateInviteRequest"
+      },
+      "DraftChoiceOption": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Label",
+            "default": ""
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^#[0-9A-Fa-f]{6}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "title": "DraftChoiceOption"
       },
       "DraftFieldDefinition": {
         "properties": {
@@ -3630,7 +3789,7 @@
           },
           "options": {
             "items": {
-              "$ref": "#/components/schemas/ChoiceOption"
+              "$ref": "#/components/schemas/DraftChoiceOption"
             },
             "type": "array",
             "maxItems": 30,
@@ -3694,7 +3853,7 @@
           "type"
         ],
         "title": "DraftFieldDefinition",
-        "description": "A field while the wizard is still editing it: label and question may be empty."
+        "description": "A field while the wizard is still editing it: label, question and option labels may be\nempty."
       },
       "DraftFormDefinition": {
         "properties": {
@@ -3718,7 +3877,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "DraftFormDefinition",
-        "description": "What autosave stores. Shape is checked, completeness is not (that is FormDefinition's job\nat validate/publish), so saving never fails halfway through an edit."
+        "description": "What autosave stores. Shape is checked, completeness is not (that is find_problems' and\nFormDefinition's job at validate/publish), so saving never fails halfway through an edit."
       },
       "EmailRequest": {
         "properties": {
@@ -3763,6 +3922,35 @@
           "message"
         ],
         "title": "ErrorItem"
+      },
+      "FormCheckOut": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/FormProblem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/FormProblem"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "errors",
+          "warnings"
+        ],
+        "title": "FormCheckOut"
       },
       "FormDetailOut": {
         "properties": {
@@ -3975,6 +4163,37 @@
           "updated_at"
         ],
         "title": "FormOut"
+      },
+      "FormProblem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "field"
+        ],
+        "title": "FormProblem",
+        "description": "One finding of POST /forms/{id}/validate; `field` is a dotted path into the definition\n(`fields.2.question`), null for the form as a whole."
       },
       "FormSettings": {
         "properties": {
@@ -5337,6 +5556,43 @@
           "created_at"
         ],
         "title": "WorkspaceOut"
+      },
+      "ChoiceOption": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Value",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "pattern": "^#[0-9A-Fa-f]{6}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Color"
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "ChoiceOption",
+        "type": "object"
       },
       "FieldDefinition": {
         "additionalProperties": false,

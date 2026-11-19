@@ -240,3 +240,82 @@ async def test_old_settings_keys_are_ignored(
     data = (await editor.get(f"{URL}/{form.id}")).json()["data"]
     assert data["settings"]["frequency"] == "daily"
     assert "region_label" not in data["settings"]
+
+
+async def _draft(editor: AsyncClient, definition: dict[str, Any]) -> str:
+    response = await editor.post(URL, json={"name": "Cek", "definition": definition})
+    return response.json()["data"]["id"]
+
+
+async def test_validate_a_complete_draft(editor: AsyncClient) -> None:
+    form_id = await _draft(editor, crop_survey())
+    response = await editor.post(f"{URL}/{form_id}/validate")
+    assert response.status_code == 200
+    assert response.json()["data"] == {"valid": True, "errors": [], "warnings": []}
+
+
+async def test_validate_reports_each_problem_with_its_field(editor: AsyncClient) -> None:
+    definition = crop_survey()
+    definition["fields"][1]["question"] = ""  # empty question
+    definition["fields"][2]["label"] = "Lokasi lahan"  # twin of field 0
+    definition["fields"][3]["options"][2]["label"] = "Sehat"  # twin option label
+    definition["rules"][0]["then"]["require"] = "missing_field"
+    form_id = await _draft(editor, definition)
+
+    data = (await editor.post(f"{URL}/{form_id}/validate")).json()["data"]
+    assert data["valid"] is False
+    found = sorted((e["field"], e["code"]) for e in data["errors"])
+    assert found == [
+        ("fields.1.question", "question_required"),
+        ("fields.2.label", "duplicate_field_label"),
+        ("fields.3.options.2.label", "duplicate_option_label"),
+        ("rules.0.then.require", "unknown_field"),
+    ]
+    assert all(e["message"] for e in data["errors"])
+
+
+async def test_validate_empty_and_unlabelled(editor: AsyncClient) -> None:
+    empty = await _draft(editor, {"fields": []})
+    data = (await editor.post(f"{URL}/{empty}/validate")).json()["data"]
+    assert [(e["field"], e["code"]) for e in data["errors"]] == [("fields", "no_fields")]
+
+    blank = {
+        "fields": [
+            {
+                "key": "a",
+                "type": "single_choice",
+                "options": [{"value": "x", "label": ""}, {"value": "y", "label": "Y"}],
+            }
+        ]
+    }
+    data = (await editor.post(f"{URL}/{await _draft(editor, blank)}/validate")).json()["data"]
+    codes = {(e["field"], e["code"]) for e in data["errors"]}
+    assert ("fields.0.label", "label_required") in codes
+    assert ("fields.0.question", "question_required") in codes
+    assert ("fields.0.options.0.label", "option_label_required") in codes
+
+
+async def test_missing_condition_field_is_only_a_warning(editor: AsyncClient) -> None:
+    definition = crop_survey()
+    definition["fields"][3].pop("role")
+    data = (await editor.post(f"{URL}/{await _draft(editor, definition)}/validate")).json()["data"]
+    assert data["valid"] is True
+    assert [w["code"] for w in data["warnings"]] == ["no_condition_field"]
+
+
+async def test_validate_needs_editor_and_own_workspace(
+    client: AsyncClient, db: AsyncSession, organization: Workspace
+) -> None:
+    form = await service.create_form(
+        db, organization.id, None, "S", FormDefinition.model_validate(crop_survey())
+    )
+    reviewer = await _as(client, db, organization, "reviewer")
+    assert (await reviewer.post(f"{URL}/{form.id}/validate")).status_code == 403
+    other = Workspace(name="Lain", type="organization")
+    db.add(other)
+    await db.flush()
+    elsewhere = await service.create_form(
+        db, other.id, None, "S", FormDefinition.model_validate(crop_survey())
+    )
+    editor = await _as(client, db, organization, "form_editor")
+    assert (await editor.post(f"{URL}/{elsewhere.id}/validate")).status_code == 404
