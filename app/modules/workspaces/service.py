@@ -203,3 +203,8 @@ async def update_settings(
         await db.commit()
         await db.refresh(ws)
     return await get_settings(db, member)
+
+
+async def get_name(db: AsyncSession, workspace_id: uuid.UUID) -> str:
+    """The organization's name, shown to extension workers by the shared bot."""
+    return await repository.get_name(db, workspace_id) or ""

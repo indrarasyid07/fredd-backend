@@ -49,6 +49,8 @@ Konsekuensi:
 - Filter (3.5a): hanya chat privat. Pesan grup diabaikan, bot keluar (`leaveChat`) bila dimasukkan ke grup. `edited_message` tidak mengubah jawaban (balasan: kirim ulang sebagai pesan baru). Live location: hanya posisi awal; perpindahannya (edit) diabaikan. Stiker/kontak/polling → jenis `other`. `my_chat_member` → `kicked` = penyuluh memblokir bot → `extension_workers.status = unreachable` di semua organisasinya.
 - `external_id`: masuk `update:<update_id>` (idempoten per bot), keluar `message:<chat_id>:<message_id>` (id pesan Telegram unik per chat).
 - Tombol: `callback_data` ≤ 64 byte (lebih → galat saat kirim); ≤ 3 tombol pendek satu baris, selain itu satu tombol per baris. `ask_location` → keyboard balasan "📍 Kirim lokasi" (dirapikan di 3.8 bila digabung dengan tombol inline).
+- **Polling (3.9):** `scripts/telegram_poll.py` memanggil `getUpdates` (long polling 30 dtk, offset di Redis `telegram:poll-offset`) dan memakai jalur yang sama dengan webhook. Hanya `ENVIRONMENT=development`, dan menolak bot yang punya webhook (bot itu mungkin milik staging/produksi). Update yang gagal disimpan tidak di-ack sehingga diambil ulang.
+- **Simulator `/devtools` (3.9):** dipasang hanya di development (staging/produksi 404, dites). Halaman chat + `POST /devtools/telegram/messages` membentuk update Telegram lalu menjalankan simpan, `process_chat`, `deliver` dengan klien pengganti (`BotApi`) yang tidak mengirim ke mana pun. Chat id wajib berawalan `devtools-` agar tidak bentrok dengan akun Telegram sungguhan.
 - Payload contoh di `tests/fixtures/webhooks/telegram/` (dibentuk dari Bot API; ganti dengan rekaman bot dev saat tersedia).
 
 ## Pesan gagal

@@ -5,8 +5,8 @@ from sqlalchemy import BigInteger, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.conversations.models import Message
-from app.modules.extension_workers.models import ChatContext, ExtensionWorker
+from app.modules.conversations.models import Conversation, Message
+from app.modules.extension_workers.models import ExtensionWorker
 
 
 async def insert_inbound(db: AsyncSession, values: dict[str, object]) -> bool:
@@ -55,16 +55,6 @@ async def has_unprocessed(db: AsyncSession, channel_id: uuid.UUID, chat_id: str)
     return found is not None
 
 
-async def get_chat_context(
-    db: AsyncSession, channel_id: uuid.UUID, chat_id: str
-) -> ChatContext | None:
-    return await db.scalar(
-        select(ChatContext).where(
-            ChatContext.channel_id == channel_id, ChatContext.chat_id == chat_id
-        )
-    )
-
-
 async def mark_unreachable(db: AsyncSession, telegram_user_id: str, at: datetime) -> int:
     """The person blocked the bot: in every organization they joined (B-048 status)."""
     result = await db.execute(
@@ -76,3 +66,26 @@ async def mark_unreachable(db: AsyncSession, telegram_user_id: str, at: datetime
         .values(status="unreachable", updated_at=at)
     )
     return result.rowcount  # type: ignore[attr-defined]
+
+
+async def get_conversation(
+    db: AsyncSession, extension_worker_id: uuid.UUID, form_id: uuid.UUID
+) -> Conversation | None:
+    return await db.scalar(
+        select(Conversation).where(
+            Conversation.extension_worker_id == extension_worker_id,
+            Conversation.form_id == form_id,
+        )
+    )
+
+
+async def list_chat_messages(
+    db: AsyncSession, channel_id: uuid.UUID, chat_id: str, limit: int
+) -> list[Message]:
+    rows = await db.scalars(
+        select(Message)
+        .where(Message.channel_id == channel_id, Message.chat_id == chat_id)
+        .order_by(Message.created_at)
+        .limit(limit)
+    )
+    return list(rows)
