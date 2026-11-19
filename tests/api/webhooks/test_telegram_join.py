@@ -278,7 +278,7 @@ async def test_messages_belong_to_the_active_topics_organization(
     conversation = await db.scalar(select(Conversation))
     assert conversation is not None
 
-    rows = (await db.scalars(select(Message).order_by(Message.created_at))).all()
+    rows = (await db.scalars(select(Message).order_by(Message.created_at, Message.id))).all()
     owners = [(m.direction, m.body, m.workspace_id, m.conversation_id) for m in rows]
     stranger, *joined = owners
     assert stranger == ("in", "halo", None, None)
