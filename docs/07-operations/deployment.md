@@ -16,7 +16,8 @@ Dokumen ini hanya berisi hal yang khusus aplikasi backend.
 |---|---|
 | API | `uvicorn app.main:app --proxy-headers` |
 | Worker | `arq app.worker.WorkerSettings` |
-| Migrasi (sekali per deploy) | `alembic upgrade head` |
+| Migrasi (sekali per deploy) | `alembic upgrade head` (membuat extension `postgis`; butuh Postgres dengan PostGIS, mis. image `postgis/postgis:17-3.5` atau Neon) |
+| Data rujukan (setelah migrasi `reference_data` pertama, dan saat data wilayah diperbarui) | `python -m scripts.seed reference` |
 
 ## Image Docker
 
