@@ -1,6 +1,7 @@
 """Outgoing email over SMTP (STARTTLS): plain text, plus an HTML alternative when given.
 
-Call `send_email` from a FastAPI BackgroundTask so a slow mail server never delays the response.
+Call `send` (it queues the `email.send` job, retried on failure) so a slow or failing mail
+server never delays or breaks the response.
 Build the content with `Email` so the text and HTML parts always say the same thing.
 """
 
@@ -85,7 +86,8 @@ def _send(message: EmailMessage) -> None:
 
 
 async def send_email(to: str, subject: str, body: str, html: str | None = None) -> None:
-    """Never raises: a mail failure must not become a 500 or reveal whether an account exists.
+    """Deliver now. Raises on an SMTP failure so the `email.send` job retries it; callers go
+    through `send`, which never raises.
 
     With `html`, the message is `multipart/alternative` (text first, HTML preferred by clients).
     """
@@ -102,15 +104,21 @@ async def send_email(to: str, subject: str, body: str, html: str | None = None) 
     message.set_content(body)
     if html is not None:
         message.add_alternative(html, subtype="html")
-    try:
-        await asyncio.to_thread(_send, message)
-    except OSError, smtplib.SMTPException:
-        logger.exception("email to %s failed", to)
+    await asyncio.to_thread(_send, message)
 
 
 async def send(to: str, email: Email) -> None:
-    """Send an `Email` with both its text and HTML parts.
+    """Queue an `Email` (text and HTML) for delivery with retries. Never raises: a mail problem
+    must not become a 500 or reveal whether an account exists. If the queue is unreachable, try
+    once directly."""
+    from app.core.jobs import send_email_job  # the job module imports this one
 
-    `send_email` is looked up at call time, so the `outbox` test fixture still captures it.
-    """
-    await send_email(to, email.subject, email.text(), email.html())
+    try:
+        await send_email_job.kiq(to, email.subject, email.text(), email.html())
+        return
+    except Exception:
+        logger.exception("could not queue email to %s; sending directly", to)
+    try:
+        await send_email(to, email.subject, email.text(), email.html())
+    except Exception:
+        logger.exception("email to %s failed", to)

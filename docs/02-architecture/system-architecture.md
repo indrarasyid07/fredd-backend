@@ -9,9 +9,9 @@ Browser ──► Caddy (fluctuz.id)
               └── /*           → Next.js (website publik + dashboard)
 
 FastAPI api ──► PostgreSQL
-            ──► Redis (antrean arq, pub/sub event)
+            ──► Redis (antrean Taskiq, pub/sub event)
             ──► Object storage S3-compatible (foto, suara)
-arq worker  ──► sama seperti api + WhatsApp Cloud API, Telegram Bot API, LLM
+Taskiq worker  ──► sama seperti api + WhatsApp Cloud API, Telegram Bot API, LLM
 ```
 
 Satu domain, berbasis path. Cookie sesi dipakai bersama oleh Next.js dan FastAPI tanpa CORS. Next.js tidak pernah mengakses database; semua data lewat FastAPI.
@@ -24,7 +24,7 @@ Satu domain, berbasis path. Cookie sesi dipakai bersama oleh Next.js dan FastAPI
 | Framework | FastAPI + Pydantic v2 | Async, OpenAPI otomatis untuk klien TypeScript |
 | Database | PostgreSQL 17 | JSONB untuk struktur dan jawaban, transaksi kuat |
 | ORM & migrasi | SQLAlchemy 2.0 async + asyncpg, Alembic | Standar ekosistem |
-| Antrean & cron | Redis + arq | Asyncio-native, cocok untuk beban I/O (kirim pesan, LLM) |
+| Antrean & cron | Redis + **Taskiq** (B-XXX; menggantikan Taskiq, B-003) | Asyncio-native, dirawat aktif, cocok dengan redis-py 8; Redis streams + consumer group sehingga job tidak hilang bila worker mati; retry dengan backoff; cron lewat proses `scheduler` |
 | Penyimpanan berkas | S3-compatible (Cloudflare R2 / MinIO) | Murah, URL bertanda tangan |
 | HTTP keluar | httpx | Satu klien untuk WhatsApp, Telegram, LLM |
 | Realtime | Server-Sent Events + Redis pub/sub | Satu arah sudah cukup; balasan admin lewat POST |
@@ -44,7 +44,7 @@ Alasan lengkap tiap pilihan ada di [decision log](../11-decisions/decision-log.m
 fredd-backend/
 ├── app/
 │   ├── main.py                      # buat app: middleware, exception handler, pasang router
-│   ├── worker.py                    # entry worker arq: daftar job + cron dari modules/*/jobs.py
+│   ├── worker.py                    # entry worker Taskiq (broker, scheduler) + impor modules/*/jobs.py
 │   │
 │   ├── api/                         # SEMUA yang berbau HTTP; tidak ada logika bisnis
 │   │   ├── router.py                # merangkai v1, webhooks, (devtools) ke app
@@ -182,7 +182,7 @@ modules/forms/
 ├── service.py           # logika bisnis + batas transaksi
 ├── errors.py            # kode error modul (turunan core.errors.AppError) + pesan Indonesia
 ├── constants.py         # (opsional) enum, batas
-├── jobs.py              # (opsional) job/cron arq untuk modul ini
+├── jobs.py              # (opsional) job/cron Taskiq untuk modul ini
 └── engine/              # (opsional) sub-paket untuk logika besar, mis. conversations/engine/
 ```
 
@@ -192,7 +192,7 @@ modules/forms/
 | `schemas.py` | Bentuk data dan validasi field | Akses database |
 | `repository.py` | Query `select/insert/update` lewat `AsyncSession`, termasuk SQL eksplisit untuk agregasi | `commit()`, logika bisnis, memanggil modul lain |
 | `service.py` | Logika bisnis, memanggil repository modul sendiri dan **service** modul lain, `commit()`/`rollback()`, melempar `AppError` | Query langsung, objek HTTP (`Request`, cookie) |
-| `jobs.py` | Fungsi job arq tipis yang memanggil service | Logika bisnis sendiri |
+| `jobs.py` | Fungsi job Taskiq tipis yang memanggil service | Logika bisnis sendiri |
 
 **Repository wajib** untuk semua akses database (B-023). Alasannya: query untuk dashboard, peta, dan analitik dipakai ulang di banyak tempat; service bisa dites dengan repository palsu; dan semua SQL yang berat ada di satu tempat yang mudah dioptimasi.
 
@@ -253,7 +253,7 @@ Siklus import antar modul diselesaikan dengan memindahkan bagian bersama ke modu
 | Fungsi endpoint | Nama aksi | `login`, `get_me`, `list_reports`, `publish_form` |
 | Fungsi service | Kata kerja + objek | `publish_form_version`, `create_session` |
 | Fungsi repository | `get_*`, `list_*`, `create_*`, `update_*`, `delete_*`, `count_*` | `get_user_by_email`, `list_reports_for_map` |
-| Job arq | `<kata kerja>_<objek>_job` | `process_conversation_job`, `send_reminders_job` |
+| Job Taskiq | `<kata kerja>_<objek>_job`, `task_name="<modul>.<aksi>"` | `process_conversation_job` (`conversations.process`), `send_email_job` (`email.send`) |
 | Model / tabel | Kelas tunggal PascalCase; tabel jamak `snake_case` | `class Session` → `sessions` |
 | Kode error | `snake_case` Inggris; kelas `PascalCase` di `errors.py` | `InvalidCredentials` → `invalid_credentials` |
 
@@ -327,7 +327,7 @@ Webhook WA/TG ──► POST /webhooks/{channel}
                    4. enqueue job process_conversation dengan _job_id="conversation:{id}"
                    5. balas 200 segera
                           │
-worker arq ◄──────────────┘
+worker Taskiq ◄──────────────┘
    process_conversation(id):
    ├─ ambil semua pesan belum diproses, urut menurut waktu kanal
    ├─ media → unduh ke S3, cek buram, transkripsi suara
@@ -342,7 +342,7 @@ Satu job per percakapan (bukan per pesan) menjamin pesan diproses berurutan tanp
 
 Detail mesin percakapan: [conversation-engine.md](../06-domain-guides/conversation-engine.md). Detail kanal: [messaging-channels.md](../06-domain-guides/messaging-channels.md).
 
-## Pekerjaan terjadwal (cron arq, tiap 5 menit)
+## Pekerjaan terjadwal (cron Taskiq lewat `scheduler`, tiap 5 menit)
 
 - Kirim pengingat draf yang jatuh tempo (di luar jam tenang, zona waktu workspace).
 - Kirim ulang pesan keluar yang gagal (maks 3 kali, backoff).

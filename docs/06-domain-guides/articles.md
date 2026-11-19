@@ -229,7 +229,7 @@ Dua orang menyunting artikel yang sama tidak dikunci; yang menyimpan belakangan 
 
 1. `publish` / cron `articles.publish_due` mengubah status dan menulis revisi dan audit dalam satu transaksi.
 2. Setelah commit, backend memanggil situs web agar cache artikel dibuang (lihat [frontend ui/articles.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/articles.md#cache-dan-penerbitan)): `POST` ke alamat internal Next.js dengan rahasia bersama (`REVALIDATE_SECRET`). Alamat itu **tidak boleh bisa dijangkau dari internet** (Caddy menolak path-nya). Kegagalan panggilan hanya dicatat di log; halaman tetap menjadi segar sendiri oleh masa berlaku cache (10 menit).
-3. Pemanggilan dijalankan sebagai job arq (dengan percobaan ulang), bukan di dalam request, agar editor tidak menunggu.
+3. Pemanggilan dijalankan sebagai job Taskiq (dengan percobaan ulang), bukan di dalam request, agar editor tidak menunggu.
 
 ## Seed dan pemindahan dari artikel contoh
 

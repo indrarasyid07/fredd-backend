@@ -15,7 +15,8 @@ Dokumen ini hanya berisi hal yang khusus aplikasi backend.
 | Proses | Perintah |
 |---|---|
 | API | `uvicorn app.main:app --proxy-headers` |
-| Worker | `arq app.worker.WorkerSettings` |
+| Worker | `taskiq worker app.worker:broker` (bisa beberapa replika) |
+| Scheduler cron | `taskiq scheduler app.worker:scheduler` (**tepat satu**) |
 | Migrasi (sekali per deploy) | `alembic upgrade head` (membuat extension `postgis`; butuh Postgres dengan PostGIS, mis. image `postgis/postgis:17-3.5` atau Neon) |
 | Data rujukan (setelah migrasi `reference_data` pertama, dan saat data wilayah diperbarui) | `python -m scripts.seed reference` |
 
@@ -44,7 +45,7 @@ Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command
 
 - Server dan database berjalan di UTC; semua kolom `timestamptz`.
 - Jam tenang, jam operasional, dan jadwal dihitung dengan `ZoneInfo(workspace.timezone)` (default `Asia/Jakarta`).
-- Cron arq tidak memakai jam lokal: berjalan tiap 5 menit dan memproses yang sudah jatuh tempo.
+- Cron Taskiq tidak memakai jam lokal: berjalan tiap 5 menit dan memproses yang sudah jatuh tempo.
 
 ## Migrasi
 
@@ -54,4 +55,4 @@ Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command
 
 - Log JSON ke stdout; jangan mencatat token, kredensial kanal, atau isi pesan lengkap.
 - `GET /api/v1/health` memeriksa Postgres dan Redis (200 / 503).
-- Metrik yang diekspos worker: panjang antrean arq, umur job tertua, pesan keluar gagal per jam.
+- Metrik yang diekspos worker: panjang antrean Taskiq, umur job tertua, pesan keluar gagal per jam.

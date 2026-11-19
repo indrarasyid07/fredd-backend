@@ -14,7 +14,7 @@ flowchart LR
     web[Next.js]
     api[FastAPI]
     queue[(Redis)]
-    jobs[arq worker]
+    jobs[Taskiq worker]
     db[(PostgreSQL)]
     files[(Object storage)]
   end
@@ -40,7 +40,7 @@ sequenceDiagram
   participant P as Penyuluh
   participant K as WhatsApp/Telegram
   participant A as FastAPI
-  participant Q as Redis (arq)
+  participant Q as Redis (Taskiq)
   participant W as Worker
   participant D as PostgreSQL
 
