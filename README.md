@@ -200,6 +200,18 @@ uv run taskiq worker app.worker:broker        # menjalankan job
 uv run taskiq scheduler app.worker:scheduler  # memulai cron (cukup satu)
 ```
 
+### Mencoba bot tanpa Telegram, atau dengan bot dev
+
+- **Simulator chat** (hanya development): buka http://127.0.0.1:8000/devtools. Pesan melewati jalur yang sama dengan webhook dan ditulis ke database dari `DATABASE_URL`. Balasan tidak dikirim ke Telegram.
+- **Bot development sungguhan tanpa URL publik:** buat bot sendiri di @BotFather, isi `TELEGRAM_BOT_TOKEN` di `.env`, lalu jalankan:
+
+  ```bash
+  uv run python -m scripts.telegram_poll       # menerima pesan lewat getUpdates
+  uv run taskiq worker app.worker:broker       # membalas (atau QUEUE_INLINE=true)
+  ```
+
+  Skrip menolak berjalan bila bot memakai webhook. Jangan pakai bot staging atau produksi.
+
 - Health: http://127.0.0.1:8000/api/v1/health
 - OpenAPI (hanya development): http://127.0.0.1:8000/api/docs
 

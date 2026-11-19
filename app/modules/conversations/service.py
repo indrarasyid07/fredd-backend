@@ -16,10 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.time import now_utc
 from app.modules.channels import service as channels
 from app.modules.channels.telegram import (
+    BotApi,
     BotBlocked,
     InboundUpdate,
     LeaveGroup,
-    TelegramClient,
     TelegramError,
     parse_update,
 )
@@ -78,7 +78,7 @@ async def _store(db: AsyncSession, upd: InboundUpdate) -> Received:
 
 
 async def process_chat(
-    db: AsyncSession, client: TelegramClient, channel_id: uuid.UUID, chat_id: str
+    db: AsyncSession, client: BotApi, channel_id: uuid.UUID, chat_id: str
 ) -> list[uuid.UUID]:
     """Process every unprocessed inbound message of one chat; returns the outbound rows to send.
 
@@ -156,7 +156,7 @@ def _outbound(message: Message) -> Outbound:
     )
 
 
-async def deliver(db: AsyncSession, client: TelegramClient, message_id: uuid.UUID) -> None:
+async def deliver(db: AsyncSession, client: BotApi, message_id: uuid.UUID) -> None:
     """Send one pending outbound row. Never resends a row that is not `pending` (no doubles)."""
     message = await db.scalar(
         select(Message).where(Message.id == message_id).with_for_update(skip_locked=True)
@@ -180,3 +180,9 @@ async def deliver(db: AsyncSession, client: TelegramClient, message_id: uuid.UUI
 
 async def has_unprocessed(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> bool:
     return await repository.has_unprocessed(db, channel_id, chat_id)
+
+
+async def chat_history(
+    db: AsyncSession, channel_id: uuid.UUID, chat_id: str, limit: int = 200
+) -> list[Message]:
+    return await repository.list_chat_messages(db, channel_id, chat_id, limit)

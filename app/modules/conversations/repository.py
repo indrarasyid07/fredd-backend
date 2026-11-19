@@ -77,3 +77,15 @@ async def get_conversation(
             Conversation.form_id == form_id,
         )
     )
+
+
+async def list_chat_messages(
+    db: AsyncSession, channel_id: uuid.UUID, chat_id: str, limit: int
+) -> list[Message]:
+    rows = await db.scalars(
+        select(Message)
+        .where(Message.channel_id == channel_id, Message.chat_id == chat_id)
+        .order_by(Message.created_at)
+        .limit(limit)
+    )
+    return list(rows)
