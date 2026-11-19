@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # Run queued jobs in the calling process instead of a worker (tests, quick local runs).
+    queue_inline: bool = False
+
     # The platform's shared bots (B-048), shown with join codes. Empty = no share links yet.
     telegram_bot_username: str = ""  # without @, e.g. FluctuzBot
     whatsapp_public_number: str = ""  # digits with country code, e.g. 6281100000000

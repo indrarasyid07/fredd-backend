@@ -73,9 +73,9 @@ Browser ──► Caddy (satu domain)
               └── /*           → Next.js (website publik + dashboard)
 
 FastAPI ──► PostgreSQL   (data utama)
-        ──► Redis        (rate limit, antrean arq, event real-time)
+        ──► Redis        (rate limit, antrean Taskiq, event real-time)
         ──► S3-compatible (foto dan suara, menyusul)
-Worker arq ──► WhatsApp Cloud API, Telegram Bot API, LLM (menyusul)
+Worker Taskiq ──► WhatsApp Cloud API, Telegram Bot API, LLM (menyusul)
 ```
 
 Prinsip utama:
@@ -191,6 +191,13 @@ uv sync
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 uv run python -m scripts.create_user --email you@example.com --name "Your Name"   # meminta kata sandi
+```
+
+Job latar belakang (email dengan retry, nanti pemrosesan chat) dijalankan worker Taskiq di terminal lain. Untuk coba cepat tanpa worker, isi `QUEUE_INLINE=true` di `.env` (job berjalan di proses API).
+
+```bash
+uv run taskiq worker app.worker:broker        # menjalankan job
+uv run taskiq scheduler app.worker:scheduler  # memulai cron (cukup satu)
 ```
 
 - Health: http://127.0.0.1:8000/api/v1/health

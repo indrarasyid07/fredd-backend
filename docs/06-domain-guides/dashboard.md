@@ -145,7 +145,7 @@ Daftar ringkas untuk "Laporan terbaru" (juga dipakai tabel laporan nanti): `id`,
 ```
 
 - `format`: `pdf`, `xlsx`, `csv`. `range.type`: `today`, `7d`, `30d`, `custom` (dengan `from`, `to`). `region_ids`/`conditions` kosong = semua.
-- **Pekerjaan arq**, bukan di request. Status: `queued` → `running` → `done` | `failed`. Klien memantau lewat SSE (`export.ready`) dengan cadangan polling 2 detik.
+- **Pekerjaan Taskiq**, bukan di request. Status: `queued` → `running` → `done` | `failed`. Klien memantau lewat SSE (`export.ready`) dengan cadangan polling 2 detik.
 - Berkas ditulis ke penyimpanan objek (bucket privat), `download_url` bertanda tangan 15 menit, berkas dihapus setelah 7 hari. Ekspor di atas **50.000 laporan** ditulis sama tetapi tautannya juga dikirim lewat email dan notifikasi.
 - **CSV** mengabaikan `include.map` dan `include.photos` (server menolak `true` untuk keduanya dengan `422`). **`anonymize_farmers`** mengganti nama petani dengan inisial di ketiga format.
 - **PDF:** ringkasan, grafik, peta statis, dan tabel; **Excel:** satu lembar per struktur data, kolom mengikuti isiannya.
@@ -212,7 +212,7 @@ Indeks: `reports (workspace_id, received_at DESC)`, `reports (workspace_id, regi
 | 1 | `summary` + `reports` (daftar, detail) | Tabel `reports`, `report_photos`, `extension_workers`, `workspaces` |
 | 2 | `reports/map` + data wilayah + tile peta | `reference_data` wilayah Jawa Barat (seeder `reference`) |
 | 3 | `/events` SSE + Redis pub/sub | Pengirim laporan (ingest) |
-| 4 | `count` + ekspor CSV/Excel | Pekerjaan arq, penyimpanan objek |
+| 4 | `count` + ekspor CSV/Excel | Pekerjaan Taskiq, penyimpanan objek |
 | 5 | Ekspor PDF (peta statis + grafik) | Irisan 4 |
 | 6 | Seeder `demo`: workspace, 12 penyuluh, ~150 laporan 14 hari | Irisan 1 |
 

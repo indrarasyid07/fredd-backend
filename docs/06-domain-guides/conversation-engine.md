@@ -61,4 +61,4 @@ idle → joining → identifying → choosing_form → asking(step) → confirmi
 
 ## Urutan pemrosesan
 
-Satu job arq per percakapan (`_job_id="conversation:{id}"`). Job membaca semua pesan `processed_at IS NULL` urut `channel_sent_at`, memprosesnya satu per satu, lalu menjadwalkan dirinya lagi bila masih ada pesan baru. Ini menjamin "Ya" lalu "Ubah" diproses sesuai urutan kirim.
+Satu job Taskiq per chat (B-XXX). Job mengambil kunci Redis `chat:{channel_id}:{chat_id}` (hanya satu pemroses per chat; job lain untuk chat yang sama keluar tanpa kerja), membaca semua pesan `processed_at IS NULL` urut `channel_sent_at`, memprosesnya satu per satu, lalu memeriksa ulang pesan baru sebelum melepas kunci. Ini menjamin "Ya" lalu "Ubah" diproses sesuai urutan kirim.
