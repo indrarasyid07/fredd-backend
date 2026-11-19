@@ -45,6 +45,11 @@ def _field_path(loc: tuple[str | int, ...]) -> str | None:
 def _validation_item(error: dict) -> ErrorItem:
     field = _field_path(tuple(error.get("loc", ())))
     kind = error.get("type", "")
+    # Validators that know the exact problem (e.g. FormDefinition) put their own code in the
+    # context; keep it and its Indonesian message instead of the generic one.
+    app_code = (error.get("ctx") or {}).get("app_code")
+    if app_code:
+        return ErrorItem(code=app_code, message=str(error.get("msg", "")), field=field)
     if kind == "value_error" and "email" in str(error.get("msg", "")).lower():
         return ErrorItem(code="invalid_email", message="Format email tidak valid.", field=field)
     code, message = _VALIDATION_CODES.get(kind, ("validation_error", "Isian tidak valid."))
