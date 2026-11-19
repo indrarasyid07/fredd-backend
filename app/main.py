@@ -8,6 +8,7 @@ from app.api.middleware.csrf import CsrfMiddleware
 from app.api.middleware.request_id import RequestIdMiddleware
 from app.api.router import mount
 from app.core.config import settings
+from app.core.logging import configure_logging
 from app.core.redis import redis
 from app.db.session import engine
 
@@ -20,6 +21,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    configure_logging()
     app = FastAPI(
         title="Fluctuz API",
         lifespan=lifespan,

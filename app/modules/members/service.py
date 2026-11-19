@@ -152,10 +152,10 @@ def _send_invite(
     actor: ActiveMember,
     inviter: User,
 ) -> None:
-    subject, body = emails.invite(
+    email = emails.invite(
         token=token, workspace_name=actor.workspace.name, role=invite.role, inviter=inviter.name
     )
-    background.add_task(mail.send_email, invite.email, subject, body)
+    background.add_task(mail.send, invite.email, email)
 
 
 async def invite(

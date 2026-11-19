@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
 from app.modules.auth.models import AuthToken, Session, User
-from tests.conftest import PASSWORD
+from tests.conftest import PASSWORD, Outbox
 
 BASE = "/api/v1/auth"
 SIGNUP = {
@@ -31,7 +31,7 @@ async def _get_user(db: AsyncSession, email: str) -> User:
 
 
 async def test_register_then_verify_signs_in(
-    client: AsyncClient, db: AsyncSession, outbox: list[tuple[str, str, str]]
+    client: AsyncClient, db: AsyncSession, outbox: Outbox
 ) -> None:
     response = await client.post(f"{BASE}/register", json=SIGNUP)
     assert response.status_code == 200
@@ -43,6 +43,7 @@ async def test_register_then_verify_signs_in(
         None,
     )
     assert len(outbox) == 1 and outbox[0][0] == "budi@contoh.id"
+    assert outbox.html[0] is not None and "Verifikasi email" in outbox.html[0]
 
     # Not signed in yet: the password is right but the email is unverified.
     login = await client.post(
