@@ -3,6 +3,9 @@
 from app.db.base import Base
 from app.modules.audit.models import AuditLog
 from app.modules.auth.models import AuthToken, Session, User
+from app.modules.channels.models import Channel
+from app.modules.conversations.models import Conversation, Message
+from app.modules.extension_workers.models import ChatContext, ExtensionWorker, FormAssignment
 from app.modules.forms.models import Form, FormTemplate, FormTemplateSector, FormVersion
 from app.modules.join_codes.models import JoinCode
 from app.modules.members.models import MemberInvite
@@ -13,13 +16,19 @@ __all__ = [
     "AuditLog",
     "AuthToken",
     "Base",
+    "Channel",
+    "ChatContext",
+    "Conversation",
+    "ExtensionWorker",
     "Form",
+    "FormAssignment",
     "FormTemplate",
     "FormTemplateSector",
     "FormVersion",
     "JoinCode",
     "Member",
     "MemberInvite",
+    "Message",
     "ReferenceData",
     "Session",
     "User",
