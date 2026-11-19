@@ -17,6 +17,12 @@ Kode: `app/modules/forms/` (`schemas.py` = `FormDefinition`, `service.py` = anta
 - `forms.settings` (`FormSettings`): `template_code`, `sector_code`, `province_id` + `regency_ids` (wilayah kerja dari `reference_data`: provinsi platform dan, opsional, kab/kota di dalamnya; kosong = seluruh provinsi; id lain → `422 unknown_region` dengan `field` bertitik), `commodities`, `frequency` (`daily`/`weekly`/`event`), `agent_style` (`ramah`/`singkat`/`formal`), `voice_to_text`, `blur_retry`.
 - Katalog template (`GET /form-templates`): tabel platform `form_template_sectors` dan `form_templates`, seed `templates`. Isian awal tetap diturunkan wizard dari `description` template.
 
+## Publikasi dan arsip (Langkah 2.6)
+
+- `POST /forms/{id}/publish` (admin): menjalankan pemeriksaan yang sama dengan `validate`; bila masih ada masalah → `422 form_has_problems` (pesan menyebut jumlahnya). Bila lolos, definisi draf disimpan ulang dalam bentuk `FormDefinition` yang dinormalkan, `published_at`/`published_by_user_id` diisi, `forms.current_version_id` menunjuk versi itu, status `active`, dan dicatat di audit log (`form.publish`, `{name, version}`). Versi terbit tidak pernah diubah; setelah publikasi form tidak punya draf, jadi `PATCH` → `409 form_not_editable`. Mengubah struktur yang sudah aktif (draf versi berikutnya) menyusul.
+- `POST /forms/{id}/archive` (admin): status `archived`, audit `form.archive`, idempoten. Form arsip tidak bisa diubah (`409 form_archived`) atau dipublikasikan. Laporan yang sudah ada tetap.
+- `FormOut` menyertakan `current_version` dan `published_at` untuk daftar struktur.
+
 ## Pemeriksaan otomatis (Langkah 2.5)
 
 `POST /forms/{id}/validate` memeriksa draf dan **selalu menjawab 200** (masalah adalah data, bukan permintaan yang gagal): `{valid, errors[], warnings[]}`, tiap item `{code, message, field}` dengan `field` bertitik relatif terhadap definisi (`fields.2.question`, `fields.3.options.1.label`, `rules.0.then.require`; kosong = seluruh struktur). Semua masalah dilaporkan sekaligus (`find_problems` di `schemas.py`, di atas `DraftFormDefinition`): isian kosong (`no_fields`, `label_required`, `question_required`, `option_label_required`), plus semua aturan `FormDefinition` di bawah, termasuk `duplicate_field_label` dan `duplicate_option_label` (kunci dibuat dari label, jadi label kembar tidak tertangkap oleh pemeriksaan kunci). Peringatan tidak menghalangi publikasi: `no_condition_field` (tidak ada isian berperan `condition`). Label pilihan di draf juga boleh kosong.

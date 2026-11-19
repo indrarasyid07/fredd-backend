@@ -14,6 +14,8 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import InvalidCursor
+from app.core.time import now_utc
+from app.modules.audit import service as audit
 from app.modules.forms import errors, repository
 from app.modules.forms.models import Form, FormTemplate, FormTemplateSector, FormVersion
 from app.modules.forms.schemas import (
@@ -164,6 +166,8 @@ async def update_form(
     form = await repository.get_form_for_update(db, workspace_id, form_id)
     if form is None:
         raise errors.FormNotFound()
+    if form.status == "archived":
+        raise errors.FormArchived()
     draft = (await repository.get_drafts(db, [form.id])).get(form.id)
     if draft is None:
         raise errors.FormNotEditable()
@@ -241,6 +245,63 @@ def _warnings(definition: dict[str, Any]) -> list[FormProblem]:
             )
         ]
     return []
+
+
+async def publish_form(
+    db: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID, form_id: uuid.UUID
+) -> FormDetailOut:
+    """The draft becomes the published version new conversations use; it never changes again.
+    Refused while the automatic checks find problems."""
+    form = await repository.get_form_for_update(db, workspace_id, form_id)
+    if form is None:
+        raise errors.FormNotFound()
+    if form.status == "archived":
+        raise errors.FormArchived()
+    draft = (await repository.get_drafts(db, [form.id])).get(form.id)
+    if draft is None:
+        raise errors.FormNotEditable()
+    problems = find_problems(DraftFormDefinition.model_validate(draft.definition))
+    if problems:
+        raise errors.FormHasProblems(len(problems))
+    # Store the normalised strict definition: what the engine and reports will read.
+    draft.definition = FormDefinition.model_validate(draft.definition).to_json()
+    draft.published_at = now_utc()
+    draft.published_by_user_id = user_id
+    form.current_version_id = draft.id
+    form.status = "active"
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=user_id,
+        action="form.publish",
+        target=str(form.id),
+        details={"name": form.name, "version": draft.version},
+    )
+    await db.commit()
+    await db.refresh(form)
+    return await _detail(db, form)
+
+
+async def archive_form(
+    db: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID, form_id: uuid.UUID
+) -> FormDetailOut:
+    """Stop using a form: no new reports, no more edits. Existing reports stay. Idempotent."""
+    form = await repository.get_form_for_update(db, workspace_id, form_id)
+    if form is None:
+        raise errors.FormNotFound()
+    if form.status != "archived":
+        form.status = "archived"
+        await audit.record(
+            db,
+            workspace_id=workspace_id,
+            actor_user_id=user_id,
+            action="form.archive",
+            target=str(form.id),
+            details={"name": form.name},
+        )
+        await db.commit()
+        await db.refresh(form)
+    return await _detail(db, form)
 
 
 # --- Template catalogue ------------------------------------------------------------------------
@@ -348,6 +409,8 @@ def _form_out(form: Form, draft: FormVersion | None, current: FormVersion | None
         status=form.status,  # type: ignore[arg-type]
         current_version_id=form.current_version_id,
         draft_version=draft.version if draft is not None else None,
+        current_version=current.version if current is not None else None,
+        published_at=current.published_at if current is not None else None,
         field_count=_field_count(draft or current),
         created_at=form.created_at,
         updated_at=form.updated_at,

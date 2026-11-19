@@ -50,8 +50,8 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 | POST | `/forms/{id}/validate` | form_editor (periksa otomatis). **Ada**: selalu 200 dengan `{valid, errors[], warnings[]}`; tiap masalah punya `code`, `message`, `field` bertitik (`fields.2.question`); tanpa draf → 409 |
 | POST | `/forms/{id}/test-runs` | form_editor (uji di akun sendiri) |
 | POST | `/forms/{id}/pilot` | admin (body: daftar extension_worker_id) |
-| POST | `/forms/{id}/publish` | admin |
-| POST | `/forms/{id}/archive` | admin |
+| POST | `/forms/{id}/publish` | admin. **Ada**: draf → versi terbit (`published_at`, `current_version_id`), status `active`, audit `form.publish`; masih ada masalah → 422 `form_has_problems`; tanpa draf → 409 `form_not_editable`; diarsipkan → 409 `form_archived` |
+| POST | `/forms/{id}/archive` | admin. **Ada**: status `archived`, audit `form.archive`, idempoten; form arsip tidak bisa diubah atau dipublikasikan |
 | GET | `/form-templates` | form_editor |
 
 ## Data rujukan
