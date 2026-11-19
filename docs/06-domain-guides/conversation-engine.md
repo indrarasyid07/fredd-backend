@@ -39,6 +39,20 @@ idle → joining → identifying → choosing_form → asking(step) → confirmi
 6. Semua isian terjawab → kirim ringkasan dengan pilihan "Kirim sekarang" / "Ubah jawaban".
 7. Kirim → buat `reports` dalam satu transaksi bersama update `conversations.status = submitted`, salin kolom filter, terapkan aturan `review_above` → `needs_review`, balas kode laporan.
 
+## Pengurai jawaban (Langkah 3.2)
+
+`app/modules/conversations/engine/parsers.py`: fungsi murni tanpa I/O; mengembalikan `None` bila jawaban tidak terbaca dengan yakin (mesin lalu bertanya ulang dengan contoh, tidak menebak).
+
+| Fungsi | Membaca | Catatan |
+|---|---|---|
+| `parse_number(text, units=)` | `1,5` · `1.5` · `1.500` (ribuan) · `1.500,75` · `Rp 1.250.000,-` · `2 ha` · `2ha` · `sekitar 2 hektar` · `3/4` · `1 1/2` · `satu setengah` · `dua koma lima` · `dua ratus lima puluh` · `satu juta dua ratus ribu` | Koma = desimal; titik + tepat 3 angka = ribuan, selain itu desimal. Satuan dikembalikan sebagai kode (`ha`, `kg`, `quintal`, `rupiah`, `person`...); alias tambahan dari data rujukan lewat `units`. Gagal: `banyak`, `1-2`, `2 atau 3`, `dua tiga` |
+| `parse_date(text, today=)` | `hari ini` · `kemarin` · `kemarin lusa` · `2 hari lalu` · `seminggu lalu` · nama hari (hari itu atau sebelumnya) · `12/11` · `12/11/26` · `2026-11-12` · `12 nov 2026` · `tgl 3 agustus` | Laporan tentang masa lalu: tanggal-bulan yang jatuh di masa depan berarti tahun lalu; masa depan (`minggu depan`) gagal. `today_in(tz)` memberi hari ini di zona workspace |
+| `parse_choice(text, options)` | nomor urut (`2`, `no 2`) · label/nilai/alias persis (`pari` → Padi) · frasa dengan kata pengisi (`sehat semua`, `terserang hama`) · salah ketik (`pdi`) | Salah ketik lewat **rapidfuzz** (`ratio` ≥ 80, selisih ≥ 5 dari pesaing) ditandai `needs_confirmation` → mesin bertanya "Maksud Anda Padi?". Ambigu → gagal |
+| `parse_multi_choice` | `padi, jagung dan cengek` · `1, 3` | Mengembalikan pilihan unik + bagian yang tidak dikenali |
+| `parse_yes_no` | `ya/iya/ok/sudah/siap` · `tidak/tdk/gak/belum/bukan` | Campuran → gagal |
+
+Tes: tabel kasus + tes properti **hypothesis** (bilangan bulat berpemisah ribuan, desimal berkoma, tanggal penuh) + **time-machine** untuk batas hari di zona waktu.
+
 ## Pilihan jawaban di kanal
 
 | Jumlah pilihan | WhatsApp | Telegram |

@@ -13,6 +13,7 @@ dependencies = [
     "geoalchemy2>=0.18",
     "httpx>=0.28.1",
     "pydantic-settings>=2.16.2",
+    "rapidfuzz>=3.10",
     "redis>=8.1.0",
     "sqlalchemy[asyncio]>=2.1.8",
     "uvicorn[standard]>=0.54.0",
@@ -20,11 +21,13 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "hypothesis>=6.120",
     "pyright>=1.1.414",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.5",
+    "time-machine>=2.16",
 ]
 
 [tool.ruff]
