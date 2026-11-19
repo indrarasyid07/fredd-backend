@@ -35,6 +35,7 @@ async def list_unprocessed(db: AsyncSession, channel_id: uuid.UUID, chat_id: str
             Message.channel_sent_at,
             Message.payload["update_id"].astext.cast(BigInteger),
             Message.created_at,
+            Message.id,
         )
         .with_for_update(skip_locked=True)
     )
@@ -85,7 +86,9 @@ async def list_chat_messages(
     rows = await db.scalars(
         select(Message)
         .where(Message.channel_id == channel_id, Message.chat_id == chat_id)
-        .order_by(Message.created_at)
+        # created_at is the transaction's start time, shared by every reply of one batch; the
+        # UUID v7 id is monotonic in creation order and breaks the tie.
+        .order_by(Message.created_at, Message.id)
         .limit(limit)
     )
     return list(rows)

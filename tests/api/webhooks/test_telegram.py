@@ -20,7 +20,9 @@ from tests.telegram_fixtures import HEADERS, URL, FakeTelegram, post_update, tel
 
 async def _messages(db: AsyncSession, direction: str) -> list[Message]:
     rows = await db.scalars(
-        select(Message).where(Message.direction == direction).order_by(Message.created_at)
+        select(Message)
+        .where(Message.direction == direction)
+        .order_by(Message.created_at, Message.id)
     )
     return list(rows)
 
