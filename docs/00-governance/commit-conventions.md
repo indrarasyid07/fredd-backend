@@ -105,19 +105,28 @@ Aturan rahasia dan data pribadi juga berlaku untuk **isi** commit: file `.env`, 
 
 | Cabang | Fungsi |
 |---|---|
-| `development` | Cabang utama (default di GitHub). Semua pekerjaan dan commit harian masuk ke sini. |
-| `main` | Cabang rilis. Berisi commit awal; diperbarui hanya dengan merge dari `development` bila ada rilis atau pembaruan yang disengaja. |
+| `development` | Cabang utama (default di GitHub). Semua pekerjaan masuk ke sini **lewat PR**. |
+| `main` | Cabang rilis. Diperbarui hanya lewat PR dari `development` bila ada rilis. |
+| `<type>/d<domain>-<langkah>-<slug>` | Cabang kerja, satu per tugas, dicabangkan dari `development` (mis. `feat/d1-1.1-workspaces`). Tugas BE + FE memakai **nama cabang yang sama** di kedua repo. |
 
-- Commit awal (`chore: initial project setup`) ada di kedua cabang. Selebihnya hanya di `development`.
-- Jangan commit langsung ke `main`. Perbarui dengan merge dari `development` (`git switch main && git merge --no-ff development`), lalu push.
+- `<type>` sama dengan type commit (`feat`, `fix`, `docs`, `chore`, `ci`, ...), `<domain>` = nomor domain 1–5 (lihat `TEAM-WORKFLOW.md` di folder workspace), `<langkah>` = nomor langkah roadmap, `<slug>` kebab-case Inggris.
+- **Tidak ada push langsung** ke `development` atau `main`; keduanya diproteksi di GitHub (wajib PR, force push dan hapus cabang diblokir).
 - Aturan ini sama di ketiga repo (backend, frontend, infra).
-- Cabang fitur, bila dipakai, dicabangkan dari `development` dan digabung kembali ke `development`.
+
+## Pull request
+
+- **Judul PR = header Conventional Commit** (aturan [Subject](#subject) berlaku). Isi PR mengikuti `.github/pull_request_template.md`.
+- PR digabung dengan **squash merge**: judul PR menjadi satu commit di `development`, jadi commit di cabang kerja boleh kecil-kecil.
+- **Review longgar:** approval tidak diwajibkan; setiap anggota tim dengan akses write boleh me-review dan menggabung PR, termasuk PR sendiri. Minta review bila PR menyentuh area bersama atau folder domain lain (lihat `.github/CODEOWNERS`). CI harus hijau sebelum merge.
+- **PR berpasangan BE + FE:** dua PR dengan judul sama yang saling menaut. Backend di-merge dulu; frontend di-rebase dan `schema.d.ts` dibuat ulang dari `openapi.json` di `development` sebelum di-merge.
+- **Nomor keputusan:** keputusan baru di PR ditulis `B-XXX` (frontend `F-XXX`); nomor asli diisi saat merge agar dua PR paralel tidak berebut nomor yang sama.
+- **Changelog:** setiap PR menambah fragmen `docs/12-phase-history/unreleased/<nama-cabang-dengan-tanda-hubung>.md` (mis. `feat-d1-1.1-workspaces.md`), bukan mengedit `changelog.md`. Fragmen digabung ke `changelog.md` saat rilis.
 
 ## Menulis ulang riwayat
 
 - Sebelum di-push, commit boleh dirapikan: `git commit --amend`, rebase untuk menggabung atau mengganti pesan.
-- Setelah di-push ke `development` atau `main`, riwayat **tidak** ditulis ulang dan tidak di-force push. Kesalahan diperbaiki dengan commit baru atau `git revert`.
-- Branch fitur yang sudah di-push hanya boleh di-force push (`--force-with-lease`) bila belum ada orang lain yang bekerja di atasnya.
+- Setelah masuk `development` atau `main`, riwayat **tidak** ditulis ulang dan tidak di-force push. Kesalahan diperbaiki dengan commit baru atau `git revert`.
+- Cabang kerja yang sudah di-push hanya boleh di-force push (`--force-with-lease`) bila belum ada orang lain yang bekerja di atasnya.
 
 ## Cek sebelum commit
 

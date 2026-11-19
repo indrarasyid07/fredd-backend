@@ -5,7 +5,7 @@
 - `ruff` untuk lint dan format.
 - `pyright` untuk pemeriksaan tipe (satu pemeriksa saja).
 - `pytest` + `pytest-asyncio` + `httpx.AsyncClient` untuk tes API.
-- Database tes: PostgreSQL sungguhan di Docker (bukan SQLite). `tests/conftest.py` membuat database `<nama db dev>_test` bila belum ada, menjalankan migrasi Alembic, dan memakai Redis db 15. Setiap tes berjalan di dalam transaksi yang di-rollback, meskipun kode yang dites memanggil `commit()`.
+- Database tes: PostgreSQL sungguhan di Docker (bukan SQLite). `tests/conftest.py` membuat database `<nama db dev>_test` bila belum ada, menjalankan migrasi Alembic, dan memakai Redis db `TEST_REDIS_DB` (bawaan 15). Beberapa worktree bisa menjalankan tes bersamaan bila masing-masing memakai nama database dan `TEST_REDIS_DB` berbeda. Setiap tes berjalan di dalam transaksi yang di-rollback, meskipun kode yang dites memanggil `commit()`.
 
 Letak tes mengikuti [struktur kode](../02-architecture/system-architecture.md#tes): `tests/unit/`, `tests/api/`, `tests/integration/`.
 

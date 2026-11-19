@@ -214,7 +214,7 @@ API tersedia di belakang Caddy: http://localhost:8080/api/v1/health. Migrasi ber
 uv run ruff check . && uv run ruff format --check . && uv run pyright && uv run pytest
 ```
 
-Tes butuh container PostgreSQL dan Redis berjalan. Tes membuat dan memigrasi database `<db>_test` sendiri dan memakai Redis db 15, jadi data development tidak tersentuh.
+Tes butuh container PostgreSQL dan Redis berjalan. Tes membuat dan memigrasi database `<db>_test` sendiri dan memakai Redis db 15 (atur dengan `TEST_REDIS_DB`), jadi data development tidak tersentuh. Untuk menjalankan tes di beberapa worktree sekaligus, beri tiap worktree `DATABASE_URL` dengan nama database berbeda (mis. `fluctuz_wt2`) dan `TEST_REDIS_DB` berbeda (mis. `14`).
 
 ### Kontrak API dan migrasi
 
