@@ -2043,6 +2043,539 @@
           }
         }
       }
+    },
+    "/api/v1/forms": {
+      "get": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "List Forms",
+        "operationId": "list_forms_api_v1_forms_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Jumlah baris per halaman (maks. 100).",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Jumlah baris per halaman (maks. 100)."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` dari halaman sebelumnya.",
+              "title": "Cursor"
+            },
+            "description": "`next_cursor` dari halaman sebelumnya."
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_list_FormOut__"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "Create Form",
+        "operationId": "create_form_api_v1_forms_post",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFormRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FormDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/forms/{form_id}": {
+      "get": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "Get Form",
+        "operationId": "get_form_api_v1_forms__form_id__get",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FormDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "Update Form",
+        "operationId": "update_form_api_v1_forms__form_id__patch",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFormRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FormDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/form-templates": {
+      "get": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "List Form Templates",
+        "operationId": "list_form_templates_api_v1_form_templates_get",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_list_FormTemplateSectorOut__"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2166,6 +2699,54 @@
           "meta"
         ],
         "title": "ApiResponse[AcceptedInvite]"
+      },
+      "ApiResponse_FormDetailOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormDetailOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[FormDetailOut]"
       },
       "ApiResponse_HealthOut_": {
         "properties": {
@@ -2549,6 +3130,110 @@
         ],
         "title": "ApiResponse[list[AuditLogOut]]"
       },
+      "ApiResponse_list_FormOut__": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FormOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[list[FormOut]]"
+      },
+      "ApiResponse_list_FormTemplateSectorOut__": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FormTemplateSectorOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[list[FormTemplateSectorOut]]"
+      },
       "ApiResponse_list_InviteOut__": {
         "properties": {
           "success": {
@@ -2760,6 +3445,76 @@
         ],
         "title": "AuditLogOut"
       },
+      "ChoiceOption": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^#[0-9A-Fa-f]{6}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "ChoiceOption"
+      },
+      "CreateFormRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/DraftFormDefinition"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/FormSettings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CreateFormRequest"
+      },
       "CreateInviteRequest": {
         "properties": {
           "email": {
@@ -2783,6 +3538,187 @@
           "role"
         ],
         "title": "CreateInviteRequest"
+      },
+      "DraftFieldDefinition": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Key"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "short_text",
+              "long_text",
+              "number",
+              "single_choice",
+              "multi_choice",
+              "datetime",
+              "location",
+              "photo",
+              "video",
+              "voice",
+              "document",
+              "signature"
+            ],
+            "title": "Type"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Label",
+            "default": ""
+          },
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Question",
+            "default": ""
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "review_above": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Above"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/ChoiceOption"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Options"
+          },
+          "answer_modes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "type",
+                "voice",
+                "range",
+                "choose",
+                "pick",
+                "name",
+                "map",
+                "live",
+                "send",
+                "camera",
+                "photo",
+                "file",
+                "draw"
+              ]
+            },
+            "type": "array",
+            "title": "Answer Modes"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "condition",
+                  "area"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "max_accuracy_m": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Accuracy M"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "type"
+        ],
+        "title": "DraftFieldDefinition",
+        "description": "A field while the wizard is still editing it: label and question may be empty."
+      },
+      "DraftFormDefinition": {
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/DraftFieldDefinition"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Fields"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/Rule"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Rules"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DraftFormDefinition",
+        "description": "What autosave stores. Shape is checked, completeness is not (that is FormDefinition's job\nat validate/publish), so saving never fails halfway through an edit."
       },
       "EmailRequest": {
         "properties": {
@@ -2827,6 +3763,392 @@
           "message"
         ],
         "title": "ErrorItem"
+      },
+      "FormDetailOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pilot",
+              "active",
+              "archived"
+            ],
+            "title": "Status"
+          },
+          "current_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version Id"
+          },
+          "draft_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Version"
+          },
+          "field_count": {
+            "type": "integer",
+            "title": "Field Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/FormSettings"
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormDraftOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "status",
+          "current_version_id",
+          "draft_version",
+          "field_count",
+          "created_at",
+          "updated_at",
+          "settings",
+          "draft"
+        ],
+        "title": "FormDetailOut"
+      },
+      "FormDraftOut": {
+        "properties": {
+          "version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/DraftFormDefinition"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version_id",
+          "version",
+          "definition",
+          "updated_at"
+        ],
+        "title": "FormDraftOut"
+      },
+      "FormOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pilot",
+              "active",
+              "archived"
+            ],
+            "title": "Status"
+          },
+          "current_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version Id"
+          },
+          "draft_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Version"
+          },
+          "field_count": {
+            "type": "integer",
+            "title": "Field Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "status",
+          "current_version_id",
+          "draft_version",
+          "field_count",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FormOut"
+      },
+      "FormSettings": {
+        "properties": {
+          "template_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Code"
+          },
+          "sector_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Code"
+          },
+          "province_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Province Id"
+          },
+          "regency_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Regency Ids"
+          },
+          "commodities": {
+            "items": {
+              "type": "string",
+              "maxLength": 60
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Commodities"
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly",
+              "event"
+            ],
+            "title": "Frequency",
+            "default": "weekly"
+          },
+          "agent_style": {
+            "type": "string",
+            "enum": [
+              "ramah",
+              "singkat",
+              "formal"
+            ],
+            "title": "Agent Style",
+            "default": "ramah"
+          },
+          "voice_to_text": {
+            "type": "boolean",
+            "title": "Voice To Text",
+            "default": true
+          },
+          "blur_retry": {
+            "type": "boolean",
+            "title": "Blur Retry",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "FormSettings",
+        "description": "Wizard choices kept with the form that are not fields."
+      },
+      "FormTemplateOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "field_count": {
+            "type": "integer",
+            "title": "Field Count"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "title",
+          "name",
+          "description",
+          "field_count",
+          "minutes"
+        ],
+        "title": "FormTemplateOut"
+      },
+      "FormTemplateSectorOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "heading": {
+            "type": "string",
+            "title": "Heading"
+          },
+          "chips_label": {
+            "type": "string",
+            "title": "Chips Label"
+          },
+          "chips": {
+            "items": {
+              "$ref": "#/components/schemas/TemplateChipOut"
+            },
+            "type": "array",
+            "title": "Chips"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/FormTemplateOut"
+            },
+            "type": "array",
+            "title": "Templates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "heading",
+          "chips_label",
+          "chips",
+          "templates"
+        ],
+        "title": "FormTemplateSectorOut"
       },
       "HTTPValidationError": {
         "properties": {
@@ -3519,6 +4841,100 @@
         ],
         "title": "ResetPasswordRequest"
       },
+      "Rule": {
+        "properties": {
+          "if": {
+            "$ref": "#/components/schemas/RuleCondition"
+          },
+          "then": {
+            "$ref": "#/components/schemas/RuleAction"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "if",
+          "then"
+        ],
+        "title": "Rule",
+        "description": "IF `if.field` equals `if.equals` THEN `then` (JIKA ... MAKA ... in the UI)."
+      },
+      "RuleAction": {
+        "properties": {
+          "require": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Require"
+          },
+          "needs_review": {
+            "type": "boolean",
+            "title": "Needs Review",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RuleAction"
+      },
+      "RuleCondition": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Field"
+          },
+          "equals": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Equals"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "field",
+          "equals"
+        ],
+        "title": "RuleCondition"
+      },
+      "TemplateChipOut": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "default_on": {
+            "type": "boolean",
+            "title": "Default On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "default_on"
+        ],
+        "title": "TemplateChipOut"
+      },
       "TokenRequest": {
         "properties": {
           "token": {
@@ -3533,6 +4949,59 @@
           "token"
         ],
         "title": "TokenRequest"
+      },
+      "UpdateFormRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "definition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftFormDefinition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UpdateFormRequest",
+        "description": "Autosave: only the parts sent change; `definition` and `settings` replace the stored\nones as a whole."
       },
       "UpdateMemberRequest": {
         "properties": {
@@ -3869,43 +5338,6 @@
         ],
         "title": "WorkspaceOut"
       },
-      "ChoiceOption": {
-        "additionalProperties": false,
-        "properties": {
-          "value": {
-            "maxLength": 50,
-            "minLength": 1,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "title": "Value",
-            "type": "string"
-          },
-          "label": {
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Label",
-            "type": "string"
-          },
-          "color": {
-            "anyOf": [
-              {
-                "pattern": "^#[0-9A-Fa-f]{6}$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Color"
-          }
-        },
-        "required": [
-          "value",
-          "label"
-        ],
-        "title": "ChoiceOption",
-        "type": "object"
-      },
       "FieldDefinition": {
         "additionalProperties": false,
         "properties": {
@@ -4095,83 +5527,6 @@
           "fields"
         ],
         "title": "FormDefinition",
-        "type": "object"
-      },
-      "Rule": {
-        "additionalProperties": false,
-        "description": "IF `if.field` equals `if.equals` THEN `then` (JIKA ... MAKA ... in the UI).",
-        "properties": {
-          "if": {
-            "$ref": "#/components/schemas/RuleCondition"
-          },
-          "then": {
-            "$ref": "#/components/schemas/RuleAction"
-          }
-        },
-        "required": [
-          "if",
-          "then"
-        ],
-        "title": "Rule",
-        "type": "object"
-      },
-      "RuleAction": {
-        "additionalProperties": false,
-        "properties": {
-          "require": {
-            "anyOf": [
-              {
-                "maxLength": 50,
-                "minLength": 1,
-                "pattern": "^[a-z][a-z0-9_]*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Require"
-          },
-          "needs_review": {
-            "default": false,
-            "title": "Needs Review",
-            "type": "boolean"
-          }
-        },
-        "title": "RuleAction",
-        "type": "object"
-      },
-      "RuleCondition": {
-        "additionalProperties": false,
-        "properties": {
-          "field": {
-            "maxLength": 50,
-            "minLength": 1,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "title": "Field",
-            "type": "string"
-          },
-          "equals": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              }
-            ],
-            "title": "Equals"
-          }
-        },
-        "required": [
-          "field",
-          "equals"
-        ],
-        "title": "RuleCondition",
         "type": "object"
       }
     }

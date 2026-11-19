@@ -10,6 +10,13 @@ Kode: `app/modules/forms/` (`schemas.py` = `FormDefinition`, `service.py` = anta
 - `form_versions`: definisi bernomor (`version` 1, 2, ...). `published_at` kosong = **draf** yang masih bisa diubah, paling banyak satu per form (indeks unik parsial). Setelah dipublikasikan tidak pernah diubah, karena laporan menunjuk versinya. Mengubah struktur yang sudah terbit = membuat draf versi berikutnya.
 - Kedua tabel membawa `workspace_id`; setiap query difilter dengannya.
 
+## Wizard dan draf (Langkah 2.3)
+
+- `POST /forms` membuat form `draft` dengan versi 1 sebagai draf; `PATCH /forms/{id}` adalah autosave wizard: `name`, `description`, `definition` (mengganti seluruh definisi draf), `settings` (mengganti seluruh pengaturan). Form tanpa versi draf → `409 form_not_editable`. Penyimpanan bersamaan untuk form yang sama diproses bergantian (kunci baris), yang terakhir menang.
+- Draf disimpan sebagai **`DraftFormDefinition`**: bentuknya sama dengan `FormDefinition` dan bentuk tetap diperiksa (tipe, pola `key`, properti tak dikenal), tetapi label/pertanyaan boleh kosong, isian boleh 0, dan aturan antar-isian belum diperiksa. Kelengkapan diperiksa `FormDefinition` saat validasi/publikasi (2.5/2.6).
+- `forms.settings` (`FormSettings`): `template_code`, `sector_code`, `province_id` + `regency_ids` (wilayah kerja dari `reference_data`: provinsi platform dan, opsional, kab/kota di dalamnya; kosong = seluruh provinsi; id lain → `422 unknown_region` dengan `field` bertitik), `commodities`, `frequency` (`daily`/`weekly`/`event`), `agent_style` (`ramah`/`singkat`/`formal`), `voice_to_text`, `blur_retry`.
+- Katalog template (`GET /form-templates`): tabel platform `form_template_sectors` dan `form_templates`, seed `templates`. Isian awal tetap diturunkan wizard dari `description` template.
+
 ## `FormDefinition`
 
 ```

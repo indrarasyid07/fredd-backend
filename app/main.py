@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
     errors.register(app)
     mount(app)
     # Interface 2 (TEAM-WORKFLOW): read by the conversation engine and reports. Drop this once
-    # the /forms endpoints (roadmap 2.3) reference it.
+    # an endpoint returns it (POST /forms/{id}/validate, roadmap 2.5).
     include_schemas(app, FormDefinition)
     return app
 

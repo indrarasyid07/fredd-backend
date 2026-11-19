@@ -37,6 +37,9 @@ class Form(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )
+    # Wizard choices that are not fields (FormSettings): template, sector, area, commodities,
+    # reporting frequency, agent style. Validated before every write.
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
 
 
 class FormVersion(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
@@ -63,3 +66,35 @@ class FormVersion(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
     published_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )
+
+
+class FormTemplateSector(UUIDPrimaryKey, Timestamps, Base):
+    """A sector of the wizard's template catalogue (platform data, same for every workspace)."""
+
+    __tablename__ = "form_template_sectors"
+
+    code: Mapped[str] = mapped_column(String(40), unique=True)
+    position: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(100))
+    heading: Mapped[str] = mapped_column(String(200))
+    # Label and choices of the sector's quick picks ("Komoditas utama": Padi, Jagung, ...).
+    chips_label: Mapped[str] = mapped_column(String(100))
+    chips: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
+
+
+class FormTemplate(UUIDPrimaryKey, Timestamps, Base):
+    """A starting point in the wizard. The wizard derives starter fields from `description`."""
+
+    __tablename__ = "form_templates"
+
+    sector_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("form_template_sectors.id", ondelete="CASCADE"), index=True
+    )
+    code: Mapped[str] = mapped_column(String(40), unique=True)
+    position: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(200))
+    # Suggested name of a form created from it.
+    name: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text)
+    field_count: Mapped[int] = mapped_column(Integer)
+    minutes: Mapped[int] = mapped_column(Integer)

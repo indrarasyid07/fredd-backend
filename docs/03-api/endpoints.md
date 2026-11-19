@@ -43,8 +43,9 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 
 | Method | Path | Peran |
 |---|---|---|
-| GET, POST | `/forms` | reviewer / form_editor |
-| GET, PATCH | `/forms/{id}` | reviewer / form_editor (hanya draf) |
+| GET, POST | `/forms` | reviewer / form_editor. **Ada**: daftar terbaru dulu (cursor); POST membuat form `draft` + versi 1 sebagai draf |
+| GET, PATCH | `/forms/{id}` | reviewer / form_editor (hanya draf). **Ada**: PATCH = autosave wizard (`name`, `description`, `definition`, `settings`); tanpa draf → 409 `form_not_editable` |
+| GET | `/form-templates` | reviewer. **Ada**: katalog template wizard per sektor |
 | GET | `/forms/{id}/versions` | reviewer |
 | POST | `/forms/{id}/validate` | form_editor (periksa otomatis) |
 | POST | `/forms/{id}/test-runs` | form_editor (uji di akun sendiri) |

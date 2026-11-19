@@ -8,7 +8,9 @@ Every problem is reported at once with a dotted path (`fields.2.options`) and an
 `app_code` in the error context, so the API returns one `errors[]` item per problem.
 """
 
-from typing import Annotated, Any, LiteralString, Self
+import uuid
+from datetime import datetime
+from typing import Annotated, Any, Literal, LiteralString, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from pydantic_core import InitErrorDetails, PydanticCustomError
@@ -24,6 +26,7 @@ from app.modules.forms.constants import (
     AnswerMode,
     FieldRole,
     FieldType,
+    FormStatus,
 )
 
 Key = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]*$", min_length=1, max_length=50)]
@@ -220,3 +223,104 @@ def _check_rules(d: FormDefinition, p: _Problems) -> None:
                 p.add((*at, "then", "require"), "unknown_field", action.require)
             elif action.require == rule.if_.field:
                 p.add((*at, "then", "require"), "self_reference", action.require)
+
+
+# --- Drafts, settings and API shapes (roadmap 2.3) -------------------------------------------
+
+
+class DraftFieldDefinition(FieldDefinition):
+    """A field while the wizard is still editing it: label and question may be empty."""
+
+    label: str = Field(default="", max_length=100)
+    question: str = Field(default="", max_length=500)
+
+
+class DraftFormDefinition(_Strict):
+    """What autosave stores. Shape is checked, completeness is not (that is FormDefinition's job
+    at validate/publish), so saving never fails halfway through an edit."""
+
+    fields: list[DraftFieldDefinition] = Field(default_factory=list, max_length=MAX_FIELDS)
+    rules: list[Rule] = Field(default_factory=list, max_length=MAX_RULES)
+
+
+class FormSettings(_Strict):
+    """Wizard choices kept with the form that are not fields."""
+
+    template_code: str | None = Field(default=None, max_length=40)
+    sector_code: str | None = Field(default=None, max_length=40)
+    # Work area from reference data (GET /reference-data): a province and, optionally, some of
+    # its regencies. Empty `regency_ids` = the whole province.
+    province_id: uuid.UUID | None = None
+    regency_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
+    commodities: list[Annotated[str, Field(max_length=60)]] = Field(
+        default_factory=list, max_length=30
+    )
+    frequency: Literal["daily", "weekly", "event"] = "weekly"
+    agent_style: Literal["ramah", "singkat", "formal"] = "ramah"
+    voice_to_text: bool = True
+    blur_retry: bool = True
+
+
+class CreateFormRequest(_Strict):
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    definition: DraftFormDefinition = Field(default_factory=DraftFormDefinition)
+    settings: FormSettings = Field(default_factory=FormSettings)
+
+
+class UpdateFormRequest(_Strict):
+    """Autosave: only the parts sent change; `definition` and `settings` replace the stored
+    ones as a whole."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    definition: DraftFormDefinition | None = None
+    settings: FormSettings | None = None
+
+
+class FormOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: str | None
+    status: FormStatus
+    current_version_id: uuid.UUID | None
+    # Number of the editable draft version, null when there is none.
+    draft_version: int | None
+    field_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class FormDraftOut(BaseModel):
+    version_id: uuid.UUID
+    version: int
+    definition: DraftFormDefinition
+    updated_at: datetime
+
+
+class FormDetailOut(FormOut):
+    settings: FormSettings
+    draft: FormDraftOut | None
+
+
+class TemplateChipOut(BaseModel):
+    label: str
+    default_on: bool
+
+
+class FormTemplateOut(BaseModel):
+    code: str
+    title: str
+    name: str
+    description: str
+    field_count: int
+    minutes: int
+
+
+class FormTemplateSectorOut(BaseModel):
+    code: str
+    name: str
+    heading: str
+    chips_label: str
+    chips: list[TemplateChipOut]
+    templates: list[FormTemplateOut]

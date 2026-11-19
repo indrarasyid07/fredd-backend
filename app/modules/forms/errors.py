@@ -1,4 +1,4 @@
-from app.core.errors import NotFound
+from app.core.errors import AppError, NotFound
 
 
 class FormNotFound(NotFound):
@@ -13,3 +13,11 @@ class FormVersionNotFound(NotFound):
 
     code = "form_version_not_found"
     message = "Versi struktur data tidak ditemukan."
+
+
+class FormNotEditable(AppError):
+    """The form has no draft version to change (published and not reopened, or archived)."""
+
+    status_code = 409
+    code = "form_not_editable"
+    message = "Struktur data ini tidak sedang dalam draf, jadi tidak bisa diubah."
