@@ -2,6 +2,7 @@
 
     uv run python -m scripts.seed demo        # demo accounts (development only)
     uv run python -m scripts.seed reference   # regions, commodities, units (every environment)
+    uv run python -m scripts.seed templates   # wizard template catalogue (every environment)
 
 Idempotent: rows that already exist are skipped (demo) or updated (reference). Only sets
 that exist today are listed; see docs/09-seeding/seed-data.md for the planned ones.
@@ -18,6 +19,7 @@ from app.core.config import settings
 from app.core.errors import AppError
 from app.db.session import SessionLocal, engine
 from app.modules.auth import repository, service
+from app.modules.forms import service as forms_service
 from app.modules.reference_data import service as reference_service
 from app.modules.workspaces import service as workspaces_service
 
@@ -68,7 +70,15 @@ async def seed_reference() -> None:
     print(f"regions {regions}, commodities {commodities}, units {units}")
 
 
-SETS = {"demo": seed_demo, "reference": seed_reference}
+async def seed_templates() -> None:
+    """The wizard's template catalogue: 8 sectors, 25 templates (ROADMAP 2.3)."""
+    data = json.loads((FIXTURES / "templates" / "form_templates.json").read_text(encoding="utf-8"))
+    async with SessionLocal() as db:
+        count = await forms_service.seed_template_catalogue(db, data["sectors"])
+    print(f"sectors {len(data['sectors'])}, templates {count}")
+
+
+SETS = {"demo": seed_demo, "reference": seed_reference, "templates": seed_templates}
 # Sets with published credentials, refused outside development.
 DEV_ONLY = {"demo"}
 

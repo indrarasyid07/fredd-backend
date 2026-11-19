@@ -1,0 +1,480 @@
+{
+  "sectors": [
+    {
+      "code": "agriculture",
+      "name": "Pertanian",
+      "heading": "Pertanian & Perkebunan (Agriculture)",
+      "chips_label": "Komoditas utama",
+      "chips": [
+        {
+          "label": "Padi",
+          "default_on": true
+        },
+        {
+          "label": "Jagung",
+          "default_on": true
+        },
+        {
+          "label": "Cabai",
+          "default_on": true
+        },
+        {
+          "label": "Singkong",
+          "default_on": false
+        },
+        {
+          "label": "Kopi",
+          "default_on": false
+        },
+        {
+          "label": "+ Tambah",
+          "default_on": false
+        }
+      ],
+      "templates": [
+        {
+          "code": "00",
+          "title": "Survei Kondisi Tanaman",
+          "name": "Survei Kondisi Tanaman",
+          "description": "Lokasi, komoditas, fase tumbuh, luas lahan, kesehatan tanaman, foto bukti.",
+          "field_count": 8,
+          "minutes": 5
+        },
+        {
+          "code": "01",
+          "title": "Pantau Hama & Penyakit",
+          "name": "Pantau Hama & Penyakit",
+          "description": "Jenis OPT, tingkat serangan (ringan/sedang/berat), sebaran wilayah, foto kerusakan.",
+          "field_count": 9,
+          "minutes": 5
+        },
+        {
+          "code": "02",
+          "title": "Catatan Panen & Harga",
+          "name": "Catatan Panen & Harga",
+          "description": "Hasil panen, harga jual, tujuan jual, kualitas hasil.",
+          "field_count": 8,
+          "minutes": 4
+        }
+      ]
+    },
+    {
+      "code": "livestock",
+      "name": "Peternakan",
+      "heading": "Peternakan & Kesehatan Hewan (Livestock)",
+      "chips_label": "Jenis ternak",
+      "chips": [
+        {
+          "label": "Sapi",
+          "default_on": true
+        },
+        {
+          "label": "Kambing",
+          "default_on": true
+        },
+        {
+          "label": "Unggas",
+          "default_on": true
+        },
+        {
+          "label": "Domba",
+          "default_on": false
+        },
+        {
+          "label": "Babi",
+          "default_on": false
+        },
+        {
+          "label": "+ Tambah",
+          "default_on": false
+        }
+      ],
+      "templates": [
+        {
+          "code": "10",
+          "title": "Survei Kesehatan & Vaksinasi Ternak",
+          "name": "Survei Kesehatan & Vaksinasi Ternak",
+          "description": "Jenis ternak, jumlah populasi, status vaksinasi, gejala klinis, foto/video kandang.",
+          "field_count": 10,
+          "minutes": 6
+        },
+        {
+          "code": "11",
+          "title": "Laporan Kelahiran & Kematian Ternak",
+          "name": "Laporan Kelahiran & Kematian Ternak",
+          "description": "Penambahan populasi akibat kelahiran, kematian mendadak, penyebab di peternak rakyat.",
+          "field_count": 9,
+          "minutes": 5
+        },
+        {
+          "code": "12",
+          "title": "Pantau Penyakit Hewan Menular",
+          "name": "Pantau Penyakit Hewan Menular",
+          "description": "Gejala, jumlah ternak sakit, lokasi kandang, tindakan darurat.",
+          "field_count": 8,
+          "minutes": 4
+        }
+      ]
+    },
+    {
+      "code": "fisheries",
+      "name": "Perikanan",
+      "heading": "Perikanan & Kelautan (Fisheries & Aquaculture)",
+      "chips_label": "Jenis budidaya / tangkapan",
+      "chips": [
+        {
+          "label": "Lele",
+          "default_on": true
+        },
+        {
+          "label": "Nila",
+          "default_on": true
+        },
+        {
+          "label": "Udang",
+          "default_on": false
+        },
+        {
+          "label": "Bandeng",
+          "default_on": false
+        },
+        {
+          "label": "Rumput laut",
+          "default_on": false
+        },
+        {
+          "label": "+ Tambah",
+          "default_on": false
+        }
+      ],
+      "templates": [
+        {
+          "code": "20",
+          "title": "Survei Budidaya Ikan & Tambak",
+          "name": "Survei Budidaya Ikan & Tambak",
+          "description": "Jenis ikan, luas kolam, padat tebar, kualitas air, foto kolam.",
+          "field_count": 9,
+          "minutes": 5
+        },
+        {
+          "code": "21",
+          "title": "Catatan Tangkapan Nelayan",
+          "name": "Catatan Tangkapan Nelayan",
+          "description": "Alat tangkap, jenis dan berat hasil, lokasi, harga jual.",
+          "field_count": 8,
+          "minutes": 4
+        },
+        {
+          "code": "22",
+          "title": "Pantau Kualitas Air & Kematian Ikan",
+          "name": "Pantau Kualitas Air & Kematian Ikan",
+          "description": "Suhu, pH, gejala, jumlah ikan mati, foto kondisi air.",
+          "field_count": 8,
+          "minutes": 4
+        }
+      ]
+    },
+    {
+      "code": "forestry",
+      "name": "Kehutanan",
+      "heading": "Kehutanan & Lingkungan Hidup (Forestry & Environment)",
+      "chips_label": "Fokus lokasi",
+      "chips": [
+        {
+          "label": "Hutan produksi",
+          "default_on": false
+        },
+        {
+          "label": "Hutan lindung",
+          "default_on": true
+        },
+        {
+          "label": "Mangrove",
+          "default_on": true
+        },
+        {
+          "label": "Lahan gambut",
+          "default_on": false
+        },
+        {
+          "label": "DAS",
+          "default_on": false
+        },
+        {
+          "label": "+ Tambah",
+          "default_on": false
+        }
+      ],
+      "templates": [
+        {
+          "code": "30",
+          "title": "Pantau Kebakaran Hutan & Lahan",
+          "name": "Pantau Kebakaran Hutan & Lahan",
+          "description": "Titik api, luas terbakar, dugaan penyebab, kondisi cuaca, foto.",
+          "field_count": 8,
+          "minutes": 4
+        },
+        {
+          "code": "31",
+          "title": "Survei Penanaman & Tutupan Pohon",
+          "name": "Survei Penanaman & Tutupan Pohon",
+          "description": "Jenis pohon, jumlah bibit, tingkat tumbuh, koordinat, foto.",
+          "field_count": 8,
+          "minutes": 5
+        },
+        {
+          "code": "32",
+          "title": "Laporan Pencemaran & Sampah",
+          "name": "Laporan Pencemaran & Sampah",
+          "description": "Jenis pencemaran, sumber, volume, lokasi, foto bukti.",
+          "field_count": 7,
+          "minutes": 4
+        }
+      ]
+    },
+    {
+      "code": "infrastructure",
+      "name": "Infrastruktur",
+      "heading": "Infrastruktur Desa & Fasilitas Publik (Public Infrastructure)",
+      "chips_label": "Jenis fasilitas",
+      "chips": [
+        {
+          "label": "Jalan",
+          "default_on": true
+        },
+        {
+          "label": "Jembatan",
+          "default_on": true
+        },
+        {
+          "label": "Air bersih",
+          "default_on": false
+        },
+        {
+          "label": "Irigasi",
+          "default_on": false
+        },
+        {
+          "label": "Balai desa",
+          "default_on": false
+        },
+        {
+          "label": "Sekolah",
+          "default_on": false
+        },
+        {
+          "label": "+ Tambah",
+          "default_on": false
+        }
+      ],
+      "templates": [
+        {
+          "code": "40",
+          "title": "Survei Kondisi Jalan & Jembatan",
+          "name": "Survei Kondisi Jalan & Jembatan",
+          "description": "Jenis kerusakan, panjang, tingkat keparahan, koordinat, foto.",
+          "field_count": 8,
+          "minutes": 4
+        },
+        {
+          "code": "41",
+          "title": "Pantau Air Bersih & Sanitasi",
+          "name": "Pantau Air Bersih & Sanitasi",
+          "description": "Sumber air, debit, kualitas, jumlah rumah terlayani, foto.",
+          "field_count": 9,
+          "minutes": 5
+        },
+        {
+          "code": "42",
+          "title": "Laporan Kerusakan Fasilitas Umum",
+          "name": "Laporan Kerusakan Fasilitas Umum",
+          "description": "Balai desa, sekolah, irigasi: kerusakan, prioritas, perkiraan biaya.",
+          "field_count": 8,
+          "minutes": 4
+        }
+      ]
+    },
+    {
+      "code": "health",
+      "name": "Kesehatan",
+      "heading": "Kesehatan Masyarakat & Posyandu (Public Health & Field Medics)",
+      "chips_label": "Kelompok sasaran",
+      "chips": [
+        {
+          "label": "Balita",
+          "default_on": true
+        },
+        {
+          "label": "Ibu hamil",
+          "default_on": true
+        },
+        {
+          "label": "Lansia",
+          "default_on": false
+        },
+        {
+          "label": "Remaja",
+          "default_on": false
+        },
+        {
+          "label": "Seluruh warga",
+          "default_on": false
+        },
+        {
+          "label": "+ Tambah",
+          "default_on": false
+        }
+      ],
+      "templates": [
+        {
+          "code": "50",
+          "title": "Pencatatan Posyandu",
+          "name": "Pencatatan Posyandu",
+          "description": "Berat dan tinggi balita, ibu hamil, imunisasi, catatan petugas.",
+          "field_count": 11,
+          "minutes": 6
+        },
+        {
+          "code": "51",
+          "title": "Surveilans Penyakit Menular",
+          "name": "Surveilans Penyakit Menular",
+          "description": "Jenis penyakit, jumlah kasus, gejala, wilayah, tindak lanjut.",
+          "field_count": 10,
+          "minutes": 5
+        },
+        {
+          "code": "52",
+          "title": "Survei Sanitasi & PHBS Rumah Tangga",
+          "name": "Survei Sanitasi & PHBS Rumah Tangga",
+          "description": "Jamban, air minum, cuci tangan, kebersihan lingkungan, foto.",
+          "field_count": 9,
+          "minutes": 5
+        }
+      ]
+    },
+    {
+      "code": "finance",
+      "name": "Keuangan",
+      "heading": "Keuangan, Operasional & Aset Personal (Personal Finance)",
+      "chips_label": "Kategori pengeluaran",
+      "chips": [
+        {
+          "label": "Makan & minum",
+          "default_on": true
+        },
+        {
+          "label": "Transportasi",
+          "default_on": true
+        },
+        {
+          "label": "Penginapan",
+          "default_on": false
+        },
+        {
+          "label": "Belanja",
+          "default_on": false
+        },
+        {
+          "label": "Tagihan",
+          "default_on": false
+        },
+        {
+          "label": "+ Tambah",
+          "default_on": false
+        }
+      ],
+      "templates": [
+        {
+          "code": "60",
+          "title": "Catatan Pengeluaran Pribadi",
+          "name": "Catatan Pengeluaran Pribadi",
+          "description": "Foto struk, bukti transfer, atau QRIS ke chat. Agent AI membaca nominal, toko, dan tanggal, lalu merapikannya jadi tabel.",
+          "field_count": 7,
+          "minutes": 1
+        },
+        {
+          "code": "61",
+          "title": "Laporan Operasional & Tim Marketing",
+          "name": "Laporan Operasional & Tim Marketing",
+          "description": "Bukti bayar pengeluaran operasional dan aktivitas tim lewat pesan singkat, otomatis masuk dashboard.",
+          "field_count": 8,
+          "minutes": 2
+        },
+        {
+          "code": "62",
+          "title": "Inventaris & Garansi Barang",
+          "name": "Inventaris & Garansi Barang",
+          "description": "Struk gawai atau barang berharga, tanggal beli, masa garansi, nilai, dan foto. Garansi terlacak.",
+          "field_count": 9,
+          "minutes": 2
+        }
+      ]
+    },
+    {
+      "code": "research",
+      "name": "Riset & Akademik",
+      "heading": "Logbook Laboratorium & Riset Akademik (Lab & Research)",
+      "chips_label": "Jenjang & jenis riset",
+      "chips": [
+        {
+          "label": "Skripsi",
+          "default_on": true
+        },
+        {
+          "label": "Tesis",
+          "default_on": true
+        },
+        {
+          "label": "Disertasi",
+          "default_on": false
+        },
+        {
+          "label": "KKN",
+          "default_on": false
+        },
+        {
+          "label": "Penelitian dosen",
+          "default_on": false
+        },
+        {
+          "label": "+ Tambah",
+          "default_on": false
+        }
+      ],
+      "templates": [
+        {
+          "code": "70",
+          "title": "Logbook Laboratorium & Eksperimen",
+          "name": "Logbook Laboratorium & Eksperimen",
+          "description": "Foto hasil reaksi, koloni, atau layar instrumen plus voice note sampel, jam, suhu. Jadi tabel kronologis.",
+          "field_count": 10,
+          "minutes": 3
+        },
+        {
+          "code": "71",
+          "title": "Sampling & Observasi Lapangan",
+          "name": "Sampling & Observasi Lapangan",
+          "description": "Share lokasi GPS, foto spesimen, catatan tanah, cuaca, kelembapan. Terkirim otomatis saat sinyal kembali.",
+          "field_count": 10,
+          "minutes": 4
+        },
+        {
+          "code": "72",
+          "title": "Catatan Lapangan & Wawancara",
+          "name": "Catatan Lapangan & Wawancara",
+          "description": "Voice note wawancara dan refleksi, foto arsip. Transkrip otomatis dan kutipan per tema.",
+          "field_count": 8,
+          "minutes": 5
+        },
+        {
+          "code": "73",
+          "title": "Survei Cepat & Observasi Perilaku",
+          "name": "Survei Cepat & Observasi Perilaku",
+          "description": "Pesan singkat: \"Responden 15, Pria, 24 th, setuju B\". Tabulasi dan grafik real-time.",
+          "field_count": 6,
+          "minutes": 1
+        }
+      ]
+    }
+  ]
+}

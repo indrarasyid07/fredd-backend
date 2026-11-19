@@ -24,3 +24,11 @@ class GeometryOnlyForRegions(AppError):
 
     def __init__(self) -> None:
         super().__init__(field="geometry")
+
+
+class UnknownRegion(AppError):
+    """A region id that is not a platform province / a regency of the chosen province."""
+
+    status_code = 422
+    code = "unknown_region"
+    message = "Wilayah tidak dikenal atau tidak berada di provinsi yang dipilih."

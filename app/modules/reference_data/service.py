@@ -82,6 +82,30 @@ async def locate(db: AsyncSession, *, lat: float, lng: float) -> RegionPathOut:
     return RegionPathOut(**path)
 
 
+async def check_work_area(
+    db: AsyncSession,
+    province_id: uuid.UUID | None,
+    regency_ids: list[uuid.UUID],
+    *,
+    field_prefix: str = "",
+) -> None:
+    """A work area is a platform province plus, optionally, some of its regencies. Raises
+    UnknownRegion with the dotted path of the first bad id."""
+    if province_id is None:
+        if regency_ids:
+            raise errors.UnknownRegion(field=f"{field_prefix}regency_ids.0")
+        return
+    ids = [province_id, *regency_ids]
+    found = {r.id: r for r in await repository.get_platform_regions(db, ids)}
+    province = found.get(province_id)
+    if province is None or province.level != "province":
+        raise errors.UnknownRegion(field=f"{field_prefix}province_id")
+    for i, regency_id in enumerate(regency_ids):
+        regency = found.get(regency_id)
+        if regency is None or regency.level != "regency" or regency.parent_id != province_id:
+            raise errors.UnknownRegion(field=f"{field_prefix}regency_ids.{i}")
+
+
 # --- Seeding (scripts/seed.py reference) ----------------------------------------------------
 
 
