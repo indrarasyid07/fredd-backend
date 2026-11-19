@@ -34,6 +34,7 @@ from app.modules.forms.schemas import (
     UpdateFormRequest,
     find_problems,
 )
+from app.modules.join_codes import service as join_codes
 from app.modules.reference_data import service as reference_data
 
 
@@ -97,6 +98,8 @@ async def create_form(
     )
     db.add(form)
     await db.flush()
+    # Every structure gets its join code right away (B-048); it works once the form is open.
+    await join_codes.create_for_form(db, workspace_id, form.id, user_id)
     db.add(
         FormVersion(
             workspace_id=workspace_id,

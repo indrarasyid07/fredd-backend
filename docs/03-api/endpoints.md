@@ -69,7 +69,7 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 |---|---|---|
 | GET, POST | `/extension-workers` | reviewer / admin |
 | GET, PATCH, DELETE | `/extension-workers/{id}` | reviewer / admin |
-| GET, PATCH | `/forms/{id}/join-code` | reviewer / admin (PATCH: admin) |
+| GET, PATCH | `/forms/{id}/join-code` | reviewer / admin (PATCH: admin). **Ada**: kode (`K7M2-9QXA`), status, `approval_mode`, `max_uses`, `expires_at`, `use_count`, `claimable` (kode aktif dan form pilot/aktif), tautan WhatsApp/Telegram (null bila bot belum diatur). PATCH: `status` (`active`/`paused`), `approval_mode`, `max_uses`, `expires_at` |
 | POST | `/forms/{id}/join-code/rotate` | admin |
 | POST | `/extension-workers/{id}/approve`, `/block` | admin |
 | ~~POST~~ | ~~`/extension-workers/invites`, `/invites/{id}/resend`~~ | dihapus (B-048) |
