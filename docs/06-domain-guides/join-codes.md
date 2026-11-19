@@ -1,6 +1,6 @@
 # Bot Bersama dan Kode Gabung
 
-Status: **Diputuskan sebagian (17 November 2026)**. Tiga keputusan pemilik produk dicatat di [Keputusan pemilik produk](#keputusan-pemilik-produk); sisanya di [pertanyaan terbuka](#pertanyaan-terbuka). Keputusan: [B-048](../11-decisions/decision-log.md). Dampak ke layar: [frontend join-codes.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/join-codes.md).
+Status: **Diputuskan sebagian (17 November 2026)**. Tiga keputusan pemilik produk dicatat di [Keputusan pemilik produk](#keputusan-pemilik-produk); sisanya di [pertanyaan terbuka](#pertanyaan-terbuka). Keputusan: [B-048](../11-decisions/decision-log.md). Dampak ke layar: [frontend join-codes.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/join-codes.md).
 
 Dokumen ini **menggantikan** model lama "tiap organisasi menghubungkan WhatsApp dan Telegram sendiri lalu mengundang penyuluh lewat nomor". Bagian lain yang bertentangan ditandai di [Dampak ke dokumen lain](#dampak-ke-dokumen-lain).
 
@@ -49,7 +49,7 @@ Urutan di sisi sistem:
 5. Bot meminta **konfirmasi**: "Laporan Anda akan masuk ke topik ini seterusnya. Sudah benar?" dengan tombol **Ya, tetap** dan **Bukan, ganti**. "Bukan, ganti" melepas ikatan baru dan meminta kode lain. Setelah dikonfirmasi, pesan berikutnya tidak perlu kode.
 6. Penyuluh yang sudah terikat lalu mengirim kode topik lain: bot bertanya "Pindah ke topik ini, atau tambahkan tanpa melepas yang lama?" dengan tombol **Pindah ke {topik}**, **Tambah topik**, dan **Batal**. Pindah mengubah ikatan aktif dan menandai ikatan lama `left`; tambah membuat ikatan kedua dan memicu aturan di [Satu orang, banyak topik](#satu-orang-banyak-topik).
 
-Contoh pesan (Bahasa Indonesia, mengikuti [chat-ux.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/chat-ux.md)):
+Contoh pesan (Bahasa Indonesia, mengikuti [chat-ux.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/chat-ux.md)):
 
 | Situasi | Balasan |
 |---|---|
@@ -146,7 +146,7 @@ Jawaban atas ini mengubah rancangan; usulan bawaan ada di kolom kedua.
 | 1 | ~~Kode per struktur data atau per proyek?~~ | **Diputuskan: per struktur data** |
 | 2 | ~~Sekali atau setiap melapor?~~ | **Diputuskan: sekali, dengan konfirmasi tetap atau pindah** |
 | 3 | ~~Persetujuan bawaan?~~ | **Diputuskan: langsung aktif**, manual sebagai pilihan |
-| 4 | Pilot (sebagian penyuluh): bagaimana dijalankan dengan kode? | Belum diputuskan. Opsi A: `max_uses` sebagai ukuran pilot lalu dinaikkan setelah lolos ambang. Opsi B: dua kode untuk satu struktur (pilot dan umum). Opsi C: persetujuan manual untuk memilih orang pilot. Perlu dipilih bersama alur publikasi di [forms.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/forms.md) |
+| 4 | Pilot (sebagian penyuluh): bagaimana dijalankan dengan kode? | Belum diputuskan. Opsi A: `max_uses` sebagai ukuran pilot lalu dinaikkan setelah lolos ambang. Opsi B: dua kode untuk satu struktur (pilot dan umum). Opsi C: persetujuan manual untuk memilih orang pilot. Perlu dipilih bersama alur publikasi di [forms.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/forms.md) |
 | 4b | Penyuluh dengan banyak topik: memilih tiap laporan atau memakai topik terakhir? | Memilih di awal laporan bila lebih dari satu |
 | 5 | Perlukah daftar putih nomor untuk topik sensitif (hanya nomor yang didaftarkan admin boleh bergabung)? | Ditunda; satu opsi `restricted` untuk paket Enterprise |
 | 6 | Perlukah opsi bot sendiri (nomor atau bot milik organisasi) untuk Enterprise? | Ya, nanti; `channels.workspace_id` yang tidak `NULL` menyiapkan jalannya |

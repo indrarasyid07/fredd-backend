@@ -21,4 +21,4 @@ Dokumentasi teknis backend Fluctuz (FastAPI). Isi ditulis dalam Bahasa Indonesia
 | [14-agent-guides](14-agent-guides/agent-guidelines.md) | Panduan untuk AI coding agent |
 | [99-archive](99-archive/README.md) | Dokumen lama yang tidak berlaku |
 
-Dokumentasi frontend ada di [`../../frontend/docs`](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/README.md), infrastruktur (database, Redis, deploy) di [`../../infra/docs`](https://gitlab.com/databiota-fredd/infra/-/blob/development/docs/README.md).
+Dokumentasi frontend ada di [`../../fredd-frontend/docs`](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/README.md), infrastruktur (database, Redis, deploy) di [`../../fredd-infra/docs`](https://github.com/indrarasyid07/fredd-infra/blob/development/docs/README.md).

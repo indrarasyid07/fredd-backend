@@ -41,7 +41,7 @@ Alasan lengkap tiap pilihan ada di [decision log](../11-decisions/decision-log.m
 ### Pohon folder
 
 ```
-backend/
+fredd-backend/
 ├── app/
 │   ├── main.py                      # buat app: middleware, exception handler, pasang router
 │   ├── worker.py                    # entry worker arq: daftar job + cron dari modules/*/jobs.py

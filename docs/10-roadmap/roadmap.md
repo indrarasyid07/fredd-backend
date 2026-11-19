@@ -1,6 +1,6 @@
 # Roadmap
 
-Urutan pengerjaan backend. Frontend berjalan paralel (lihat `frontend/docs/10-roadmap/roadmap.md`).
+Urutan pengerjaan backend. Frontend berjalan paralel (lihat `fredd-frontend/docs/10-roadmap/roadmap.md`).
 
 | Fase | Isi | Selesai bila |
 |---|---|---|

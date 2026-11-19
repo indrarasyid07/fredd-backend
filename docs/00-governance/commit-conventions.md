@@ -76,8 +76,8 @@ Nama fitur baru mengikuti nama folder modulnya, sehingga scope di ketiga repo sa
 | Footer | Kapan |
 |---|---|
 | `BREAKING CHANGE: <penjelasan>` | Kontrak API, skema, variabel env, atau perilaku yang dipakai repo lain berubah tidak kompatibel. Header juga diberi `!`: `feat(api)!: ...` |
-| `Refs: #<nomor>` | Terkait issue GitLab tanpa menutupnya |
-| `Closes: #<nomor>` | Menutup issue GitLab saat di-merge |
+| `Refs: #<nomor>` | Terkait issue GitHub tanpa menutupnya |
+| `Closes: #<nomor>` | Menutup issue GitHub saat di-merge |
 
 Perubahan yang memutus kontrak antar-repo (mis. endpoint backend yang dipakai frontend) juga dicatat di changelog repo yang terdampak.
 
@@ -105,7 +105,7 @@ Aturan rahasia dan data pribadi juga berlaku untuk **isi** commit: file `.env`, 
 
 | Cabang | Fungsi |
 |---|---|
-| `development` | Cabang utama (default di GitLab). Semua pekerjaan dan commit harian masuk ke sini. |
+| `development` | Cabang utama (default di GitHub). Semua pekerjaan dan commit harian masuk ke sini. |
 | `main` | Cabang rilis. Berisi commit awal; diperbarui hanya dengan merge dari `development` bila ada rilis atau pembaruan yang disengaja. |
 
 - Commit awal (`chore: initial project setup`) ada di kedua cabang. Selebihnya hanya di `development`.
