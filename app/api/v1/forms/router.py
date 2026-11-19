@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from app.api.deps import DB, EditorMember, ReviewerMember
+from app.api.deps import DB, AdminMember, EditorMember, ReviewerMember
 from app.api.pagination import Cursor, Limit, decode_cursor, encode_cursor
 from app.api.responses import ApiErrorResponse, ApiResponse, Pagination, ok
 from app.modules.forms import service
@@ -67,3 +67,19 @@ async def update_form(form_id: uuid.UUID, body: UpdateFormRequest, member: Edito
 async def validate_form(form_id: uuid.UUID, member: EditorMember, db: DB):
     """Automatic checks of the draft. Problems are data, not a failed request: always 200."""
     return ok(await service.check_form(db, member.workspace.id, form_id))
+
+
+@router.post(
+    "/{form_id}/publish",
+    response_model=ApiResponse[FormDetailOut],
+    responses={**_GUARDS, 409: _ERR, 422: _ERR},
+)
+async def publish_form(form_id: uuid.UUID, member: AdminMember, db: DB):
+    form = await service.publish_form(db, member.workspace.id, member.member.user_id, form_id)
+    return ok(form, message="Struktur data aktif. Penyuluh bisa mulai melapor.")
+
+
+@router.post("/{form_id}/archive", response_model=ApiResponse[FormDetailOut], responses=_GUARDS)
+async def archive_form(form_id: uuid.UUID, member: AdminMember, db: DB):
+    form = await service.archive_form(db, member.workspace.id, member.member.user_id, form_id)
+    return ok(form, message="Struktur data diarsipkan.")

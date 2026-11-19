@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # The platform's shared bots (B-048), shown with join codes. Empty = no share links yet.
+    telegram_bot_username: str = ""  # without @, e.g. FluctuzBot
+    whatsapp_public_number: str = ""  # digits with country code, e.g. 6281100000000
+
     @property
     def is_development(self) -> bool:
         return self.environment == "development"

@@ -1,6 +1,7 @@
 """Wizard endpoints: create a draft, autosave it, read it back, list forms, template catalogue."""
 
 import json
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -319,3 +320,75 @@ async def test_validate_needs_editor_and_own_workspace(
     )
     editor = await _as(client, db, organization, "form_editor")
     assert (await editor.post(f"{URL}/{elsewhere.id}/validate")).status_code == 404
+
+
+@pytest.fixture
+async def admin(client: AsyncClient, user: Any, organization: Workspace) -> AsyncClient:
+    """The `user` fixture (Dina) is admin of `organization`."""
+    return await sign_in(client, user.email, organization.id)
+
+
+async def test_publish_makes_the_draft_the_current_version(
+    admin: AsyncClient, db: AsyncSession, organization: Workspace
+) -> None:
+    from app.modules.audit.models import AuditLog
+
+    form_id = await _draft(admin, crop_survey())
+    response = await admin.post(f"{URL}/{form_id}/publish")
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert (data["status"], data["draft"], data["draft_version"]) == ("active", None, None)
+    assert (data["current_version"], data["field_count"]) == (1, 5)
+    assert data["published_at"] is not None
+
+    listed = (await admin.get(URL)).json()["data"][0]
+    assert (listed["status"], listed["current_version"]) == ("active", 1)
+    published = await service.get_version_definition(
+        db, organization.id, uuid.UUID(data["current_version_id"])
+    )
+    assert published.definition.field_with_role("condition") is not None
+    log = await db.scalar(select(AuditLog).where(AuditLog.action == "form.publish"))
+    assert log is not None and log.target == form_id
+
+    # A published version never changes: no draft to edit, no second publish.
+    assert (await admin.patch(f"{URL}/{form_id}", json={"name": "X"})).status_code == 409
+    again = await admin.post(f"{URL}/{form_id}/publish")
+    assert again.json()["errors"][0]["code"] == "form_not_editable"
+
+
+async def test_publish_refuses_a_draft_with_problems(admin: AsyncClient) -> None:
+    definition = crop_survey()
+    definition["fields"][0]["question"] = ""
+    form_id = await _draft(admin, definition)
+    response = await admin.post(f"{URL}/{form_id}/publish")
+    assert response.status_code == 422
+    assert response.json()["errors"][0]["code"] == "form_has_problems"
+    assert (await admin.get(f"{URL}/{form_id}")).json()["data"]["status"] == "draft"
+
+
+async def test_only_admins_publish_and_archive(editor: AsyncClient) -> None:
+    form_id = await _draft(editor, crop_survey())
+    assert (await editor.post(f"{URL}/{form_id}/publish")).status_code == 403
+    assert (await editor.post(f"{URL}/{form_id}/archive")).status_code == 403
+
+
+async def test_archive_stops_editing_and_is_idempotent(admin: AsyncClient) -> None:
+    form_id = await _draft(admin, crop_survey())
+    first = await admin.post(f"{URL}/{form_id}/archive")
+    assert first.json()["data"]["status"] == "archived"
+    assert (await admin.post(f"{URL}/{form_id}/archive")).status_code == 200
+    patch = await admin.patch(f"{URL}/{form_id}", json={"name": "X"})
+    assert (patch.status_code, patch.json()["errors"][0]["code"]) == (409, "form_archived")
+    publish = await admin.post(f"{URL}/{form_id}/publish")
+    assert publish.json()["errors"][0]["code"] == "form_archived"
+
+
+async def test_publish_other_workspace_is_not_found(admin: AsyncClient, db: AsyncSession) -> None:
+    other = Workspace(name="Lain", type="organization")
+    db.add(other)
+    await db.flush()
+    form = await service.create_form(
+        db, other.id, None, "S", FormDefinition.model_validate(crop_survey())
+    )
+    assert (await admin.post(f"{URL}/{form.id}/publish")).status_code == 404
+    assert (await admin.post(f"{URL}/{form.id}/archive")).status_code == 404

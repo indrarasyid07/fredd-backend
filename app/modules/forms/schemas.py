@@ -340,6 +340,9 @@ class FormOut(BaseModel):
     current_version_id: uuid.UUID | None
     # Number of the editable draft version, null when there is none.
     draft_version: int | None
+    # Number of the published version new conversations use, null before the first publish.
+    current_version: int | None
+    published_at: datetime | None
     field_count: int
     created_at: datetime
     updated_at: datetime

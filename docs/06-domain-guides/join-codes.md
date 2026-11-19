@@ -26,7 +26,7 @@ Dokumen ini **menggantikan** model lama "tiap organisasi menghubungkan WhatsApp 
 |---|---|
 | Pemilik | Satu struktur data (`form`). Proyek hanya mengelompokkan; layar proyek menampilkan kode anak-anaknya |
 | Dibuat | Otomatis saat struktur data dibuat (status draf). Kode tidak bisa dipakai sebelum struktur berstatus pilot atau aktif; bot membalas "topik belum dibuka" |
-| Format | 8 karakter dari alfabet 32 huruf dan angka tanpa karakter mirip (tanpa `I L O U 0 1`), ditampilkan `K7M2-9QXA`. Acak kriptografis (40 bit), bukan turunan nama topik |
+| Format | 8 karakter dari alfabet **30** huruf dan angka tanpa karakter mirip (tanpa `I L O U 0 1`: 22 huruf + 8 angka), ditampilkan `K7M2-9QXA`. Acak kriptografis (`secrets`, ±39 bit), bukan turunan nama topik |
 | Pencocokan | Tanpa membedakan huruf besar kecil; spasi dan tanda hubung diabaikan; awalan `gabung` atau `kode` boleh ada |
 | Status | `active`, `paused` (sementara berhenti menerima orang baru), `revoked` (tidak bisa dipakai lagi) |
 | Pembatas opsional | `expires_at`, `max_uses` |
@@ -86,6 +86,12 @@ Perubahan terhadap [data-model.md](../04-database/data-model.md):
 | `conversations`, `messages` | Tidak berubah; `channel_id` menunjuk kanal platform |
 
 Kuota penyuluh paket ([billing-and-plans.md](billing-and-plans.md)) dihitung dari `extension_workers.status = 'active'` per organisasi. Bila kuota penuh, klaim kode berakhir di `pending_approval` dengan alasan `quota`.
+
+## Status implementasi (Langkah 2.7)
+
+- Modul `app/modules/join_codes/` + tabel `join_codes` (kolom di atas; indeks unik parsial: satu kode tidak dicabut per form). Kode dibuat otomatis oleh `forms.service.create_form` lewat `join_codes.service.create_for_form` (dalam unit kerja yang sama); form lama mendapat kode lewat migrasi.
+- `GET/PATCH /forms/{id}/join-code` ada. `claimable` = kode `active` dan form `pilot`/`active`. Tautan bagikan dari env `TELEGRAM_BOT_USERNAME` (`https://t.me/<bot>?start=<KODE>`) dan `WHATSAPP_PUBLIC_NUMBER` (`https://wa.me/<nomor>?text=GABUNG%20<KODE>`); kosong = null.
+- Belum: buat ulang (`rotate`), klaim lewat bot dan pembatas tebakan (Langkah 3.6), audit klaim.
 
 ## Endpoint
 

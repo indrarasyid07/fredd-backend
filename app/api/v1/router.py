@@ -8,6 +8,7 @@ from app.api.v1 import (
     form_templates,
     forms,
     invites,
+    join_codes,
     members,
     reference_data,
     system,
@@ -24,3 +25,4 @@ router.include_router(audit_logs.router, prefix="/audit-logs", tags=["audit-logs
 router.include_router(reference_data.router, prefix="/reference-data", tags=["reference-data"])
 router.include_router(forms.router, prefix="/forms", tags=["forms"])
 router.include_router(form_templates.router, prefix="/form-templates", tags=["forms"])
+router.include_router(join_codes.router, prefix="/forms", tags=["join-codes"])
