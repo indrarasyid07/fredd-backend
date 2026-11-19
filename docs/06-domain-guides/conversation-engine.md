@@ -39,6 +39,19 @@ idle → joining → identifying → choosing_form → asking(step) → confirmi
 6. Semua isian terjawab → kirim ringkasan dengan pilihan "Kirim sekarang" / "Ubah jawaban".
 7. Kirim → buat `reports` dalam satu transaksi bersama update `conversations.status = submitted`, salin kolom filter, terapkan aturan `review_above` → `needs_review`, balas kode laporan.
 
+## Mesin murni (Langkah 3.3)
+
+`engine/machine.py`: `handle(state, pesan, ctx) → Step(state, replies, effects)`, tanpa database dan kanal. `ConversationState` berbentuk JSON (status, `topic_id`, `step`, `answers`, `required_by_rules`, `review_reasons`, `failed_attempts`, `pending`, `editing`). `EngineContext` dimuat service per pesan: sapaan ("Pak Budi"), hari ini di zona workspace, topik yang terikat, `FormDefinition` topik aktif, alias satuan.
+
+- **Efek** dijalankan service: `ClaimCode` (teks berbentuk kode; di tengah laporan hanya bila berformat `XXXX-XXXX`/berawalan `gabung`/`kode`/`/start`, agar nama 8 huruf tidak salah baca; status tidak diubah sehingga kode tak dikenal tidak menghapus progres), `SelectTopic` (lalu service memanggil `start`), `SubmitReport` (jawaban, `needs_review`, alasan; lalu `report_saved(code)`), `NeedsHelp`.
+- **Bertanya:** satu pertanyaan per pesan berawalan "3/5"; pilihan tunggal ≤ 10 jadi tombol, lebih banyak/beberapa pilihan jadi daftar bernomor; isian tidak wajib diberi tombol "Lewati"; lokasi meminta tombol bagikan lokasi.
+- **Konfirmasi tebakan:** angka yang ditulis dengan kata ("Dicatat *1,5 ha*. Benar?") dan pilihan salah ketik ("Maksud Anda *Sehat*?"); jawaban baru di tengah konfirmasi dibaca sebagai jawaban.
+- **Gagal:** alasan + contoh, lalu pertanyaan diulang; kali ke-3 menawarkan "Lewati" (bila tidak wajib) dan "Minta bantuan admin" → `needs_help` (bot diam sampai admin).
+- **Aturan:** dihitung ulang dari semua jawaban setiap kali ada jawaban (mengubah jawaban juga membatalkan efek aturan); `require` membuat isian wajib dan menanyakan ulang yang sempat dilewati; `needs_review` dan `review_above` menjadi alasan tinjauan (`rule:<i>`, `review_above:<key>`).
+- **Media:** foto/video/berkas dikumpulkan sampai `max` atau "selesai" (minimal `min`); suara untuk pertanyaan teks belum dibaca (menunggu STT).
+- **Ringkasan:** "Kirim sekarang" → `SubmitReport`; "Ubah jawaban" → pilih isian → tanya ulang → kembali ke ringkasan. "lanjut" mengulang pertanyaan saat ini, "mulai ulang" mengosongkan draf, "mulai" setelah terkirim membuka laporan baru (memilih topik bila lebih dari satu). `taken_over`: bot diam.
+- `engine/simulator.py`: `FakeChannel` + `Simulator` (service tiruan di memori) untuk tes dan simulator chat (3.9).
+
 ## Pengurai jawaban (Langkah 3.2)
 
 `app/modules/conversations/engine/parsers.py`: fungsi murni tanpa I/O; mengembalikan `None` bila jawaban tidak terbaca dengan yakin (mesin lalu bertanya ulang dengan contoh, tidak menebak).
