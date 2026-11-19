@@ -24,7 +24,7 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `chat_contexts` | channel_id, chat_id, extension_worker_id, updated_at | Topik aktif per identitas chat; unik (channel_id, chat_id) |
 | `extension_workers` | workspace_id, name, region_id, phone_e164, telegram_chat_id, joined_via_code_id, joined_at, status (`pending_approval`, `active`, `blocked`) | Dibuat saat klaim kode. Unik per workspace: phone, telegram_chat_id |
 | ~~`extension_worker_invites`~~ | - | Dihapus (B-048); digantikan `join_codes` |
-| `reference_data` | workspace_id, type (`region`, `commodity`, `farmer_group`, `unit`), value, aliases text[], parent_id | Alias untuk mencocokkan kata lokal |
+| `reference_data` | workspace_id (kosong = data platform), type (`region`, `commodity`, `farmer_group`, `unit`), code, value, aliases text[], parent_id, level (`province`, `regency`, `district`, `village`; wilayah saja), centroid `geometry(Point,4326)`, boundary `geometry(MultiPolygon,4326)` + GiST | Alias untuk mencocokkan kata lokal; wilayah membentuk pohon lewat `parent_id`, kode Kemendagri di `code`. Unik (type, code) untuk baris platform |
 | `forms` | workspace_id, name, description, status (`draft`, `pilot`, `active`, `archived`), current_version_id, created_by_user_id | Struktur data; `current_version_id` = versi terbit yang dipakai percakapan baru |
 | `form_versions` | workspace_id, form_id, version, definition JSONB, published_at, published_by_user_id | `published_at` kosong = draf (paling banyak satu per form, bisa diubah); tidak pernah diubah setelah dipublikasikan |
 | `form_assignments` | form_version_id, extension_worker_id | Pilot = sebagian penyuluh |
@@ -56,7 +56,7 @@ WHERE id = :id AND taken_over_by IS NULL;
 
 0 baris berubah → kembalikan 409.
 
-**Lokasi.** `latitude`/`longitude` `double precision` + indeks pada `region_id`. Agregasi peta = `GROUP BY region_id`. PostGIS ditambahkan bila nanti butuh kueri spasial (titik dalam poligon desa, radius).
+**Lokasi.** `latitude`/`longitude` `double precision` + indeks pada `region_id`. Agregasi peta = `GROUP BY region_id`. `region_id` diisi dari titik GPS lewat `reference_data.service.locate` (PostGIS, titik-dalam-poligon kecamatan; titik ≤ 2 km di luar batas, mis. di pantai, masuk ke kecamatan terdekat).
 
 **`form_versions.definition`** divalidasi oleh model Pydantic `FormDefinition` (`app/modules/forms/schemas.py`) sebelum disimpan. Aturan lengkap, tipe isian, dan kode galat: [forms.md](../06-domain-guides/forms.md).
 

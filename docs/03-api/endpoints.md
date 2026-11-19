@@ -57,7 +57,8 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 
 | Method | Path | Peran |
 |---|---|---|
-| GET, POST | `/reference-data?type=region\|commodity\|farmer_group\|unit` | reviewer / form_editor |
+| GET, POST | `/reference-data?type=region\|commodity\|farmer_group\|unit` | reviewer / form_editor. **GET ada**: filter `parent_id`, `level`, `q` (nama/alias), `geometry=true` (GeoJSON, maks. 50 baris); data platform + milik workspace |
+| GET | `/reference-data/locate?lat=&lng=` | reviewer. **Ada**: kecamatan, kab/kota, provinsi dari titik GPS |
 | PATCH, DELETE | `/reference-data/{id}` | form_editor |
 | POST | `/reference-data/import` | form_editor (CSV) |
 

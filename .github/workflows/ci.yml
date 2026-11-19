@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17
+        image: postgis/postgis:17-3.5
         env:
           POSTGRES_USER: fluctuz
           POSTGRES_PASSWORD: fluctuz

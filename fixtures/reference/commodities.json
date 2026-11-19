@@ -1,0 +1,42 @@
+{
+  "commodities": [
+    { "code": "rice", "value": "Padi", "aliases": ["pari", "gabah", "padi sawah", "padi gogo", "beras"] },
+    { "code": "corn", "value": "Jagung", "aliases": ["jagong", "jagung manis", "jagung pipil"] },
+    { "code": "soybean", "value": "Kedelai", "aliases": ["kedele", "kacang kedelai"] },
+    { "code": "peanut", "value": "Kacang tanah", "aliases": ["suuk", "kacang suuk"] },
+    { "code": "mung_bean", "value": "Kacang hijau", "aliases": ["kacang ijo", "mungbean"] },
+    { "code": "cassava", "value": "Ubi kayu", "aliases": ["singkong", "sampeu", "ketela pohon", "telo"] },
+    { "code": "sweet_potato", "value": "Ubi jalar", "aliases": ["ubi", "hui", "ketela rambat", "boled"] },
+    { "code": "chili", "value": "Cabai merah", "aliases": ["cabai", "cabe", "cabe merah", "lombok"] },
+    { "code": "bird_chili", "value": "Cabai rawit", "aliases": ["cabe rawit", "rawit", "cengek"] },
+    { "code": "shallot", "value": "Bawang merah", "aliases": ["bawang", "brambang", "bawang beureum"] },
+    { "code": "garlic", "value": "Bawang putih", "aliases": ["bawang bodas"] },
+    { "code": "potato", "value": "Kentang", "aliases": ["kentang granola"] },
+    { "code": "tomato", "value": "Tomat", "aliases": ["tomat sayur"] },
+    { "code": "cabbage", "value": "Kubis", "aliases": ["kol", "kobis"] },
+    { "code": "mustard_greens", "value": "Sawi", "aliases": ["caisim", "sawi hijau", "pakcoy"] },
+    { "code": "banana", "value": "Pisang", "aliases": ["cau", "gedang"] },
+    { "code": "mango", "value": "Mangga", "aliases": ["buah mangga"] },
+    { "code": "coffee", "value": "Kopi", "aliases": ["kopi arabika", "kopi robusta"] },
+    { "code": "cocoa", "value": "Kakao", "aliases": ["coklat", "cokelat"] },
+    { "code": "tea", "value": "Teh", "aliases": ["kebun teh"] },
+    { "code": "oil_palm", "value": "Kelapa sawit", "aliases": ["sawit"] },
+    { "code": "coconut", "value": "Kelapa", "aliases": ["kalapa", "nyiur"] },
+    { "code": "rubber", "value": "Karet", "aliases": ["getah karet"] },
+    { "code": "sugarcane", "value": "Tebu", "aliases": ["tiwu"] },
+    { "code": "tobacco", "value": "Tembakau", "aliases": ["bako"] }
+  ],
+  "units": [
+    { "code": "ha", "value": "ha", "aliases": ["hektar", "hektare", "hektaran"] },
+    { "code": "m2", "value": "m²", "aliases": ["meter persegi", "meter2"] },
+    { "code": "kg", "value": "kg", "aliases": ["kilo", "kilogram", "kilogramm"] },
+    { "code": "quintal", "value": "kuintal", "aliases": ["kw", "ku", "kwintal"] },
+    { "code": "ton", "value": "ton", "aliases": ["tonase"] },
+    { "code": "rupiah", "value": "Rp", "aliases": ["rupiah", "rp."] },
+    { "code": "person", "value": "orang", "aliases": ["jiwa", "org"] },
+    { "code": "head", "value": "ekor", "aliases": ["ekor ternak"] },
+    { "code": "plant", "value": "batang", "aliases": ["pohon", "rumpun"] },
+    { "code": "sack", "value": "karung", "aliases": ["sak", "zak"] },
+    { "code": "celsius", "value": "°C", "aliases": ["derajat", "celcius", "celsius"] }
+  ]
+}

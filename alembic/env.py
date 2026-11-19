@@ -50,14 +50,27 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=_include_object,
     )
 
     with context.begin_transaction():
         context.run_migrations()
 
 
+# Tables the postgis extension owns; never ours to autogenerate or drop.
+_POSTGIS_TABLES = {"spatial_ref_sys", "geography_columns", "geometry_columns"}
+
+
+def _include_object(
+    obj: object, name: str | None, type_: str, reflected: bool, compare_to: object
+) -> bool:
+    return not (type_ == "table" and name in _POSTGIS_TABLES)
+
+
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection, target_metadata=target_metadata, include_object=_include_object
+    )
 
     with context.begin_transaction():
         context.run_migrations()

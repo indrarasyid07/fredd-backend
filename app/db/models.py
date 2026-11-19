@@ -5,6 +5,7 @@ from app.modules.audit.models import AuditLog
 from app.modules.auth.models import AuthToken, Session, User
 from app.modules.forms.models import Form, FormVersion
 from app.modules.members.models import MemberInvite
+from app.modules.reference_data.models import ReferenceData
 from app.modules.workspaces.models import Member, Workspace
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     "FormVersion",
     "Member",
     "MemberInvite",
+    "ReferenceData",
     "Session",
     "User",
     "Workspace",
