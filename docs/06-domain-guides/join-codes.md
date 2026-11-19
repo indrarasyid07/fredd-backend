@@ -91,7 +91,20 @@ Kuota penyuluh paket ([billing-and-plans.md](billing-and-plans.md)) dihitung dar
 
 - Modul `app/modules/join_codes/` + tabel `join_codes` (kolom di atas; indeks unik parsial: satu kode tidak dicabut per form). Kode dibuat otomatis oleh `forms.service.create_form` lewat `join_codes.service.create_for_form` (dalam unit kerja yang sama); form lama mendapat kode lewat migrasi.
 - `GET/PATCH /forms/{id}/join-code` ada. `claimable` = kode `active` dan form `pilot`/`active`. Tautan bagikan dari env `TELEGRAM_BOT_USERNAME` (`https://t.me/<bot>?start=<KODE>`) dan `WHATSAPP_PUBLIC_NUMBER` (`https://wa.me/<nomor>?text=GABUNG%20<KODE>`); kosong = null.
-- Belum: buat ulang (`rotate`), klaim lewat bot dan pembatas tebakan (Langkah 3.6), audit klaim.
+- Belum: buat ulang (`rotate`).
+
+## Status implementasi (Langkah 3.6, Telegram)
+
+- Klaim di `app/modules/conversations/joining.py`; cek kode di `join_codes.service.find_claimable` (`unknown` / `closed` / `not_open`), hitungan pakai atomik `take_use` (`UPDATE … WHERE status='active' AND belum kedaluwarsa AND use_count < max_uses`), penyuluh dan topik di `extension_workers.service.join`.
+- Kode dikenali dari `/start <kode>`, `gabung`/`kode <kode>`, `K7M2-9QXA`, atau 8 karakter polos. Di chat yang **sudah punya topik**, 8 karakter polos dianggap jawaban (mungkin nama); kode harus bertanda hubung/spasi atau berawalan.
+- Bergabung: penyuluh dibuat/dihidupkan lagi (`left`/`unreachable` → aktif), `form_assignments` dibuat/diaktifkan, `conversations.status = joining`, `chat_contexts` menunjuk ikatan baru, audit `extension_worker.joined`. Balasan menyebut **organisasi · topik** + kalimat persetujuan data + tombol `join:keep` / `join:change`.
+- "Ya, tetap" → percakapan `idle`, `confirmed_at` terisi. "Bukan, ganti" → ikatan `left` (penyuluh `left` bila tidak punya topik lain), `chat_contexts` dikosongkan, audit `extension_worker.left_topic`. Tombol konfirmasi lama → "Pilihan ini sudah kedaluwarsa".
+- Kode topik lain dari chat yang sudah punya topik → tombol `join:switch` / `join:add` / `join:cancel`. Pilihan yang menunggu disimpan di Redis `join-choice:{channel}:{chat}` selama 24 jam dan dipakai sekali. Pindah = ikatan lama `left`; tambah = dua ikatan aktif, `chat_contexts` menunjuk yang baru. Kode topik yang sama → "Anda sudah tergabung".
+- `approval_mode = manual` → penyuluh `pending_approval` (`pending_reason = manual`), tanpa `chat_contexts`; pesan berikutnya dibalas "Permintaan Anda sudah dikirim ke admin …". Penyuluh `blocked` mendapat balasan kode tertutup (alasan tidak disebut).
+- Kepemilikan pesan: setelah diproses, pesan masuk dan balasannya diberi `workspace_id` + `conversation_id` dari topik aktif chat (ditentukan setelah routing, jadi pesan kode yang membuat bergabung ikut menjadi milik topik itu). Chat tanpa topik tetap `NULL`. Pindah topik hanya memengaruhi pesan berikutnya.
+- Rate limit tebakan: Redis `join-wrong:{channel}:{chat}`; 5 kode tak dikenal per jam dibalas, setelah itu chat tanpa topik didiamkan sampai jendela habis.
+- Kalimat persetujuan (UU PDP) **draf, menunggu persetujuan pemilik produk**: "Data laporan Anda dikelola oleh {organisasi} sebagai pengendali data, dengan Fluctuz sebagai pemroses data. Kebijakan privasi: {PRIVACY_POLICY_URL}" (tautan dihilangkan bila env kosong; halaman Kebijakan Privasi belum ada di frontend).
+- Belum: kuota penyuluh per paket (menunggu billing), `activity_events`/event realtime `worker_joined` (Langkah 4), persetujuan admin di dashboard, WhatsApp.
 
 ## Endpoint
 

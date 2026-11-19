@@ -23,10 +23,11 @@ from app.modules.channels.telegram import (
     TelegramError,
     parse_update,
 )
-from app.modules.conversations import repository
+from app.modules.conversations import joining, repository
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.types import Button, Outbound
 from app.modules.conversations.models import Message
+from app.modules.extension_workers import service as workers
 
 logger = logging.getLogger(__name__)
 
@@ -76,14 +77,6 @@ async def _store(db: AsyncSession, upd: InboundUpdate) -> Received:
 # --- Processing (worker) ------------------------------------------------------------------------
 
 
-def _replies_for_unbound(message: Message) -> list[Outbound]:
-    """A chat with no organization yet. Nothing is created in any workspace (tenant isolation);
-    the only answer is how to join. Claiming a code comes with roadmap 3.6."""
-    if message.payload.get("edited"):
-        return [Outbound(copy.EDITED)]
-    return [Outbound(copy.JOIN_FIRST)]
-
-
 async def process_chat(
     db: AsyncSession, client: TelegramClient, channel_id: uuid.UUID, chat_id: str
 ) -> list[uuid.UUID]:
@@ -94,24 +87,31 @@ async def process_chat(
     messages = await repository.list_unprocessed(db, channel_id, chat_id)
     if not messages:
         return []
-    context = await repository.get_chat_context(db, channel_id, chat_id)
-    replies: list[Outbound] = []
+    chat = joining.Chat(channel_id, chat_id)
+    replies: list[tuple[Outbound, Owner]] = []
     for message in messages:
         if message.kind == "button" and (callback_id := message.payload.get("callback_id")):
             try:
                 await client.answer_callback(str(callback_id))
             except TelegramError as exc:  # expired callbacks are harmless
                 logger.info("answerCallbackQuery failed: %s", exc.status)
-        if context is None:
-            for reply in _replies_for_unbound(message):
-                # A burst of messages from a stranger gets one answer, not one per message.
-                if not replies or replies[-1] != reply:
-                    replies.append(reply)
-        # Bound chats (topic, engine state, reports) are processed from roadmap 3.6/3.7.
+        answer = await joining.route(db, chat, message)
+        if answer is None:
+            # A chat with a topic, not about joining: the report flow (roadmap 3.7).
+            answer = [Outbound(copy.EDITED)] if message.payload.get("edited") else []
+        # After routing, so the message that joined a topic belongs to it too.
+        owner = await _owner(db, chat)
+        message.workspace_id, message.conversation_id = owner
+        for reply in answer:
+            # A burst of messages from a stranger gets one answer, not one per message.
+            if not replies or replies[-1][0] != reply:
+                replies.append((reply, owner))
         message.processed_at = now_utc()
 
     outbound = [
         Message(
+            workspace_id=owner[0],
+            conversation_id=owner[1],
             channel_id=channel_id,
             chat_id=chat_id,
             direction="out",
@@ -120,11 +120,26 @@ async def process_chat(
             payload=_payload(reply),
             delivery_status="pending",
         )  # fmt: skip
-        for reply in replies
+        for reply, owner in replies
     ]
     db.add_all(outbound)
     await db.commit()
     return [m.id for m in outbound]
+
+
+Owner = tuple[uuid.UUID | None, uuid.UUID | None]
+
+
+async def _owner(db: AsyncSession, chat: joining.Chat) -> Owner:
+    """The organization and conversation of the chat's active topic; (None, None) for a chat
+    without one, so a stranger's messages never belong to any organization."""
+    assignment = await workers.active_assignment(db, chat.channel_id, chat.chat_id)
+    if assignment is None:
+        return None, None
+    conversation = await repository.get_conversation(
+        db, assignment.extension_worker_id, assignment.form_id
+    )
+    return assignment.workspace_id, conversation.id if conversation is not None else None
 
 
 def _payload(reply: Outbound) -> dict[str, object]:
