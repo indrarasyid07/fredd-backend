@@ -307,14 +307,16 @@ class RegisterRequest(BaseModel):
 
 ### Pengiriman email
 
-`app/core/mail.py`: SMTP dengan STARTTLS, teks polos, dijalankan lewat `BackgroundTasks` setelah respons terkirim (server email yang lambat tidak menunda respons dan tidak membocorkan ada tidaknya akun). `send_email` tidak pernah melempar error; kegagalan dicatat di log.
+`app/core/mail.py`: SMTP dengan STARTTLS, `multipart/alternative` (teks polos + HTML bermerek Fluctuz), dijalankan lewat `BackgroundTasks` setelah respons terkirim (server email yang lambat tidak menunda respons dan tidak membocorkan ada tidaknya akun). `send_email` tidak pernah melempar error; kegagalan dicatat di log.
 
 | Variabel | Arti |
 |---|---|
 | `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Server pengirim. Penyedia: **Brevo** (`smtp-relay.brevo.com`, B-056); kode tetap generik, penyedia lain yang mendukung SMTP + STARTTLS bisa dipakai tanpa ubah kode |
 | (`SMTP_HOST` kosong) | Development: isi email, termasuk tautannya, ditulis ke log API (cara mengambil tautan saat mengembangkan). Produksi: dicatat sebagai error, email tidak terkirim |
 
-Isi email ada di `app/modules/auth/emails.py`.
+Isi email ada di `app/modules/auth/emails.py` (undangan anggota: `app/modules/members/emails.py`). Setiap email adalah satu `Email` (subjek, paragraf, tombol opsional, catatan kecil); bagian teks dan HTML dibangun dari data yang sama sehingga isinya selalu sama. HTML memakai tabel dan gaya inline (didukung klien email umum), logo berupa teks karena banyak klien memblokir gambar, semua isi di-escape, dan tautan tombol juga ditulis utuh untuk klien yang tidak menampilkan tombol (B-XXX). Kirim dengan `background.add_task(mail.send, alamat, email)`.
+
+Log `app.*` diteruskan ke stderr oleh `app/core/logging.py` (dipanggil `create_app`); tanpa itu uvicorn membuang `logger.info` dari kode aplikasi, termasuk email development di atas. Log terstruktur JSON menyusul di Langkah 0.4.
 
 ## Irisan 3: Lupa kata sandi
 

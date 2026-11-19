@@ -193,9 +193,9 @@ async def register(
     if user.email_verified_at is None:  # new, or signed up before and never verified
         token = await _issue_token(db, user, "verify_email", VERIFY_TTL)
         await db.commit()
-        background.add_task(mail.send_email, user.email, *emails.verify_email(token))
+        background.add_task(mail.send, user.email, emails.verify_email(token))
     else:
-        background.add_task(mail.send_email, user.email, *emails.already_registered())
+        background.add_task(mail.send, user.email, emails.already_registered())
 
 
 async def resend_verification(
@@ -207,7 +207,7 @@ async def resend_verification(
     if user is not None and user.email_verified_at is None:
         token = await _issue_token(db, user, "verify_email", VERIFY_TTL)
         await db.commit()
-        background.add_task(mail.send_email, user.email, *emails.verify_email(token))
+        background.add_task(mail.send, user.email, emails.verify_email(token))
 
 
 async def verify_email(
@@ -238,7 +238,7 @@ async def forgot_password(
     if user is not None:
         token = await _issue_token(db, user, "reset_password", RESET_TTL)
         await db.commit()
-        background.add_task(mail.send_email, user.email, *emails.reset_password(token))
+        background.add_task(mail.send, user.email, emails.reset_password(token))
 
 
 async def reset_password(db: AsyncSession, data: ResetPasswordRequest, *, ip: str | None) -> None:

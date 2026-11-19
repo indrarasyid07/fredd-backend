@@ -110,13 +110,22 @@ async def logged_in(client: AsyncClient, user: User) -> AsyncClient:
     return client
 
 
-@pytest.fixture
-def outbox(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, str]]:
-    """Capture outgoing email as (to, subject, body) instead of sending it."""
-    sent: list[tuple[str, str, str]] = []
+class Outbox(list[tuple[str, str, str]]):
+    """Sent email as (to, subject, text body); `html[i]` is the HTML part of item i, or None."""
 
-    async def fake_send(to: str, subject: str, body: str) -> None:
+    def __init__(self) -> None:
+        super().__init__()
+        self.html: list[str | None] = []
+
+
+@pytest.fixture
+def outbox(monkeypatch: pytest.MonkeyPatch) -> Outbox:
+    """Capture outgoing email instead of sending it."""
+    sent = Outbox()
+
+    async def fake_send(to: str, subject: str, body: str, html: str | None = None) -> None:
         sent.append((to, subject, body))
+        sent.html.append(html)
 
     monkeypatch.setattr(mail, "send_email", fake_send)
     return sent
