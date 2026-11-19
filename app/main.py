@@ -10,6 +10,7 @@ from app.api.openapi import include_schemas
 from app.api.router import mount
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.core.queue import broker
 from app.core.redis import redis
 from app.db.session import engine
 from app.modules.forms.schemas import FormDefinition
@@ -17,7 +18,12 @@ from app.modules.forms.schemas import FormDefinition
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # The API only sends jobs; the worker process starts the broker on its own.
+    if not broker.is_worker_process:
+        await broker.startup()
     yield
+    if not broker.is_worker_process:
+        await broker.shutdown()
     await redis.aclose()
     await engine.dispose()
 

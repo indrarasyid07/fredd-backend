@@ -24,6 +24,8 @@ os.environ["DATABASE_URL"] = _base_db_url.rsplit("/", 1)[0] + "/" + TEST_DB_NAME
 _test_redis_db = int(_env.get("TEST_REDIS_DB") or 15)
 os.environ["REDIS_URL"] = _env["REDIS_URL"].rsplit("/", 1)[0] + f"/{_test_redis_db}"
 os.environ["ENVIRONMENT"] = "development"
+# Jobs run inline: no worker in tests, and the outbox fixture still sees every email.
+os.environ["QUEUE_INLINE"] = "true"
 os.environ["APP_BASE_URL"] = "http://localhost:3000"
 os.environ["ALLOWED_ORIGINS"] = ""
 

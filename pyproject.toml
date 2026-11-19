@@ -16,6 +16,8 @@ dependencies = [
     "rapidfuzz>=3.10",
     "redis>=8.1.0",
     "sqlalchemy[asyncio]>=2.1.8",
+    "taskiq>=0.13.0",
+    "taskiq-redis>=1.2.4",
     "uvicorn[standard]>=0.54.0",
 ]
 
