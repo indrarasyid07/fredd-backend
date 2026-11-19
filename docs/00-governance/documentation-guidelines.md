@@ -1,6 +1,6 @@
 # Documentation Guidelines
 
-Berlaku untuk `backend/docs`, `frontend/docs`, dan `infra/docs`.
+Berlaku untuk `fredd-backend/docs`, `fredd-frontend/docs`, dan `fredd-infra/docs`.
 
 ## Bahasa
 

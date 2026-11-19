@@ -1,6 +1,6 @@
 # Agent Guidelines (Backend)
 
-Untuk AI coding agent (Claude Code, Cursor, dll.) yang bekerja di `backend/`.
+Untuk AI coding agent (Claude Code, Cursor, dll.) yang bekerja di `fredd-backend/`.
 
 ## Baca dulu
 

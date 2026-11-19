@@ -1,6 +1,6 @@
 # Artikel (Blog)
 
-Rancangan modul artikel untuk blog publik. **Status: rancangan, belum dibangun.** Menggantikan artikel contoh statis di halaman `/blog` ([F-027](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/11-decisions/decision-log.md)): artikel dikelola dari menu di dashboard, disimpan di database, dan dibaca website lewat API publik. Sisi tampilan: [frontend ui/articles.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/articles.md).
+Rancangan modul artikel untuk blog publik. **Status: rancangan, belum dibangun.** Menggantikan artikel contoh statis di halaman `/blog` ([F-027](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/11-decisions/decision-log.md)): artikel dikelola dari menu di dashboard, disimpan di database, dan dibaca website lewat API publik. Sisi tampilan: [frontend ui/articles.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/articles.md).
 
 ## Tujuan dan batas
 
@@ -8,7 +8,7 @@ Rancangan modul artikel untuk blog publik. **Status: rancangan, belum dibangun.*
 |---|---|
 | Tulis, simpan draf, kirim untuk ditinjau, terbitkan, jadwalkan, tarik kembali, arsipkan | Komentar pembaca, reaksi, penghitung tayangan |
 | Kategori, artikel unggulan, sampul, kredit sampul, SEO per artikel | Tag bebas, seri artikel, pencarian teks penuh |
-| Artikel tulis sendiri dan kartu **liputan media** yang menaut ke situs lain | Terjemahan (website Indonesia dulu, [F-015](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/11-decisions/decision-log.md)) |
+| Artikel tulis sendiri dan kartu **liputan media** yang menaut ke situs lain | Terjemahan (website Indonesia dulu, [F-015](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/11-decisions/decision-log.md)) |
 | Unggah gambar untuk sampul dan isi artikel | Galeri media bersama, edit gambar, video |
 | Riwayat revisi dan pemulihan | Berlangganan email (kotak "Dapatkan pembaruan" disembunyikan sampai ada penyedia email) |
 
@@ -228,14 +228,14 @@ Dua orang menyunting artikel yang sama tidak dikunci; yang menyimpan belakangan 
 ## Penerbitan dan cache web
 
 1. `publish` / cron `articles.publish_due` mengubah status dan menulis revisi dan audit dalam satu transaksi.
-2. Setelah commit, backend memanggil situs web agar cache artikel dibuang (lihat [frontend ui/articles.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/articles.md#cache-dan-penerbitan)): `POST` ke alamat internal Next.js dengan rahasia bersama (`REVALIDATE_SECRET`). Alamat itu **tidak boleh bisa dijangkau dari internet** (Caddy menolak path-nya). Kegagalan panggilan hanya dicatat di log; halaman tetap menjadi segar sendiri oleh masa berlaku cache (10 menit).
+2. Setelah commit, backend memanggil situs web agar cache artikel dibuang (lihat [frontend ui/articles.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/articles.md#cache-dan-penerbitan)): `POST` ke alamat internal Next.js dengan rahasia bersama (`REVALIDATE_SECRET`). Alamat itu **tidak boleh bisa dijangkau dari internet** (Caddy menolak path-nya). Kegagalan panggilan hanya dicatat di log; halaman tetap menjadi segar sendiri oleh masa berlaku cache (10 menit).
 3. Pemanggilan dijalankan sebagai job arq (dengan percobaan ulang), bukan di dalam request, agar editor tidak menunggu.
 
 ## Seed dan pemindahan dari artikel contoh
 
 - Produksi dimulai **kosong**. Seed (`09-seeding`) hanya membuat lima kategori dan akun staf; kedua belas kartu contoh dari desain tidak masuk produksi (judul, tanggal, dan sampulnya contoh; lisensi gambar tidak jelas).
 - Untuk development dan staging ada fixture `articles` berisi kartu contoh agar tampilan bisa dilihat; ditandai lewat nama fixture, bukan kolom di tabel.
-- Kartu Bloomberg Technoz adalah kasus `kind = external` pertama. **Izin tertulis** untuk memuat logo/judul media tetap berlaku ([F-017](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/11-decisions/decision-log.md)).
+- Kartu Bloomberg Technoz adalah kasus `kind = external` pertama. **Izin tertulis** untuk memuat logo/judul media tetap berlaku ([F-017](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/11-decisions/decision-log.md)).
 
 ## Pengerjaan (irisan)
 
@@ -255,5 +255,5 @@ Tiap irisan disertai tes (peran, transisi, validasi media dengan berkas palsu, `
 2. **Siapa saja stafnya** dan apakah perlu alur tinjau dua orang (`in_review`) sejak awal; bila hanya satu-dua editor, status `in_review` bisa dihilangkan dari UI tanpa mengubah model.
 3. **Penyedia email** untuk berlangganan (kotak di desain Blog): ditunda, butuh keputusan penyedia, persetujuan (opt-in), dan tautan berhenti.
 4. **Pengalihan slug** (301) bila artikel sering diganti slug-nya.
-5. **Bahasa:** artikel berbahasa Inggris/Arab menunggu keputusan [F-015](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/11-decisions/decision-log.md); tambah kolom `language` bila dimulai.
+5. **Bahasa:** artikel berbahasa Inggris/Arab menunggu keputusan [F-015](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/11-decisions/decision-log.md); tambah kolom `language` bila dimulai.
 6. **Penyimpanan media publik:** bucket/awalan dan domain `/media` perlu disepakati dengan `infra` (R2 dengan domain khusus atau lewat Caddy).

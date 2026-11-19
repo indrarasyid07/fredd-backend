@@ -1,8 +1,8 @@
 # Dashboard
 
-Data di balik halaman `/app` ([frontend ui/dashboard.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/dashboard.md)): ringkasan angka, peta, daftar laporan terbaru, ekspor, dan event realtime. Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons).
+Data di balik halaman `/app` ([frontend ui/dashboard.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/dashboard.md)): ringkasan angka, peta, daftar laporan terbaru, ekspor, dan event realtime. Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons).
 
-**Status: rancangan, belum dibangun** (16 November 2026). Tampilan frontend sudah dibangun dengan data contoh; daftar kebutuhan per elemen layar: [backend-needs.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/backend-needs.md). Semua endpoint di bawah **menunggu modul `workspaces`, `forms`, `extension_workers`, dan `reports`** (urutannya di [roadmap](../10-roadmap/roadmap.md)); dashboard hanya membaca, tidak menulis data lapangan.
+**Status: rancangan, belum dibangun** (16 November 2026). Tampilan frontend sudah dibangun dengan data contoh; daftar kebutuhan per elemen layar: [backend-needs.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/backend-needs.md). Semua endpoint di bawah **menunggu modul `workspaces`, `forms`, `extension_workers`, dan `reports`** (urutannya di [roadmap](../10-roadmap/roadmap.md)); dashboard hanya membaca, tidak menulis data lapangan.
 
 ## Prinsip
 
@@ -168,7 +168,7 @@ Server menjaga event kecil (tanpa isi laporan, tanpa nama petani); klien memuat 
 
 ## Kondisi laporan
 
-Dashboard menganggap "kondisi tanaman" sebagai satu isian struktur data yang ditandai **peran `condition`** (jenis isian pilihan dengan tiga nilai standar: Sehat, Perlu perhatian, Terserang). Saat laporan disimpan, nilainya disalin ke `reports.condition`. Struktur tanpa isian berperan `condition` menghasilkan laporan `unknown` ("Tanpa kondisi"). Penandaan peran ini **belum ada** di desain struktur data dan harus ditambahkan di [forms.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/forms.md) sebelum irisan 1 (pertanyaan terbuka frontend no. 5); isian luas lahan memakai peran `area` dengan cara yang sama (`reports.area_ha`).
+Dashboard menganggap "kondisi tanaman" sebagai satu isian struktur data yang ditandai **peran `condition`** (jenis isian pilihan dengan tiga nilai standar: Sehat, Perlu perhatian, Terserang). Saat laporan disimpan, nilainya disalin ke `reports.condition`. Struktur tanpa isian berperan `condition` menghasilkan laporan `unknown` ("Tanpa kondisi"). Penandaan peran ini **belum ada** di desain struktur data dan harus ditambahkan di [forms.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/forms.md) sebelum irisan 1 (pertanyaan terbuka frontend no. 5); isian luas lahan memakai peran `area` dengan cara yang sama (`reports.area_ha`).
 
 ## Model data tambahan
 

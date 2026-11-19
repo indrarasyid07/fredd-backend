@@ -1,6 +1,6 @@
 # Auth
 
-Fitur `auth`: endpoint di `app/api/v1/auth/`, logika di `app/modules/auth/`. Masuk, keluar, sesi, daftar, verifikasi email, reset kata sandi, dan Google. Desain layar: [frontend ui/auth.md](https://gitlab.com/databiota-fredd/frontend/-/blob/development/docs/06-domain-guides/ui/auth.md). Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons). Model keamanan umum: [security-model.md](../05-security-and-access/security-model.md).
+Fitur `auth`: endpoint di `app/api/v1/auth/`, logika di `app/modules/auth/`. Masuk, keluar, sesi, daftar, verifikasi email, reset kata sandi, dan Google. Desain layar: [frontend ui/auth.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/auth.md). Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons). Model keamanan umum: [security-model.md](../05-security-and-access/security-model.md).
 
 ## Irisan pengerjaan
 
