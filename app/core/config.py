@@ -70,6 +70,10 @@ class Settings(BaseSettings):
     # Telegram bots cannot download files above 20 MB.
     media_max_bytes: int = 20 * 1024 * 1024
 
+    # Speech to text for Voice Lab (roadmap 12, D7). "fake" reads the audio as the spoken text
+    # (development, devtools, tests); a cloud provider is wired in roadmap 12.7.
+    stt_provider: str = "fake"
+
     @property
     def is_development(self) -> bool:
         return self.environment == "development"
