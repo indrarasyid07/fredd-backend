@@ -106,6 +106,7 @@ async def process_chat(
         # After routing, so the message that joined a topic belongs to it too.
         owner = await _owner(db, chat)
         message.workspace_id, message.conversation_id = owner
+        await workers.touch(db, channel_id, chat_id, message.channel_sent_at or now_utc())
         for reply in answer:
             # A burst of messages from a stranger gets one answer, not one per message.
             if not replies or replies[-1][0] != reply:

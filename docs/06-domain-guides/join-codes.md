@@ -111,7 +111,7 @@ Kuota penyuluh paket ([billing-and-plans.md](billing-and-plans.md)) dihitung dar
 - `GET /extension-workers?status=pending_approval` (reviewer) menampilkan antrean beserta topik terbaru dan kode yang dipakai.
 - `POST /extension-workers/{id}/approve` (admin): penyuluh `active`, `pending_reason` dikosongkan, audit `extension_worker.approved`. Topik terbaru dibuka di chat (`chat_contexts`, `conversations.status = joining`) dan bot mengirim "Halo {nama}! Permintaan Anda sudah disetujui admin {organisasi}. Anda bergabung di **organisasi · topik**… Sudah benar?" + kalimat persetujuan data + tombol `join:keep` / `join:change`, sehingga alur konfirmasi sama dengan bergabung otomatis. Bila chat sudah punya topik lain, topik itu tidak diganti; bot mengabarkan persetujuan dan meminta kode dikirim lagi untuk pindah/tambah. Pesan dikirim lewat job `conversations.deliver`.
 - `POST /extension-workers/{id}/block` (admin): penyuluh `blocked`, audit `extension_worker.blocked`, tanpa pesan. Chat itu lalu mendapat balasan "kirim kode" biasa; kode organisasi ini dibalas "kode tertutup".
-- Hanya penyuluh `pending_approval` yang bisa disetujui/diblokir (`409 extension_worker_not_pending`). Memblokir penyuluh aktif dan membuka blokir belum ada.
+- Hanya penyuluh `pending_approval` yang bisa disetujui (`409 extension_worker_not_pending`). Sejak 4.4 penyuluh aktif juga bisa diblokir (topiknya berakhir, chat kehilangan topik) dan blokir bisa dibuka (`left`, bergabung lagi lewat kode).
 - Kuota (`pending_reason = quota`) belum diperiksa saat menyetujui (menunggu billing).
 
 ## Endpoint

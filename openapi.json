@@ -3299,23 +3299,97 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "pending_approval",
-                    "active",
-                    "left",
-                    "blocked",
-                    "unreachable"
-                  ],
-                  "type": "string"
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "pending_approval",
+                      "active",
+                      "left",
+                      "blocked",
+                      "unreachable"
+                    ],
+                    "type": "string"
+                  }
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "Saring status.",
+              "description": "Saring status (boleh lebih dari satu).",
               "title": "Status"
             },
-            "description": "Saring status."
+            "description": "Saring status (boleh lebih dari satu)."
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(telegram|whatsapp)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Channel"
+            }
+          },
+          {
+            "name": "form_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Punya topik aktif ini.",
+              "title": "Form Id"
+            },
+            "description": "Punya topik aktif ini."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cari nama.",
+              "title": "Q"
+            },
+            "description": "Cari nama."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "newest",
+                "last_active",
+                "name"
+              ],
+              "type": "string",
+              "default": "newest",
+              "title": "Sort"
+            }
           },
           {
             "name": "limit",
@@ -3428,6 +3502,307 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/extension-workers/summary": {
+      "get": {
+        "tags": [
+          "extension-workers"
+        ],
+        "summary": "Extension Worker Summary",
+        "operationId": "extension_worker_summary_api_v1_extension_workers_summary_get",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ExtensionWorkerSummaryOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/extension-workers/{worker_id}": {
+      "get": {
+        "tags": [
+          "extension-workers"
+        ],
+        "summary": "Get Extension Worker",
+        "operationId": "get_extension_worker_api_v1_extension_workers__worker_id__get",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Worker Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ExtensionWorkerDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "extension-workers"
+        ],
+        "summary": "Update Extension Worker",
+        "operationId": "update_extension_worker_api_v1_extension_workers__worker_id__patch",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Worker Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExtensionWorkerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ExtensionWorkerDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
           }
         }
       }
@@ -3550,6 +3925,117 @@
         ],
         "summary": "Block Extension Worker",
         "operationId": "block_extension_worker_api_v1_extension_workers__worker_id__block_post",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Worker Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ExtensionWorkerOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/extension-workers/{worker_id}/unblock": {
+      "post": {
+        "tags": [
+          "extension-workers"
+        ],
+        "summary": "Unblock Extension Worker",
+        "operationId": "unblock_extension_worker_api_v1_extension_workers__worker_id__unblock_post",
         "parameters": [
           {
             "name": "worker_id",
@@ -3777,6 +4263,54 @@
         ],
         "title": "ApiResponse[AcceptedInvite]"
       },
+      "ApiResponse_ExtensionWorkerDetailOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtensionWorkerDetailOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[ExtensionWorkerDetailOut]"
+      },
       "ApiResponse_ExtensionWorkerOut_": {
         "properties": {
           "success": {
@@ -3824,6 +4358,54 @@
           "meta"
         ],
         "title": "ApiResponse[ExtensionWorkerOut]"
+      },
+      "ApiResponse_ExtensionWorkerSummaryOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtensionWorkerSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[ExtensionWorkerSummaryOut]"
       },
       "ApiResponse_FormCheckOut_": {
         "properties": {
@@ -5140,6 +5722,169 @@
         ],
         "title": "ErrorItem"
       },
+      "ExtensionWorkerDetailOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_approval",
+              "active",
+              "left",
+              "blocked",
+              "unreachable"
+            ],
+            "title": "Status"
+          },
+          "pending_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "manual",
+                  "quota"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Reason"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "telegram",
+              "whatsapp"
+            ],
+            "title": "Channel"
+          },
+          "telegram_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Username"
+          },
+          "phone_e164": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone E164"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkerRegionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Joined At"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkerTopicOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topic_count": {
+            "type": "integer",
+            "title": "Topic Count"
+          },
+          "name_source": {
+            "type": "string",
+            "enum": [
+              "channel_profile",
+              "admin"
+            ],
+            "title": "Name Source"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerTopicDetailOut"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "pending_reason",
+          "channel",
+          "telegram_username",
+          "phone_e164",
+          "region",
+          "joined_at",
+          "confirmed_at",
+          "last_active_at",
+          "topic",
+          "topic_count",
+          "name_source",
+          "topics"
+        ],
+        "title": "ExtensionWorkerDetailOut"
+      },
       "ExtensionWorkerOut": {
         "properties": {
           "id": {
@@ -5207,6 +5952,16 @@
             ],
             "title": "Phone E164"
           },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkerRegionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "joined_at": {
             "anyOf": [
               {
@@ -5231,6 +5986,18 @@
             ],
             "title": "Confirmed At"
           },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          },
           "topic": {
             "anyOf": [
               {
@@ -5240,6 +6007,10 @@
                 "type": "null"
               }
             ]
+          },
+          "topic_count": {
+            "type": "integer",
+            "title": "Topic Count"
           }
         },
         "type": "object",
@@ -5251,11 +6022,53 @@
           "channel",
           "telegram_username",
           "phone_e164",
+          "region",
           "joined_at",
           "confirmed_at",
-          "topic"
+          "last_active_at",
+          "topic",
+          "topic_count"
         ],
         "title": "ExtensionWorkerOut"
+      },
+      "ExtensionWorkerSummaryOut": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "active": {
+            "type": "integer",
+            "title": "Active"
+          },
+          "pending_approval": {
+            "type": "integer",
+            "title": "Pending Approval"
+          },
+          "inactive": {
+            "type": "integer",
+            "title": "Inactive"
+          },
+          "new_this_week": {
+            "type": "integer",
+            "title": "New This Week"
+          },
+          "manual_approval_forms": {
+            "type": "integer",
+            "title": "Manual Approval Forms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "active",
+          "pending_approval",
+          "inactive",
+          "new_this_week",
+          "manual_approval_forms"
+        ],
+        "title": "ExtensionWorkerSummaryOut",
+        "description": "Counts for the list's tabs and KPI cards (no report numbers: those come with reports)."
       },
       "FormCheckOut": {
         "properties": {
@@ -6644,6 +7457,39 @@
         ],
         "title": "TokenRequest"
       },
+      "UpdateExtensionWorkerRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "region_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UpdateExtensionWorkerRequest",
+        "description": "Only the fields sent change. `region_id: null` clears the region."
+      },
       "UpdateFormRequest": {
         "properties": {
           "name": {
@@ -6971,6 +7817,84 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WorkerRegionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "WorkerRegionOut"
+      },
+      "WorkerTopicDetailOut": {
+        "properties": {
+          "form_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Form Id"
+          },
+          "form_name": {
+            "type": "string",
+            "title": "Form Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "left"
+            ],
+            "title": "Status"
+          },
+          "join_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Join Code"
+          },
+          "joined_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Joined At"
+          },
+          "left_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "form_id",
+          "form_name",
+          "status",
+          "join_code",
+          "joined_at",
+          "left_at"
+        ],
+        "title": "WorkerTopicDetailOut"
       },
       "WorkerTopicOut": {
         "properties": {
