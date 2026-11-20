@@ -8,12 +8,14 @@ replies as `pending` outbound rows in the same transaction; `deliver` sends each
 
 import logging
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from redis.exceptions import RedisError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.redis import redis
 from app.core.time import now_utc
 from app.modules.channels import service as channels
 from app.modules.channels.telegram import (
@@ -42,6 +44,28 @@ class Received:
 
     process: tuple[uuid.UUID, str] | None = None  # (channel_id, chat_id) with a new message
     leave_chat: str | None = None
+    # Outbound rows made at receive time (the rate-limit notice), to deliver.
+    deliver: list[uuid.UUID] = field(default_factory=list)
+
+
+# Anti-spam per chat identity (roadmap 3.6): room for a 10-photo album and quick answers.
+MAX_MESSAGES_PER_MINUTE = 30
+RATE_WINDOW_SECONDS = 60
+
+
+async def _count_message(channel_id: uuid.UUID, chat_id: str) -> int:
+    """This chat's messages in the current minute, this one included; 0 when Redis is down
+    (an outage must not silence every chat)."""
+    key = f"chat-rate:{channel_id}:{chat_id}"
+    try:
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.incr(key)
+            pipe.expire(key, RATE_WINDOW_SECONDS, nx=True)
+            count, _ = await pipe.execute()
+        return int(count)
+    except RedisError:
+        logger.warning("chat rate limit skipped: redis unavailable", exc_info=True)
+        return 0
 
 
 async def receive_telegram(db: AsyncSession, update: dict[str, object]) -> Received:
@@ -62,6 +86,13 @@ async def receive_telegram(db: AsyncSession, update: dict[str, object]) -> Recei
 
 async def _store(db: AsyncSession, upd: InboundUpdate) -> Received:
     channel = await channels.telegram_channel(db)
+    count = await _count_message(channel.id, upd.chat_id)
+    if count > MAX_MESSAGES_PER_MINUTE:
+        # Not stored, not processed. The first message over the limit gets one notice.
+        if count == MAX_MESSAGES_PER_MINUTE + 1:
+            logger.info("telegram chat over %d messages/minute", MAX_MESSAGES_PER_MINUTE)
+            return Received(deliver=[await _notice(db, channel.id, upd.chat_id)])
+        return Received()
     is_new = await repository.insert_inbound(
         db,
         {
@@ -76,6 +107,25 @@ async def _store(db: AsyncSession, upd: InboundUpdate) -> Received:
     )
     await db.commit()
     return Received(process=(channel.id, upd.chat_id)) if is_new else Received()
+
+
+async def _notice(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> uuid.UUID:
+    reply = Outbound(copy.RATE_LIMITED)
+    workspace_id, conversation_id = await _owner(db, joining.Chat(channel_id, chat_id))
+    message = Message(
+        workspace_id=workspace_id,
+        conversation_id=conversation_id,
+        channel_id=channel_id,
+        chat_id=chat_id,
+        direction="out",
+        kind="text",
+        body=reply.text,
+        payload=_payload(reply),
+        delivery_status="pending",
+    )
+    db.add(message)
+    await db.commit()
+    return message.id
 
 
 # --- Processing (worker) ------------------------------------------------------------------------

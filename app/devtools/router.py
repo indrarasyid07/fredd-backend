@@ -91,6 +91,12 @@ async def send(
     )
     client = DevtoolsTelegram()
     replies: list[dict[str, Any]] = []
+    for message_id in received.deliver:
+        await service.deliver(db, client, message_id)
+    if received.deliver:
+        channel = await channels.telegram_channel(db)
+        replies = [_out(m) for m in await service.chat_history(db, channel.id, msg.chat_id)
+                   if m.id in received.deliver]  # fmt: skip
     if received.process is not None:
         channel_id, chat_id = received.process
         sent = await service.process_chat(db, client, channel_id, chat_id)

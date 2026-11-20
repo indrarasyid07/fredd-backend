@@ -52,6 +52,8 @@ async def telegram_webhook(
     if received.process is not None:
         channel_id, chat_id = received.process
         await jobs.process_chat_job.kiq(str(channel_id), chat_id)
+    for message_id in received.deliver:
+        await jobs.deliver_message_job.kiq(str(message_id))
     if received.leave_chat is not None:
         await jobs.leave_chat_job.kiq(received.leave_chat)
     return _status(200)

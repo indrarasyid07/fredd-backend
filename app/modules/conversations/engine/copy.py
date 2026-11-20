@@ -27,6 +27,10 @@ SUBMIT_FIRST = "Laporan siap dikirim. Tekan *Kirim sekarang* atau *Ubah jawaban*
 CONFIRM_FIRST = "Mohon jawab *Ya* atau *Ubah* dulu."
 # --- Joining with a code (join-codes.md) ---
 CODE_UNKNOWN = "Kode tidak dikenali. Periksa kode dari admin Anda, contoh: K7M2-9QXA."
+RATE_LIMITED = (
+    "Pesan Anda terlalu banyak dalam satu menit, jadi pesan setelah ini belum saya terima. "
+    "Tunggu sebentar, lalu kirim ulang."
+)
 CODE_CLOSED = "Kode ini sudah tidak menerima anggota baru. Hubungi admin Anda untuk kode terbaru."
 KEEP = "Ya, tetap"
 NOT_MINE = "Bukan, ganti"
