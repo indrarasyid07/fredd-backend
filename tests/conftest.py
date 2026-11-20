@@ -28,6 +28,8 @@ os.environ["ENVIRONMENT"] = "development"
 os.environ["QUEUE_INLINE"] = "true"
 os.environ["APP_BASE_URL"] = "http://localhost:3000"
 os.environ["ALLOWED_ORIGINS"] = ""
+# Never the developer's bucket: tests store media in memory (the `media_store` fixture).
+os.environ["STORAGE_ENABLED"] = "false"
 
 import asyncpg  # noqa: E402
 from alembic.config import Config  # noqa: E402
@@ -76,6 +78,21 @@ async def db() -> AsyncIterator[AsyncSession]:
         finally:
             await session.close()
             await transaction.rollback()
+
+
+class MemoryStorage:
+    def __init__(self) -> None:
+        self.objects: dict[str, tuple[bytes, str]] = {}
+
+    async def put(self, key: str, data: bytes, content_type: str) -> None:
+        self.objects[key] = (data, content_type)
+
+
+@pytest.fixture(autouse=True)
+def media_store(monkeypatch: pytest.MonkeyPatch) -> MemoryStorage:
+    fake = MemoryStorage()
+    monkeypatch.setattr("app.modules.conversations.media.get_storage", lambda: fake)
+    return fake
 
 
 @pytest.fixture(autouse=True)

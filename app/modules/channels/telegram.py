@@ -131,7 +131,8 @@ def parse_update(update: dict[str, Any]) -> Parsed:
     if photos := message.get("photo"):
         largest = max(photos, key=lambda p: p.get("file_size") or p.get("width", 0))
         payload = {**base, "file_id": largest.get("file_id"),
-                   "file_unique_id": largest.get("file_unique_id")}  # fmt: skip
+                   "file_unique_id": largest.get("file_unique_id"),
+                   "file_size": largest.get("file_size")}  # fmt: skip
         return InboundUpdate(update_id, chat_id, "photo", sent_at, body=caption, payload=payload)
     for kind in ("video", "voice", "document"):
         if media := message.get(kind):
@@ -140,6 +141,7 @@ def parse_update(update: dict[str, Any]) -> Parsed:
                 "file_id": media.get("file_id"),
                 "mime_type": media.get("mime_type"),
                 "duration": media.get("duration"),
+                "file_size": media.get("file_size"),
             }
             return InboundUpdate(update_id, chat_id, kind, sent_at, body=caption, payload=payload)
     # Stickers, contacts, polls, games...
@@ -194,6 +196,7 @@ class BotApi(Protocol):
     async def send(self, chat_id: str, out: Outbound) -> str: ...
     async def answer_callback(self, callback_id: str) -> None: ...
     async def leave_chat(self, chat_id: str) -> None: ...
+    async def download_file(self, file_id: str, max_bytes: int) -> bytes: ...
 
 
 class TelegramClient:
@@ -202,6 +205,7 @@ class TelegramClient:
             base_url=f"{API}/bot{token}/", timeout=httpx.Timeout(10.0, connect=5.0),
             transport=transport,
         )  # fmt: skip
+        self._files = f"{API}/file/bot{token}/"
 
     async def aclose(self) -> None:
         await self._http.aclose()
@@ -259,6 +263,32 @@ class TelegramClient:
 
     async def leave_chat(self, chat_id: str) -> None:
         await self.call("leaveChat", chat_id=chat_id)
+
+    async def download_file(self, file_id: str, max_bytes: int) -> bytes:
+        """A file a user sent (getFile, then its download link). Raises TelegramError with status
+        413 when the file is larger than `max_bytes`; the size is checked before and while
+        downloading, so a large file is never held in memory."""
+        info = await self.call("getFile", file_id=file_id)
+        if (info.get("file_size") or 0) > max_bytes:
+            raise TelegramError(413, "file too large")
+        if not info.get("file_path"):
+            raise TelegramError(None, "no file path")
+        data = bytearray()
+        try:
+            async with self._http.stream(
+                "GET", self._files + info["file_path"], timeout=httpx.Timeout(60.0, connect=5.0)
+            ) as response:
+                if response.status_code != 200:
+                    raise TelegramError(response.status_code, "download failed")
+                async for chunk in response.aiter_bytes():
+                    data.extend(chunk)
+                    if len(data) > max_bytes:
+                        raise TelegramError(413, "file too large")
+        except httpx.TimeoutException:
+            raise TelegramError(None, "timeout", timed_out=True) from None
+        except httpx.HTTPError as exc:
+            raise TelegramError(None, type(exc).__name__) from None
+        return bytes(data)
 
 
 _client: TelegramClient | None = None

@@ -76,8 +76,8 @@ class Simulator:
     ) -> list[Outbound]:
         return self._receive(Inbound(location=Location(lat, lng, accuracy_m)))
 
-    def send_media(self, kind: Any, ref: str) -> list[Outbound]:
-        return self._receive(Inbound(media=Media(kind, ref)))
+    def send_media(self, kind: Any, ref: str, group: str | None = None) -> list[Outbound]:
+        return self._receive(Inbound(media=Media(kind, ref, group)))
 
     # --- the service's part ---------------------------------------------------------------------
 

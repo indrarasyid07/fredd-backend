@@ -54,6 +54,22 @@ class Settings(BaseSettings):
     privacy_policy_url: str = ""
     whatsapp_public_number: str = ""  # digits with country code, e.g. 6281100000000
 
+    # Chat media (photos from extension workers). Off = files go to `media_dir` on local disk
+    # (tests, quick local runs); on = an S3-compatible bucket (MinIO, R2, S3). Private bucket:
+    # files are served through signed URLs only (security-model.md "Berkas").
+    storage_enabled: bool = False
+    storage_endpoint_url: str = ""
+    storage_access_key: str = ""
+    storage_secret_key: str = ""
+    storage_bucket: str = ""
+    storage_region: str = "us-east-1"
+    storage_presign_expiry_seconds: int = 600
+    # Every object key starts with this, so a shared bucket keeps Fluctuz files apart.
+    storage_key_prefix: str = "fluctuz/"
+    media_dir: str = "var/media"
+    # Telegram bots cannot download files above 20 MB.
+    media_max_bytes: int = 20 * 1024 * 1024
+
     @property
     def is_development(self) -> bool:
         return self.environment == "development"

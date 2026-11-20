@@ -38,6 +38,8 @@ class Media:
     kind: MediaKind
     # Where the worker stored it (object key); the engine only keeps the reference.
     ref: str
+    # Telegram album id: photos sent together share it (photo before "mulai", roadmap 3.8).
+    group: str | None = None
 
 
 @dataclass(frozen=True)
@@ -146,6 +148,10 @@ class ConversationState:
     pending: dict[str, Any] | None = None
     # Back to the summary after re-answering one field.
     editing: bool = False
+    # Photos sent before a topic was chosen, used once the report starts; and the album they
+    # came in, so the rest of that album joins them (conversation-engine.md "Foto sebelum mulai").
+    held_media: list[str] = field(default_factory=list)
+    media_group: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {k: v for k, v in self.__dict__.items()}

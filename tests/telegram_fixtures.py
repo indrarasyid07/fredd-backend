@@ -29,6 +29,9 @@ class FakeTelegram:
     answered: list[str] = field(default_factory=list)
     left: list[str] = field(default_factory=list)
     fail_with: TelegramError | None = None
+    # file_id → bytes "downloaded" for it; a missing id fails like Telegram would.
+    files: dict[str, bytes] = field(default_factory=dict)
+    downloads: list[str] = field(default_factory=list)
 
     async def send(self, chat_id: str, out: Outbound) -> str:
         if self.fail_with:
@@ -41,6 +44,15 @@ class FakeTelegram:
 
     async def leave_chat(self, chat_id: str) -> None:
         self.left.append(chat_id)
+
+    async def download_file(self, file_id: str, max_bytes: int) -> bytes:
+        self.downloads.append(file_id)
+        if file_id not in self.files:
+            raise TelegramError(400, "file not found")
+        data = self.files[file_id]
+        if len(data) > max_bytes:
+            raise TelegramError(413, "file too large")
+        return data
 
 
 async def post_update(

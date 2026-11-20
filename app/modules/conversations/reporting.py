@@ -92,6 +92,9 @@ async def handle(db: AsyncSession, chat: joining.Chat, message: Message) -> list
                 buttons=(Button(copy.KEEP, joining.KEEP), Button(copy.NOT_MINE, joining.CHANGE)),
             )
         ]
+    refused = message.payload.get("media_refused")
+    if refused is not None:
+        return [Outbound(copy.MEDIA_TOO_LARGE if refused == "too_large" else copy.MEDIA_WRONG_TYPE)]
     inbound = to_inbound(message)
     if inbound is None:
         return [Outbound(copy.UNSUPPORTED)]
@@ -140,8 +143,10 @@ def to_inbound(message: Message) -> Inbound | None:
         accuracy = p.get("accuracy_m")
         return Inbound(location=Location(lat, lng, float(accuracy) if accuracy else None))
     if message.kind in ("photo", "video", "voice", "document") and p.get("file_id"):
-        # The Telegram file reference; downloading to storage comes with roadmap 3.8.
-        return Inbound(media=Media(message.kind, f"telegram:{p['file_id']}"))  # type: ignore[arg-type]
+        # The stored copy (roadmap 3.8); the Telegram file reference when it could not be made.
+        ref = message.media_key or f"telegram:{p['file_id']}"
+        group = p.get("media_group_id")
+        return Inbound(media=Media(message.kind, ref, str(group) if group else None))  # type: ignore[arg-type]
     return None
 
 
@@ -246,13 +251,30 @@ async def _switch(run: _Run, form_id: str) -> list[Outbound]:
     state = ConversationState.from_json(run.conversation.state)
     if state.status == "choosing_form":
         _save(run.conversation, ConversationState(topic_id=state.topic_id))
+    notes: list[Outbound] = []
     if target.id != run.assignment.id:
         await workers.set_active(run.db, run.chat.channel_id, run.chat.chat_id, target.id)
         switched = await _load(run.db, run.chat, run.message)
         if switched is None:
             return []
+        if state.held_media:
+            notes = _carry_photos(state, run.assignment, switched)
         run = switched
-    return await _engine(run, Inbound(text="mulai"))
+    return [*notes, *await _engine(run, Inbound(text="mulai"))]
+
+
+def _carry_photos(state: ConversationState, source: FormAssignment, target: _Run) -> list[Outbound]:
+    """Photos sent before choosing a topic move to the chosen topic's new report. They were
+    stored under the organization of the topic active when they arrived, so they only move within
+    that organization; for another one the worker is asked to send them again."""
+    if source.workspace_id != target.assignment.workspace_id:
+        return [Outbound(copy.PHOTO_RESEND)]
+    held = ConversationState.from_json(target.conversation.state)
+    if held.status in _DRAFT:
+        return []  # that topic's open draft carries on; the photos are not forced into it
+    held.held_media, held.media_group = state.held_media, state.media_group
+    _save(target.conversation, held)
+    return []
 
 
 # --- Engine ------------------------------------------------------------------------------------

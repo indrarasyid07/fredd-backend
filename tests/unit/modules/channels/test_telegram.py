@@ -162,3 +162,30 @@ async def test_timeout_is_marked_as_such() -> None:
         await _client(httpx.MockTransport(handler)).send("1", Outbound("hai"))
     assert caught.value.timed_out
     assert TOKEN not in str(caught.value)
+
+
+def _file_server(content: bytes, announced: int | None = None) -> httpx.MockTransport:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/getFile"):
+            assert json.loads(request.content) == {"file_id": "F1"}
+            size = announced if announced is not None else len(content)
+            result = {"file_id": "F1", "file_path": "photos/file_1.jpg", "file_size": size}
+            return httpx.Response(200, json={"ok": True, "result": result})
+        assert request.url.path == f"/file/bot{TOKEN}/photos/file_1.jpg"
+        return httpx.Response(200, content=content)
+
+    return httpx.MockTransport(handler)
+
+
+async def test_download_file_fetches_the_bytes() -> None:
+    client = _client(_file_server(b"\xff\xd8\xff photo"))
+    assert await client.download_file("F1", max_bytes=100) == b"\xff\xd8\xff photo"
+
+
+@pytest.mark.parametrize("announced", [500, 0])
+async def test_download_file_refuses_large_files(announced: int) -> None:
+    # Refused from the announced size, or while reading when the size was not announced.
+    client = _client(_file_server(b"x" * 500, announced=announced))
+    with pytest.raises(TelegramError) as caught:
+        await client.download_file("F1", max_bytes=100)
+    assert caught.value.status == 413
