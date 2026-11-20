@@ -14,6 +14,7 @@ from app.modules.audit import service as audit
 from app.modules.workspaces import errors, repository
 from app.modules.workspaces.constants import (
     DEFAULT_DATE_FORMAT,
+    DEFAULT_TIMEZONE,
     DEFAULT_WEEK_START,
     ROLES,
     Role,
@@ -208,3 +209,8 @@ async def update_settings(
 async def get_name(db: AsyncSession, workspace_id: uuid.UUID) -> str:
     """The organization's name, shown to extension workers by the shared bot."""
     return await repository.get_name(db, workspace_id) or ""
+
+
+async def get_timezone_name(db: AsyncSession, workspace_id: uuid.UUID) -> str:
+    """The workspace's IANA time zone: where its days start and end (dashboard, codes)."""
+    return await repository.get_timezone(db, workspace_id) or DEFAULT_TIMEZONE

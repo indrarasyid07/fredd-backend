@@ -2,7 +2,7 @@
 
 Data di balik halaman `/app` ([frontend ui/dashboard.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/dashboard.md)): ringkasan angka, peta, daftar laporan terbaru, ekspor, dan event realtime. Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons).
 
-**Status: sebagian dibangun** (20 November 2026): `GET /reports` dan `GET /reports/{id}` **ada (4.3)**, lihat [endpoints.md](../03-api/endpoints.md#laporan-field-reports); `summary`, `map`, `count`, SSE, dan ekspor masih rancangan. Tampilan frontend sudah dibangun dengan data contoh; daftar kebutuhan per elemen layar: [backend-needs.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/backend-needs.md). Semua endpoint di bawah **menunggu modul `workspaces`, `forms`, `extension_workers`, dan `reports`** (urutannya di [roadmap](../10-roadmap/roadmap.md)); dashboard hanya membaca, tidak menulis data lapangan.
+**Status: sebagian dibangun** (20 November 2026): `GET /dashboard/summary` **ada (4.2)**, `GET /reports` dan `GET /reports/{id}` **ada (4.3)**, lihat [endpoints.md](../03-api/endpoints.md#laporan-field-reports); `summary`, `map`, `count`, SSE, dan ekspor masih rancangan. Tampilan frontend sudah dibangun dengan data contoh; daftar kebutuhan per elemen layar: [backend-needs.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/backend-needs.md). Semua endpoint di bawah **menunggu modul `workspaces`, `forms`, `extension_workers`, dan `reports`** (urutannya di [roadmap](../10-roadmap/roadmap.md)); dashboard hanya membaca, tidak menulis data lapangan.
 
 ## Prinsip
 
@@ -71,7 +71,7 @@ Semua di bawah `/api/v1`, `reviewer` ke atas kecuali disebut lain.
 }
 ```
 
-`daily` selalu 7 entri berurutan (hari tanpa laporan bernilai 0), hari ini terakhir. `setup` mengatur kondisi kosong dan checklist. Cache Redis 15 detik per `(workspace, range)`, dibuang saat ada `report.created`.
+`daily` selalu 7 entri berurutan (hari tanpa laporan bernilai 0), hari ini terakhir. **Dibangun (4.2) dengan tambahan:** `previous_daily` (7 hari sebelum `daily`, garis pembanding di grafik) dan `channels` (`whatsapp`/`telegram` dalam persen untuk 7 hari itu, jumlah 100). Wilayah di `top_regions` dan `top_infected_regions` adalah **kabupaten/kota** (laporan berwilayah kecamatan dihitung ke induknya). `setup` belum berisi `test_run_done` (Langkah 4.5). `completion.blurry_rejected` selalu 0 sampai skor buram (5.1). Cache **tidak** dibuang saat laporan baru (modul laporan berada di bawah dashboard); laporan baru tampil paling lambat 15 detik, pembuangan lewat event `report.created` menyusul bersama SSE (6.1). `setup` mengatur kondisi kosong dan checklist. Cache Redis 15 detik per `(workspace, range)`, dibuang saat ada `report.created`.
 
 ### `GET /reports/map?range=&form_id=&condition=`
 
