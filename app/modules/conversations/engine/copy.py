@@ -218,3 +218,53 @@ def switched(organization: str, topic: str, privacy_url: str) -> str:
         f"Siap, laporan berikutnya masuk ke *{topic_title(organization, topic)}*. "
         "Ketik *mulai* untuk melapor.\n\n" + consent(organization, privacy_url)
     )
+
+
+# --- Report flow in the service (roadmap 3.7) ---------------------------------------------------
+
+CONFIRM_TOPIC_FIRST = (
+    "Sebelum melapor, mohon pastikan dulu topiknya. Laporan Anda akan masuk ke topik ini "
+    "seterusnya. Sudah benar?"
+)
+UNSUPPORTED = (
+    "Jenis pesan ini belum bisa saya baca. Mohon kirim teks, foto, atau lokasi sesuai pertanyaan."
+)
+RESUME = "Lanjutkan"
+RESTART = "Mulai ulang"
+DRAFT_EXISTS = "Ada laporan yang belum selesai. Mau dilanjutkan atau mulai ulang dari awal?"
+RESTART_CONFIRM = "Mulai ulang dari awal? Jawaban yang sudah diisi akan dihapus."
+YES_RESTART = "Ya, mulai ulang"
+CANCEL_CONFIRM = "Batalkan laporan yang sedang diisi? Jawaban yang sudah diisi akan dihapus."
+YES_CANCEL = "Ya, batalkan"
+DRAFT_CANCELLED = "Laporan dibatalkan. Ketik *mulai* bila ingin melapor lagi."
+NO_DRAFT = "Tidak ada laporan yang sedang diisi. Ketik *mulai* untuk melapor."
+KEEP_GOING = "Baik, kita lanjutkan."
+STOP_CONFIRM = (
+    "Berhenti menerima pesan dari Fluctuz untuk semua topik di chat ini? "
+    "Draf yang belum terkirim akan dibuang."
+)
+YES_STOP = "Ya, berhenti"
+STOPPED = (
+    "Anda tidak akan menerima pesan lagi. Untuk bergabung kembali, kirim kode dari admin Anda."
+)
+STOP_CANCELLED = "Baik, Anda tetap tergabung."
+HELP_TEXT = (
+    "Perintah yang bisa dipakai:\n"
+    "• *mulai*: mulai laporan baru\n"
+    "• *lanjut*: ulangi pertanyaan terakhir\n"
+    "• *mulai ulang*: isi ulang dari awal\n"
+    "• *topik*: pilih topik lain\n"
+    "• *batal*: batalkan laporan yang sedang diisi\n"
+    "• *berhenti*: berhenti menerima pesan"
+)
+
+
+def only_topic(organization: str, topic: str) -> str:
+    return f"Anda hanya tergabung di *{topic_title(organization, topic)}*."
+
+
+def topic_closed(organization: str, topic: str) -> str:
+    return (
+        f"*{topic_title(organization, topic)}* sedang tidak menerima laporan. "
+        "Hubungi admin Anda bila ini keliru."
+    )

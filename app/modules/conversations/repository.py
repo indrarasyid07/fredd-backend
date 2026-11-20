@@ -6,7 +6,9 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.conversations.models import Conversation, Message
-from app.modules.extension_workers.models import ExtensionWorker
+from app.modules.extension_workers.models import ExtensionWorker, FormAssignment
+from app.modules.forms.models import Form
+from app.modules.workspaces.models import Workspace
 
 
 async def insert_inbound(db: AsyncSession, values: dict[str, object]) -> bool:
@@ -92,3 +94,29 @@ async def list_chat_messages(
         .limit(limit)
     )
     return list(rows)
+
+
+TopicRow = tuple[FormAssignment, str, str]  # assignment, organization name, form name
+
+
+async def list_chat_topics(db: AsyncSession, telegram_user_id: str) -> list[TopicRow]:
+    """Every active topic of this chat identity, in any organization, oldest first."""
+    rows = await db.execute(
+        select(FormAssignment, Workspace.name, Form.name)
+        .join(ExtensionWorker, ExtensionWorker.id == FormAssignment.extension_worker_id)
+        .join(Workspace, Workspace.id == FormAssignment.workspace_id)
+        .join(Form, Form.id == FormAssignment.form_id)
+        .where(
+            ExtensionWorker.telegram_user_id == telegram_user_id,
+            ExtensionWorker.status == "active",
+            FormAssignment.status == "active",
+        )
+        .order_by(FormAssignment.created_at, FormAssignment.id)
+    )
+    return [(r[0], r[1], r[2]) for r in rows.all()]
+
+
+async def get_timezone_name(db: AsyncSession, workspace_id: uuid.UUID) -> str:
+    return await db.scalar(select(Workspace.timezone).where(Workspace.id == workspace_id)) or (
+        "Asia/Jakarta"
+    )

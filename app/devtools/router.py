@@ -39,11 +39,20 @@ class DevtoolsTelegram:
         return None
 
 
+class SimulatedLocation(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    accuracy_m: float | None = Field(default=10, ge=0)
+
+
 class SimulatedMessage(BaseModel):
     chat_id: str = Field(default="devtools-1", pattern=r"^devtools-[A-Za-z0-9_-]{1,40}$")
     name: str = Field(default="Budi Santoso", max_length=60)
     text: str | None = Field(default=None, max_length=4000)
     button: str | None = Field(default=None, max_length=64)
+    # A shared location or a photo instead of text (roadmap 3.7: report fields).
+    location: SimulatedLocation | None = None
+    photo: bool = False
 
 
 def _update(update_id: int, msg: SimulatedMessage, now: int) -> dict[str, Any]:
@@ -58,17 +67,32 @@ def _update(update_id: int, msg: SimulatedMessage, now: int) -> dict[str, Any]:
                 "message": {"message_id": 0, "chat": chat, "date": now},
             },
         }  # fmt: skip
-    return {
-        "update_id": update_id,
-        "message": {"message_id": update_id, "from": user, "chat": chat, "date": now,
-                    "text": msg.text or ""},
-    }  # fmt: skip
+    message: dict[str, Any] = {"message_id": update_id, "from": user, "chat": chat, "date": now}
+    if msg.location is not None:
+        message["location"] = {"latitude": msg.location.lat, "longitude": msg.location.lng,
+                               "horizontal_accuracy": msg.location.accuracy_m}  # fmt: skip
+    elif msg.photo:
+        # A made-up file reference: nothing is downloaded from the simulator.
+        message["photo"] = [{"file_id": f"devtools-photo-{update_id}",
+                             "file_unique_id": f"devtools-{update_id}", "width": 1280}]  # fmt: skip
+    else:
+        message["text"] = msg.text or ""
+    return {"update_id": update_id, "message": message}
+
+
+def _shown(message: Message) -> str:
+    """What a message without text stands for in the simulator's history."""
+    if message.kind == "location":
+        return f"📍 {message.payload.get('lat')}, {message.payload.get('lng')}"
+    if message.kind == "photo":
+        return "📷 (foto)"
+    return f"({message.kind})"
 
 
 def _out(message: Message) -> dict[str, Any]:
     return {
         "direction": message.direction,
-        "text": message.body or "",
+        "text": message.body or _shown(message),
         "buttons": message.payload.get("buttons", []),
         "workspace_id": str(message.workspace_id) if message.workspace_id else None,
         "at": message.created_at.isoformat() if message.created_at else None,

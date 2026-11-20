@@ -67,3 +67,13 @@ async def test_absent_outside_development(
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         assert (await c.get("/devtools")).status_code == 404
         assert (await c.post(URL, json={"text": "halo"})).status_code == 404
+
+
+async def test_location_and_photo_are_sent_as_telegram_would(client: AsyncClient) -> None:
+    """The report flow (3.7) needs them; they go through the same pipeline as text."""
+    for body in ({"location": {"lat": -6.82, "lng": 107.14}}, {"photo": True}):
+        response = await client.post(URL, json={"chat_id": "devtools-media", **body})
+        assert response.status_code == 200
+    history = (await client.get("/devtools/telegram/devtools-media/messages")).json()["messages"]
+    inbound = [m["text"] for m in history if m["direction"] == "in"]
+    assert inbound == ["📍 -6.82, 107.14", "📷 (foto)"]
