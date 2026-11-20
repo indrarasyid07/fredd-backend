@@ -1873,6 +1873,113 @@
         }
       }
     },
+    "/api/v1/dashboard/forms/{form_id}": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Form Dashboard",
+        "description": "Generic widget data for one structure: totals, 7-day trend, every choice and number\nfield, top regencies (roadmap 4.7).",
+        "operationId": "form_dashboard_api_v1_dashboard_forms__form_id__get",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "today",
+                "7d",
+                "30d"
+              ],
+              "type": "string",
+              "default": "today",
+              "title": "Range"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FormDashboardOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v1/reference-data": {
       "get": {
         "tags": [
@@ -4945,6 +5052,54 @@
         ],
         "title": "ApiResponse[FormCheckOut]"
       },
+      "ApiResponse_FormDashboardOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormDashboardOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[FormDashboardOut]"
+      },
       "ApiResponse_FormDetailOut_": {
         "properties": {
           "success": {
@@ -6013,6 +6168,34 @@
         "title": "ChannelShareOut",
         "description": "Share of the 7-day reports by channel, in percent (adds up to 100, or 0 and 0)."
       },
+      "ChoiceStatOut": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "count",
+          "percent"
+        ],
+        "title": "ChoiceStatOut"
+      },
       "CompletionOut": {
         "properties": {
           "percent": {
@@ -6406,7 +6589,9 @@
                 "type": "string",
                 "enum": [
                   "condition",
-                  "area"
+                  "area",
+                  "status",
+                  "measure"
                 ]
               },
               {
@@ -6854,6 +7039,88 @@
         "title": "ExtensionWorkerSummaryOut",
         "description": "Counts for the list's tabs and KPI cards (no report numbers: those come with reports)."
       },
+      "FieldStatOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "single_choice",
+              "multi_choice",
+              "number"
+            ],
+            "title": "Type"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "answered": {
+            "type": "integer",
+            "title": "Answered"
+          },
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChoiceStatOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
+          },
+          "numbers": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NumberStatOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "type",
+          "role",
+          "unit",
+          "answered"
+        ],
+        "title": "FieldStatOut",
+        "description": "One choice or number field of the structure and what its answers add up to."
+      },
       "FormCheckOut": {
         "properties": {
           "valid": {
@@ -6882,6 +7149,69 @@
           "warnings"
         ],
         "title": "FormCheckOut"
+      },
+      "FormDashboardOut": {
+        "properties": {
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "range": {
+            "type": "string",
+            "enum": [
+              "today",
+              "7d",
+              "30d"
+            ],
+            "title": "Range"
+          },
+          "form": {
+            "$ref": "#/components/schemas/FormRefOut"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/DayCountOut"
+            },
+            "type": "array",
+            "title": "Daily"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldStatOut"
+            },
+            "type": "array",
+            "title": "Fields"
+          },
+          "top_regions": {
+            "items": {
+              "$ref": "#/components/schemas/RegionCountOut"
+            },
+            "type": "array",
+            "title": "Top Regions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "as_of",
+          "timezone",
+          "range",
+          "form",
+          "total",
+          "daily",
+          "fields",
+          "top_regions"
+        ],
+        "title": "FormDashboardOut",
+        "description": "Data for generic widgets of one structure: counts, trend, and every choice and number\nfield in the order of its current version."
       },
       "FormDetailOut": {
         "properties": {
@@ -7175,6 +7505,30 @@
         ],
         "title": "FormProblem",
         "description": "One finding of POST /forms/{id}/validate; `field` is a dotted path into the definition\n(`fields.2.question`), null for the form as a whole."
+      },
+      "FormRefOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version"
+        ],
+        "title": "FormRefOut"
       },
       "FormSettings": {
         "properties": {
@@ -7855,6 +8209,39 @@
           "name"
         ],
         "title": "NamedRef"
+      },
+      "NumberStatOut": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "sum": {
+            "type": "number",
+            "title": "Sum"
+          },
+          "avg": {
+            "type": "number",
+            "title": "Avg"
+          },
+          "min": {
+            "type": "number",
+            "title": "Min"
+          },
+          "max": {
+            "type": "number",
+            "title": "Max"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "sum",
+          "avg",
+          "min",
+          "max"
+        ],
+        "title": "NumberStatOut"
       },
       "OperatingHours": {
         "properties": {
@@ -9559,7 +9946,9 @@
               {
                 "enum": [
                   "condition",
-                  "area"
+                  "area",
+                  "status",
+                  "measure"
                 ],
                 "type": "string"
               },

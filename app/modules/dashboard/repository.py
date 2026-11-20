@@ -19,29 +19,42 @@ _REGENCY_ID = "case when r.level = 'district' then p.id else r.id end"
 _REGENCY_NAME = "case when r.level = 'district' then p.value else r.value end"
 
 
+_FORM = "and (cast(:form as uuid) is null or form_id = :form) "
+
+
 async def count_between(
-    db: AsyncSession, workspace_id: uuid.UUID, start: datetime, end: datetime
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    start: datetime,
+    end: datetime,
+    form_id: uuid.UUID | None = None,
 ) -> int:
     result = await db.execute(
         text(
             "select count(*) from reports "
-            "where workspace_id = :ws and received_at >= :start and received_at < :end"
+            "where workspace_id = :ws and received_at >= :start and received_at < :end " + _FORM
         ),
-        {"ws": workspace_id, "start": start, "end": end},
+        {"ws": workspace_id, "start": start, "end": end, "form": form_id},
     )
     return int(result.scalar_one())
 
 
 async def count_per_day(
-    db: AsyncSession, workspace_id: uuid.UUID, tz: str, start: datetime, end: datetime
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    tz: str,
+    start: datetime,
+    end: datetime,
+    form_id: uuid.UUID | None = None,
 ) -> dict[date, int]:
     rows = await db.execute(
         text(
             "select (received_at at time zone :tz)::date as day, count(*) from reports "
             "where workspace_id = :ws and received_at >= :start and received_at < :end "
-            "group by day"
+            + _FORM
+            + "group by day"
         ),
-        {"ws": workspace_id, "tz": tz, "start": start, "end": end},
+        {"ws": workspace_id, "tz": tz, "start": start, "end": end, "form": form_id},
     )
     return {day: int(n) for day, n in rows.all()}
 
@@ -136,16 +149,26 @@ async def top_regencies(
     *,
     condition: str | None,
     limit: int,
+    form_id: uuid.UUID | None = None,
 ) -> list[tuple[uuid.UUID, str, int]]:
-    """Regencies with the most reports in the window (of one condition, when given)."""
+    """Regencies with the most reports in the window (of one condition and one structure, when
+    given)."""
     rows = await db.execute(
         text(
             f"select {_REGENCY_ID} as id, {_REGENCY_NAME} as name, count(*) as n {_REGENCY}"
             "where x.workspace_id = :ws and x.received_at >= :start and x.received_at < :end "
             "and (cast(:condition as text) is null or x.condition = :condition) "
+            "and (cast(:form as uuid) is null or x.form_id = :form) "
             "group by 1, 2 order by n desc, name limit :limit"
         ),
-        {"ws": workspace_id, "start": start, "end": end, "condition": condition, "limit": limit},
+        {
+            "ws": workspace_id,
+            "start": start,
+            "end": end,
+            "condition": condition,
+            "limit": limit,
+            "form": form_id,
+        },
     )
     return [(rid, name, int(n)) for rid, name, n in rows.all() if rid is not None]
 
@@ -163,3 +186,43 @@ async def setup_flags(db: AsyncSession, workspace_id: uuid.UUID) -> tuple[bool, 
     )
     forms, workers, reports = row.one()
     return bool(forms), bool(workers), bool(reports)
+
+
+async def choice_counts(
+    db: AsyncSession, workspace_id: uuid.UUID, form_id: uuid.UUID, start: datetime, end: datetime
+) -> tuple[dict[tuple[str, str], int], dict[str, int]]:
+    """Per (field, value): reports that chose it; and per field: reports that answered it."""
+    rows = await db.execute(
+        text(
+            "select field_key, choice, count(distinct report_id) from report_values "
+            "where workspace_id = :ws and form_id = :form and choice is not null "
+            "and received_at >= :start and received_at < :end "
+            "group by grouping sets ((field_key, choice), (field_key))"
+        ),
+        {"ws": workspace_id, "form": form_id, "start": start, "end": end},
+    )
+    counts: dict[tuple[str, str], int] = {}
+    answered: dict[str, int] = {}
+    for field_key, choice, n in rows.all():
+        if choice is None:
+            answered[field_key] = int(n)
+        else:
+            counts[(field_key, choice)] = int(n)
+    return counts, answered
+
+
+async def number_stats(
+    db: AsyncSession, workspace_id: uuid.UUID, form_id: uuid.UUID, start: datetime, end: datetime
+) -> dict[str, tuple[int, Decimal, Decimal, Decimal, Decimal]]:
+    """Per number field: (answers, sum, average, minimum, maximum)."""
+    rows = await db.execute(
+        text(
+            "select field_key, count(*), sum(number), avg(number), min(number), max(number) "
+            "from report_values "
+            "where workspace_id = :ws and form_id = :form and number is not null "
+            "and received_at >= :start and received_at < :end "
+            "group by field_key"
+        ),
+        {"ws": workspace_id, "form": form_id, "start": start, "end": end},
+    )
+    return {key: (int(n), total, avg, low, high) for key, n, total, avg, low, high in rows.all()}

@@ -117,3 +117,30 @@ class ReportCodeCounter(Base):
     # YYMM in the workspace's time zone.
     period: Mapped[str] = mapped_column(String(4), primary_key=True)
     last_value: Mapped[int] = mapped_column(Integer)
+
+
+class ReportValue(UUIDPrimaryKey, WorkspaceOwned, Base):
+    """One choice or number answer of a report, copied at creation (D17) so dashboard widgets
+    aggregate any field with plain SQL, never by parsing `answers`. A multiple choice answer is
+    one row per chosen value. `received_at` repeats the report's, for range filters."""
+
+    __tablename__ = "report_values"
+    __table_args__ = (
+        CheckConstraint("(choice is null) <> (number is null)", name="one_value"),
+        Index(
+            "ix_report_values_field_received",
+            "workspace_id",
+            "form_id",
+            "field_key",
+            text("received_at desc"),
+        ),
+    )
+
+    report_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("reports.id", ondelete="CASCADE"), index=True
+    )
+    form_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("forms.id", ondelete="CASCADE"))
+    field_key: Mapped[str] = mapped_column(String(64))
+    choice: Mapped[str | None] = mapped_column(String(200))
+    number: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
