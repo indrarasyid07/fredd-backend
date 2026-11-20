@@ -34,7 +34,9 @@
                     cursor:pointer; }
   form.send { display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--line); }
   form.send input { flex:1; }
-  form.send button { font:inherit; padding:6px 14px; border:0; border-radius:8px;
+  .send.extra { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; font-size:13px; }
+  .send.extra input { font:inherit; margin-left:6px; padding:5px 8px; }
+  .send.extra button, form.send button { font:inherit; padding:6px 14px; border:0; border-radius:8px;
                      background:var(--accent); color:#1d2320; font-weight:600; cursor:pointer; }
   .err { color:#c0392b; font-size:13px; padding:0 16px 8px; }
 </style>
@@ -56,6 +58,11 @@
     <input id="text" autocomplete="off" placeholder="Ketik pesan, mis. kode K7M2-9QXA" aria-label="Pesan">
     <button>Kirim</button>
   </form>
+  <div class="send extra">
+    <label>Lokasi (lat,lng)<input id="loc" value="-6.8214,107.1402" size="18"></label>
+    <button type="button" id="send-loc">📍 Kirim lokasi</button>
+    <button type="button" id="send-photo">📷 Kirim foto</button>
+  </div>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -124,6 +131,12 @@ $("form").onsubmit = (e) => {
   $("text").value = "";
   send({ text }, text);
 };
+$("send-loc").onclick = () => {
+  const [lat, lng] = $("loc").value.split(",").map((v) => Number(v.trim()));
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) { $("err").textContent = "Lokasi harus lat,lng"; return; }
+  send({ location: { lat, lng, accuracy_m: 10 } }, `📍 ${lat}, ${lng}`);
+};
+$("send-photo").onclick = () => send({ photo: true }, "📷 (foto)");
 $("chat").onchange = load;
 load();
 </script>

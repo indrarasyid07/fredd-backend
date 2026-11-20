@@ -39,6 +39,19 @@ idle → joining → identifying → choosing_form → asking(step) → confirmi
 6. Semua isian terjawab → kirim ringkasan dengan pilihan "Kirim sekarang" / "Ubah jawaban".
 7. Kirim → buat `reports` dalam satu transaksi bersama update `conversations.status = submitted`, salin kolom filter, terapkan aturan `review_above` → `needs_review`, balas kode laporan.
 
+## Alur laporan di chat (Langkah 3.7)
+
+**Ada.** `conversations/reporting.py` menjalankan mesin murni untuk chat yang punya topik aktif (setelah `joining.route` tidak menangani pesannya), di dalam transaksi `process_chat`:
+
+- Memuat ikatan aktif chat, penyuluh, dan `conversations` (dibuat bila belum ada). Ikatan yang belum dikonfirmasi ("Ya, tetap") tidak menerima laporan: bot mengulang pertanyaan konfirmasi. `taken_over` → diam.
+- **Versi struktur:** laporan baru memakai `forms.current_version_id` dan menyimpannya di `conversations.form_version_id`; draf (`asking`/`confirming_summary`) tetap memakai versi itu walau versi baru terbit. Struktur yang tidak `pilot`/`active` → "… sedang tidak menerima laporan".
+- **Konteks mesin:** sapaan = nama depan penyuluh, "hari ini" di zona workspace, daftar topik = semua ikatan aktif identitas chat itu di semua organisasi (label "Organisasi · Struktur"), id topik = `form_id`.
+- **Pesan masuk → `Inbound`:** teks, tombol, lokasi (`lat`, `lng`, `horizontal_accuracy`), media (`telegram:<file_id>` sebagai rujukan sampai penyimpanan media di 3.8). Jenis lain → "Jenis pesan ini belum bisa saya baca…".
+- **Efek:** `SubmitReport` → `reports.service.create_report` dalam transaksi yang sama dengan `status = submitted`, lalu "Laporan *LP-…* tersimpan"; `SelectTopic` → pindah ikatan aktif chat lalu mulai/lanjutkan draf topik itu; `NeedsHelp` → `status = needs_help` + audit `conversation.needs_help` (antrean Aktivitas menyusul di Langkah 6); `ClaimCode` (kode polos di luar pertanyaan) → `joining.claim`.
+- **Kata perintah 3.0** ditangani sebelum mesin: `berhenti` (konfirmasi → semua ikatan chat `left`, draf dibuang, `next_reminder_at` dihapus, konteks chat dikosongkan, audit `extension_worker.opted_out`), `batal` (konfirmasi → draf dibuang), `mulai ulang` (konfirmasi bila ada draf), `mulai` saat ada draf → [Lanjutkan] [Mulai ulang], `topik` (tombol semua topik; draf tiap topik tetap tersimpan), `bantuan` (daftar perintah + [Minta bantuan admin]).
+- **Belum:** foto yang dikirim sebelum `mulai` (keputusan 3.0) dan unduh media ke penyimpanan menyusul di 3.8; pengingat draf di Langkah 7.
+- Simulator `/devtools` bisa mengirim lokasi dan foto untuk mencoba alur ini.
+
 ## Mesin murni (Langkah 3.3)
 
 `engine/machine.py`: `handle(state, pesan, ctx) → Step(state, replies, effects)`, tanpa database dan kanal. `ConversationState` berbentuk JSON (status, `topic_id`, `step`, `answers`, `required_by_rules`, `review_reasons`, `failed_attempts`, `pending`, `editing`). `EngineContext` dimuat service per pesan: sapaan ("Pak Budi"), hari ini di zona workspace, topik yang terikat, `FormDefinition` topik aktif, alias satuan.

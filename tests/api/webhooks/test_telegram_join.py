@@ -7,12 +7,13 @@ from httpx import AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.time import now_utc
 from app.modules.audit.models import AuditLog
 from app.modules.conversations.engine import copy
 from app.modules.conversations.models import Conversation, Message
 from app.modules.extension_workers.models import ChatContext, ExtensionWorker, FormAssignment
 from app.modules.forms import service as forms
-from app.modules.forms.models import Form
+from app.modules.forms.models import Form, FormVersion
 from app.modules.forms.schemas import FormDefinition
 from app.modules.join_codes import repository as join_code_repo
 from app.modules.join_codes.models import JoinCode
@@ -64,7 +65,15 @@ async def _topic(
     form = await forms.create_form(
         db, workspace.id, None, name, FormDefinition.model_validate(crop_survey())
     )
-    (await db.get(Form, form.id)).status = status  # type: ignore[union-attr]
+    row = await db.get(Form, form.id)
+    assert row is not None
+    row.status = status
+    if status in ("pilot", "active"):
+        # Open structures always run on a published version.
+        version = await db.scalar(select(FormVersion).where(FormVersion.form_id == form.id))
+        assert version is not None
+        version.published_at = now_utc()
+        row.current_version_id = version.id
     code = await join_code_repo.get_live_for_form(db, workspace.id, form.id)
     assert code is not None
     await db.flush()
@@ -264,7 +273,8 @@ async def test_mid_topic_bare_letters_are_not_a_code(
     other = await _topic(db, organization, name="Topik Lain")
     await chat.say(_dashed(code))
     await chat.tap("join:keep")
-    assert await chat.say(other.code) == []  # could be an answer; the report flow decides (3.7)
+    # Outside a question the report flow reads it as a code: switch or add (3.7).
+    assert await chat.say(other.code) == [copy.switch_or_add(organization.name, "Topik Lain")]
     assert await _count(db, FormAssignment) == 1
 
 

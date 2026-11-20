@@ -26,7 +26,7 @@ from app.modules.channels.telegram import (
     TelegramError,
     parse_update,
 )
-from app.modules.conversations import joining, repository
+from app.modules.conversations import joining, reporting, repository
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.types import Button, ConversationState, Outbound
 from app.modules.conversations.models import Message
@@ -152,7 +152,10 @@ async def process_chat(
         answer = await joining.route(db, chat, message)
         if answer is None:
             # A chat with a topic, not about joining: the report flow (roadmap 3.7).
-            answer = [Outbound(copy.EDITED)] if message.payload.get("edited") else []
+            if message.payload.get("edited"):
+                answer = [Outbound(copy.EDITED)]
+            else:
+                answer = await reporting.handle(db, chat, message)
         # After routing, so the message that joined a topic belongs to it too.
         owner = await _owner(db, chat)
         message.workspace_id, message.conversation_id = owner

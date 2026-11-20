@@ -95,7 +95,7 @@ async def route(db: AsyncSession, chat: Chat, message: Message) -> list[Outbound
     if code and text and (current is None or _looks_like_code(text)):
         if await is_silenced(chat):
             return []
-        return await _claim(db, chat, message, code, current)
+        return await claim(db, chat, message, code, current)
     if current is not None:
         return None
     # A chat with no topic: never creates anything in any organization.
@@ -111,7 +111,7 @@ async def route(db: AsyncSession, chat: Chat, message: Message) -> list[Outbound
     return [Outbound(copy.JOIN_FIRST)]
 
 
-async def _claim(
+async def claim(
     db: AsyncSession,
     chat: Chat,
     message: Message,
