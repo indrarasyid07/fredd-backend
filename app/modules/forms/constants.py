@@ -19,9 +19,11 @@ FieldType = Literal[
     "signature",
 ]
 
-# What a field means to the dashboard: `condition` feeds reports.condition, `area` feeds
-# reports.area_ha. At most one field per role in a definition.
-FieldRole = Literal["condition", "area"]
+# What a field means to the dashboard (D17): `condition` feeds reports.condition and `area`
+# feeds reports.area_ha (at most one of each); `status` marks a choice field and `measure` a
+# number field that dashboard widgets show by default (any number of each, e.g. pH and suhu).
+FieldRole = Literal["condition", "area", "status", "measure"]
+UNIQUE_ROLES = ("condition", "area")
 
 # Crop condition values (D2, B-052). Labels (Sehat / Perlu perhatian / Terserang) live in the UI.
 CONDITION_VALUES = ("healthy", "attention", "infected")

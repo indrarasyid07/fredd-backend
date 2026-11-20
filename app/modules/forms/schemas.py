@@ -23,6 +23,7 @@ from app.modules.forms.constants import (
     MAX_FIELDS,
     MAX_OPTIONS,
     MAX_RULES,
+    UNIQUE_ROLES,
     AnswerMode,
     FieldRole,
     FieldType,
@@ -138,6 +139,8 @@ MESSAGES: dict[str, LiteralString] = {
     "area_not_number": "Isian luas harus berupa angka.",
     "invalid_condition_value": "Nilai kondisi harus healthy, attention, atau infected.",
     "invalid_area_unit": "Isian luas memakai satuan ha.",
+    "status_not_choice": "Isian status harus berupa pilihan.",
+    "measure_not_number": "Isian ukuran harus berupa angka.",
     "unknown_field": "Aturan merujuk isian yang tidak ada.",
     "unknown_option": "Nilai ini tidak ada di pilihan isian.",
     "empty_rule_action": "Aturan butuh tindakan MAKA.",
@@ -215,10 +218,14 @@ def _check_fields(fields: list[FieldDefinition], p: _Problems) -> None:
             if mode not in allowed_modes or mode in f.answer_modes[:j]:
                 p.add((*at, "answer_modes", j), "invalid_answer_mode", mode)
 
-        if f.role:
+        if f.role in UNIQUE_ROLES:
             if f.role in roles:
                 p.add((*at, "role"), "duplicate_role", f.role)
             roles.add(f.role)
+        if f.role == "status" and f.type not in CHOICE_TYPES:
+            p.add((*at, "type"), "status_not_choice", f.type)
+        if f.role == "measure" and f.type != "number":
+            p.add((*at, "type"), "measure_not_number", f.type)
         if f.role == "condition":
             if f.type != "single_choice":
                 p.add((*at, "type"), "condition_not_single_choice", f.type)

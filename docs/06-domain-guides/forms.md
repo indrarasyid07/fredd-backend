@@ -68,12 +68,16 @@ Kode: `app/modules/forms/` (`schemas.py` = `FormDefinition`, `service.py` = anta
 
 ### Peran isian (`role`)
 
-Paling banyak satu isian per peran.
+`condition` dan `area` paling banyak satu isian per struktur; `status` dan `measure` boleh lebih dari satu (D17, Langkah 4.7).
 
 | `role` | Syarat | Dipakai untuk |
 |---|---|---|
 | `condition` | `single_choice`, nilai pilihan hanya `healthy`, `attention`, `infected` (D2, B-052) | `reports.condition`, warna peta, KPI kondisi |
 | `area` | `number`, `unit` kosong atau `ha` | `reports.area_ha`, total luas |
+| `status` | `single_choice` atau `multi_choice` (kode masalah `status_not_choice`) | Widget komposisi bawaan di dashboard per struktur (mis. status sampel, jenis penyakit) |
+| `measure` | `number` (kode masalah `measure_not_number`) | Widget angka bawaan (rata-rata, jumlah, terendah, tertinggi; mis. pH, suhu, ekor ternak, Rp) |
+
+Peran hanya **petunjuk tata letak**: semua jawaban pilihan dan angka, berperan atau tidak, disalin ke `report_values` saat laporan dibuat, sehingga widget bisa diarahkan ke isian mana pun.
 
 ### Aturan JIKA/MAKA (`rules`)
 

@@ -83,6 +83,7 @@ Rancangan, belum dibangun. Rincian, skema respons, dan definisi angka: [dashboar
 
 | Method | Path | Peran |
 |---|---|---|
+| GET | `/dashboard/forms/{form_id}?range=today\|7d\|30d` | reviewer. **Ada (4.7)**: data widget generik satu struktur (D17): `total`, `daily` 7 hari, setiap isian pilihan (`choices`: nilai, label, jumlah, persen; pilihan tunggal berjumlah 100, pilihan ganda = bagian laporan yang menjawab) dan angka (`numbers`: count, sum, avg, min, max) menurut urutan versi terkini (nilai dari versi lama tetap dihitung), kabupaten teratas. Struktur workspace lain → `404` |
 | GET | `/dashboard/summary?range=today\|7d\|30d` | reviewer. **Ada (4.2)**: KPI, `daily` + `previous_daily` (7 + 7 hari), `channels` (persen 7 hari), kondisi + wilayah Terserang teratas (mengikuti `range`), `top_regions` (kabupaten), `setup` (`form_created`, `channel_and_worker`, `has_reports`). Cache Redis 15 dtk per (workspace, rentang); lihat [dashboard.md](../06-domain-guides/dashboard.md) |
 
 Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivitas di bawah.

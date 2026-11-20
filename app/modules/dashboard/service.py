@@ -17,19 +17,26 @@ from app.core.time import now_utc
 from app.modules.dashboard import repository
 from app.modules.dashboard.schemas import (
     ChannelShareOut,
+    ChoiceStatOut,
     CompletionOut,
     ConditionCountOut,
     ConditionsOut,
     DashboardRange,
     DashboardSummaryOut,
     DayCountOut,
+    FieldStatOut,
+    FormDashboardOut,
+    FormRefOut,
     KpisOut,
     MonitoredLandOut,
+    NumberStatOut,
     RegionCountOut,
     ReportsTodayOut,
     SetupOut,
     WorkersKpiOut,
 )
+from app.modules.forms import service as forms
+from app.modules.forms.schemas import FieldDefinition
 from app.modules.workspaces import service as workspaces
 
 logger = logging.getLogger(__name__)
@@ -190,3 +197,117 @@ def largest_remainder(counts: list[int]) -> list[int]:
 def _region(row: tuple[uuid.UUID, str, int]) -> RegionCountOut:
     region_id, name, count = row
     return RegionCountOut(region_id=region_id, name=name, count=count)
+
+
+# --- One structure (roadmap 4.7, D17) -----------------------------------------------------------
+
+_WIDGET_TYPES = ("single_choice", "multi_choice", "number")
+
+
+async def form_dashboard(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    form_id: uuid.UUID,
+    range_: DashboardRange = "today",
+    *,
+    now: datetime | None = None,
+) -> FormDashboardOut:
+    """Every choice and number field of a structure, aggregated over the range. Labels and
+    order come from its current version; answers from older versions count by field key."""
+    form = await forms.get_form(db, workspace_id, form_id)  # another workspace's: 404
+    version_id = form.current_version_id
+    fields: list[FieldDefinition] = []
+    version_number = 0
+    if version_id is not None:
+        version = await forms.get_version_definition(db, workspace_id, version_id)
+        fields = [f for f in version.definition.fields if f.type in _WIDGET_TYPES]
+        version_number = version.version
+
+    now = now or now_utc()
+    tz_name = await workspaces.get_timezone_name(db, workspace_id)
+    tz = ZoneInfo(tz_name)
+    local_now = now.astimezone(tz)
+    today = datetime.combine(local_now.date(), datetime.min.time(), tz)
+    day = timedelta(days=1)
+    start = today - (RANGE_DAYS[range_] - 1) * day
+
+    total = await repository.count_between(db, workspace_id, start, now, form_id)
+    per_day = await repository.count_per_day(
+        db, workspace_id, tz_name, today - 6 * day, now, form_id
+    )
+    choices, answered = await repository.choice_counts(db, workspace_id, form_id, start, now)
+    numbers = await repository.number_stats(db, workspace_id, form_id, start, now)
+    top = await repository.top_regencies(
+        db, workspace_id, start, now, condition=None, limit=3, form_id=form_id
+    )
+
+    out: list[FieldStatOut] = []
+    for f in fields:
+        if f.type == "number":
+            stats = numbers.get(f.key)
+            out.append(
+                FieldStatOut(
+                    key=f.key,
+                    label=f.label,
+                    type="number",
+                    role=f.role,
+                    unit=f.unit,
+                    answered=stats[0] if stats else 0,
+                    numbers=NumberStatOut(
+                        count=stats[0],
+                        sum=_round(stats[1]),
+                        avg=_round(stats[2]),
+                        min=_round(stats[3]),
+                        max=_round(stats[4]),
+                    )
+                    if stats
+                    else None,
+                )  # fmt: skip
+            )
+            continue
+        out.append(
+            FieldStatOut(
+                key=f.key,
+                label=f.label,
+                type=f.type,  # type: ignore[arg-type]
+                role=f.role,
+                unit=f.unit,
+                answered=answered.get(f.key, 0),
+                choices=_choices(f, choices, answered.get(f.key, 0)),
+            )  # fmt: skip
+        )
+    return FormDashboardOut(
+        as_of=local_now,
+        timezone=tz_name,
+        range=range_,
+        form=FormRefOut(id=form.id, name=form.name, version=version_number),
+        total=total,
+        daily=[
+            DayCountOut(date=d, count=per_day.get(d, 0))
+            for d in ((today - (6 - i) * day).date() for i in range(7))
+        ],
+        fields=out,
+        top_regions=[_region(r) for r in top],
+    )
+
+
+def _choices(
+    f: FieldDefinition, counts: dict[tuple[str, str], int], answered: int
+) -> list[ChoiceStatOut]:
+    """Every option in the version's order (0 when unchosen), then values only older versions
+    had, labelled by their value."""
+    labels = {o.value: o.label for o in f.options}
+    values = list(labels) + sorted(v for (key, v) in counts if key == f.key and v not in labels)
+    found = [counts.get((f.key, v), 0) for v in values]
+    if f.type == "single_choice":
+        percents = largest_remainder(found)
+    else:
+        percents = [round(n * 100 / answered) if answered else 0 for n in found]
+    return [
+        ChoiceStatOut(value=v, label=labels.get(v, v), count=n, percent=p)
+        for v, n, p in zip(values, found, percents, strict=True)
+    ]
+
+
+def _round(value: Decimal) -> float:
+    return float(Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))

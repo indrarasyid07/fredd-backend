@@ -26,7 +26,7 @@ from app.modules.forms.schemas import FieldDefinition, FormDefinition
 from app.modules.reference_data import service as reference_data
 from app.modules.reports import repository
 from app.modules.reports.errors import ReportNotFound
-from app.modules.reports.models import Report, ReportPhoto
+from app.modules.reports.models import Report, ReportPhoto, ReportValue
 from app.modules.reports.schemas import (
     NamedRef,
     ReportDetailOut,
@@ -106,8 +106,49 @@ async def create_report(
                             report_id=report.id, field_key=f.key, position=position, object_key=ref
                         )
                     )
+    db.add_all(_values(report, definition, answers))
     await db.flush()
     return report
+
+
+def _values(
+    report: Report, definition: FormDefinition, answers: dict[str, Any]
+) -> list[ReportValue]:
+    """Every choice and number answer as a row for dashboard widgets (D17). Values that do not
+    read as their type (a typo stored by an older engine) are left out, never guessed."""
+    rows: list[ReportValue] = []
+
+    def row(key: str, *, choice: str | None = None, number: Decimal | None = None) -> None:
+        rows.append(
+            ReportValue(
+                workspace_id=report.workspace_id,
+                report_id=report.id,
+                form_id=report.form_id,
+                field_key=key,
+                choice=choice,
+                number=number,
+                received_at=report.received_at,
+            )
+        )
+
+    for f in definition.fields:
+        value = answers.get(f.key)
+        if value is None:
+            continue
+        if f.type == "single_choice" and isinstance(value, str):
+            row(f.key, choice=value)
+        elif f.type == "multi_choice" and isinstance(value, list):
+            for item in value:
+                if isinstance(item, str):
+                    row(f.key, choice=item)
+        elif f.type == "number":
+            try:
+                number = Decimal(str(value))
+            except InvalidOperation:
+                continue
+            if number.is_finite():
+                row(f.key, number=number)
+    return rows
 
 
 def _answered(value: Any) -> bool:
