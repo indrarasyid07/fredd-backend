@@ -87,11 +87,14 @@ class MemoryStorage:
     async def put(self, key: str, data: bytes, content_type: str) -> None:
         self.objects[key] = (data, content_type)
 
+    async def signed_url(self, key: str, seconds: int) -> str | None:
+        return None  # like local storage: files are not served
+
 
 @pytest.fixture(autouse=True)
 def media_store(monkeypatch: pytest.MonkeyPatch) -> MemoryStorage:
     fake = MemoryStorage()
-    monkeypatch.setattr("app.modules.conversations.media.get_storage", lambda: fake)
+    monkeypatch.setattr("app.core.storage.override", fake)
     return fake
 
 

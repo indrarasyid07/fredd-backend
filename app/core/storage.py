@@ -77,9 +77,17 @@ def _write(path: Path, data: bytes) -> None:
     path.write_bytes(data)
 
 
-@lru_cache
+# Tests set this, so every module that stores or signs files uses the same fake.
+override: Storage | None = None
+
+
 def get_storage() -> Storage:
-    """The process-wide storage. Tests replace it."""
+    """The process-wide storage (or the test override)."""
+    return override if override is not None else _configured()
+
+
+@lru_cache
+def _configured() -> Storage:
     if settings.storage_enabled:
         return S3Storage()
     return LocalStorage(Path(settings.media_dir))

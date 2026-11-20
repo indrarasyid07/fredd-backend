@@ -1,6 +1,6 @@
 """Load development seed data from fixtures/.
 
-    uv run python -m scripts.seed demo        # demo accounts (development only)
+    uv run python -m scripts.seed demo        # demo accounts + field data (development only)
     uv run python -m scripts.seed reference   # regions, commodities, units (every environment)
     uv run python -m scripts.seed templates   # wizard template catalogue (every environment)
 
@@ -17,18 +17,21 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.core.errors import AppError
+from app.db import models as _models  # noqa: F401  # every table, for cross-module foreign keys
 from app.db.session import SessionLocal, engine
 from app.modules.auth import repository, service
 from app.modules.forms import service as forms_service
 from app.modules.reference_data import service as reference_service
 from app.modules.workspaces import service as workspaces_service
+from scripts import demo_field
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
 
 async def seed_demo() -> None:
     """Three demo users, each with a personal workspace, sharing the organization
-    "Fluctuz Indonesia" as admin, form_editor and reviewer (ROADMAP 1.7)."""
+    "Fluctuz Indonesia" as admin, form_editor and reviewer (ROADMAP 1.7); then its field data:
+    a published structure, 12 workers and ~150 reports (ROADMAP 4.1, `scripts/demo_field.py`)."""
     data = json.loads((FIXTURES / "demo" / "users.json").read_text(encoding="utf-8"))
     async with SessionLocal() as db:
         members = []
@@ -47,11 +50,13 @@ async def seed_demo() -> None:
             members.append((user.id, item["role"]))
 
         org = data["workspace"]
-        await workspaces_service.seed_organization(
+        workspace = await workspaces_service.seed_organization(
             db, name=org["name"], seed_key=org["seed_key"], members=members
         )
         roles = ", ".join(f"{u['email']}={u['role']}" for u in data["users"])
         print(f"workspace {org['name']}: {roles}")
+        admin_id = next(user_id for user_id, role in members if role == "admin")
+        await demo_field.seed_field(db, workspace.id, admin_id)
 
 
 async def seed_reference() -> None:

@@ -91,6 +91,16 @@ async def set_chat_context(
     )
 
 
+async def get_by_phone(
+    db: AsyncSession, workspace_id: uuid.UUID, phone_e164: str
+) -> ExtensionWorker | None:
+    return await db.scalar(
+        select(ExtensionWorker).where(
+            ExtensionWorker.workspace_id == workspace_id, ExtensionWorker.phone_e164 == phone_e164
+        )
+    )
+
+
 async def get_worker(
     db: AsyncSession, workspace_id: uuid.UUID, worker_id: uuid.UUID
 ) -> ExtensionWorker | None:

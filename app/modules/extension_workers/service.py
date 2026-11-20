@@ -103,6 +103,44 @@ async def join(
     return Joined(worker, assignment, pending_approval=worker.status == "pending_approval")
 
 
+async def seed_demo_worker(
+    db: AsyncSession,
+    *,
+    workspace_id: uuid.UUID,
+    form_id: uuid.UUID,
+    name: str,
+    phone_e164: str,
+    telegram_user_id: str | None,
+    region_id: uuid.UUID | None,
+    joined_at: datetime,
+) -> ExtensionWorker:
+    """Development seed only (roadmap 4.1): an active, confirmed worker found by phone, with an
+    active topic on `form_id`. Idempotent; the caller commits."""
+    worker = await repository.get_by_phone(db, workspace_id, phone_e164)
+    if worker is None:
+        worker = ExtensionWorker(
+            workspace_id=workspace_id,
+            name=name,
+            name_source="admin",
+            phone_e164=phone_e164,
+            telegram_user_id=telegram_user_id,
+            region_id=region_id,
+            status="active",
+            joined_at=joined_at,
+            confirmed_at=joined_at,
+        )
+        db.add(worker)
+        await db.flush()
+    if await repository.get_assignment(db, worker.id, form_id) is None:
+        db.add(
+            FormAssignment(
+                workspace_id=workspace_id, extension_worker_id=worker.id, form_id=form_id
+            )
+        )
+        await db.flush()
+    return worker
+
+
 async def leave(db: AsyncSession, assignment: FormAssignment, now: datetime) -> None:
     """Drop one topic; a worker with no topic left becomes `left`."""
     assignment.status, assignment.left_at = "left", now
