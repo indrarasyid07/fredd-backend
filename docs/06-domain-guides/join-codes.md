@@ -91,7 +91,7 @@ Kuota penyuluh paket ([billing-and-plans.md](billing-and-plans.md)) dihitung dar
 
 - Modul `app/modules/join_codes/` + tabel `join_codes` (kolom di atas; indeks unik parsial: satu kode tidak dicabut per form). Kode dibuat otomatis oleh `forms.service.create_form` lewat `join_codes.service.create_for_form` (dalam unit kerja yang sama); form lama mendapat kode lewat migrasi.
 - `GET/PATCH /forms/{id}/join-code` ada. `claimable` = kode `active` dan form `pilot`/`active`. Tautan bagikan dari env `TELEGRAM_BOT_USERNAME` (`https://t.me/<bot>?start=<KODE>`) dan `WHATSAPP_PUBLIC_NUMBER` (`https://wa.me/<nomor>?text=GABUNG%20<KODE>`); kosong = null.
-- Belum: buat ulang (`rotate`).
+- Buat ulang: `POST /forms/{id}/join-code/rotate` (Langkah 3.10), pengaturan ikut ke kode baru. `GET /bots` untuk kartu bot bersama.
 
 ## Status implementasi (Langkah 3.6, Telegram)
 
