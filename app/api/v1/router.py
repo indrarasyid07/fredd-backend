@@ -6,6 +6,7 @@ from app.api.v1 import (
     audit_logs,
     auth,
     bots,
+    extension_workers,
     form_templates,
     forms,
     invites,
@@ -28,3 +29,6 @@ router.include_router(reference_data.router, prefix="/reference-data", tags=["re
 router.include_router(forms.router, prefix="/forms", tags=["forms"])
 router.include_router(form_templates.router, prefix="/form-templates", tags=["forms"])
 router.include_router(join_codes.router, prefix="/forms", tags=["join-codes"])
+router.include_router(
+    extension_workers.router, prefix="/extension-workers", tags=["extension-workers"]
+)

@@ -43,6 +43,13 @@ async def process_chat_job(channel_id: str, chat_id: str) -> None:
                 return
 
 
+@broker.task(task_name="conversations.deliver", retry_on_error=True)
+async def deliver_message_job(message_id: str) -> None:
+    """Send one outbound row made outside a chat's own processing (e.g. an admin's approval)."""
+    async with db_session.open_session() as db:
+        await service.deliver(db, telegram.get_client(), uuid.UUID(message_id))
+
+
 @broker.task(task_name="conversations.leave_chat")
 async def leave_chat_job(chat_id: str) -> None:
     """The bot only works in private chats; it leaves any group it is added to (3.5a)."""

@@ -1,10 +1,13 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import and_, or_, select
+from sqlalchemy.dialects.postgresql import distinct_on, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.extension_workers.models import ChatContext, ExtensionWorker, FormAssignment
+from app.modules.forms.models import Form
+from app.modules.join_codes.models import JoinCode
 
 
 async def get_by_telegram_user(
@@ -79,3 +82,78 @@ async def set_chat_context(
             set_={"active_assignment_id": assignment_id},
         )
     )
+
+
+async def get_worker(
+    db: AsyncSession, workspace_id: uuid.UUID, worker_id: uuid.UUID
+) -> ExtensionWorker | None:
+    return await db.scalar(
+        select(ExtensionWorker).where(
+            ExtensionWorker.workspace_id == workspace_id, ExtensionWorker.id == worker_id
+        )
+    )
+
+
+async def list_workers(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    *,
+    status: str | None,
+    after: tuple[datetime, uuid.UUID] | None,
+    limit: int,
+) -> list[ExtensionWorker]:
+    """Newest first; one extra row tells the caller there is a next page."""
+    stmt = select(ExtensionWorker).where(ExtensionWorker.workspace_id == workspace_id)
+    if status is not None:
+        stmt = stmt.where(ExtensionWorker.status == status)
+    if after is not None:
+        created, last_id = after
+        stmt = stmt.where(
+            or_(
+                ExtensionWorker.created_at < created,
+                and_(ExtensionWorker.created_at == created, ExtensionWorker.id < last_id),
+            )
+        )
+    rows = await db.scalars(
+        stmt.order_by(ExtensionWorker.created_at.desc(), ExtensionWorker.id.desc()).limit(limit + 1)
+    )
+    return list(rows)
+
+
+TopicRow = tuple[uuid.UUID, uuid.UUID, str, str | None]  # worker, form, form name, code
+
+
+async def list_latest_topics(
+    db: AsyncSession, workspace_id: uuid.UUID, worker_ids: list[uuid.UUID]
+) -> list[TopicRow]:
+    """Each worker's most recent active topic with the code they joined by."""
+    if not worker_ids:
+        return []
+    rows = await db.execute(
+        select(FormAssignment.extension_worker_id, Form.id, Form.name, JoinCode.code)
+        .join(Form, Form.id == FormAssignment.form_id)
+        .outerjoin(JoinCode, JoinCode.id == FormAssignment.joined_via_code_id)
+        .where(
+            FormAssignment.workspace_id == workspace_id,
+            FormAssignment.extension_worker_id.in_(worker_ids),
+            FormAssignment.status == "active",
+        )
+        .order_by(FormAssignment.extension_worker_id, FormAssignment.updated_at.desc())
+        .ext(distinct_on(FormAssignment.extension_worker_id))
+    )
+    return [(r[0], r[1], r[2], r[3]) for r in rows.all()]
+
+
+async def list_active_assignments(
+    db: AsyncSession, extension_worker_id: uuid.UUID
+) -> list[FormAssignment]:
+    """Most recently changed first."""
+    rows = await db.scalars(
+        select(FormAssignment)
+        .where(
+            FormAssignment.extension_worker_id == extension_worker_id,
+            FormAssignment.status == "active",
+        )
+        .order_by(FormAssignment.updated_at.desc(), FormAssignment.id.desc())
+    )
+    return list(rows)
