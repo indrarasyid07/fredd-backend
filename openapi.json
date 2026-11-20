@@ -1787,6 +1787,92 @@
         }
       }
     },
+    "/api/v1/dashboard/summary": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Dashboard Summary",
+        "operationId": "dashboard_summary_api_v1_dashboard_summary_get",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "today",
+                "7d",
+                "30d"
+              ],
+              "type": "string",
+              "default": "today",
+              "title": "Range"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_DashboardSummaryOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/reference-data": {
       "get": {
         "tags": [
@@ -4619,6 +4705,54 @@
         ],
         "title": "ApiResponse[AcceptedInvite]"
       },
+      "ApiResponse_DashboardSummaryOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[DashboardSummaryOut]"
+      },
       "ApiResponse_ExtensionWorkerDetailOut_": {
         "properties": {
           "success": {
@@ -5860,6 +5994,122 @@
         "title": "BotOut",
         "description": "One of the platform's shared bots (B-048), as shown to admins on Kanal and Bagikan kode."
       },
+      "ChannelShareOut": {
+        "properties": {
+          "whatsapp": {
+            "type": "integer",
+            "title": "Whatsapp"
+          },
+          "telegram": {
+            "type": "integer",
+            "title": "Telegram"
+          }
+        },
+        "type": "object",
+        "required": [
+          "whatsapp",
+          "telegram"
+        ],
+        "title": "ChannelShareOut",
+        "description": "Share of the 7-day reports by channel, in percent (adds up to 100, or 0 and 0)."
+      },
+      "CompletionOut": {
+        "properties": {
+          "percent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          },
+          "blurry_rejected": {
+            "type": "integer",
+            "title": "Blurry Rejected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "percent",
+          "blurry_rejected"
+        ],
+        "title": "CompletionOut"
+      },
+      "ConditionCountOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "attention",
+              "infected"
+            ],
+            "title": "Key"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "count",
+          "percent"
+        ],
+        "title": "ConditionCountOut"
+      },
+      "ConditionsOut": {
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "today",
+              "7d",
+              "30d"
+            ],
+            "title": "Range"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConditionCountOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "unknown": {
+            "type": "integer",
+            "title": "Unknown"
+          },
+          "top_infected_regions": {
+            "items": {
+              "$ref": "#/components/schemas/RegionCountOut"
+            },
+            "type": "array",
+            "title": "Top Infected Regions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "range",
+          "total",
+          "items",
+          "unknown",
+          "top_infected_regions"
+        ],
+        "title": "ConditionsOut"
+      },
       "CreateFormRequest": {
         "properties": {
           "name": {
@@ -5917,6 +6167,84 @@
           "role"
         ],
         "title": "CreateInviteRequest"
+      },
+      "DashboardSummaryOut": {
+        "properties": {
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "kpis": {
+            "$ref": "#/components/schemas/KpisOut"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/DayCountOut"
+            },
+            "type": "array",
+            "title": "Daily"
+          },
+          "previous_daily": {
+            "items": {
+              "$ref": "#/components/schemas/DayCountOut"
+            },
+            "type": "array",
+            "title": "Previous Daily"
+          },
+          "channels": {
+            "$ref": "#/components/schemas/ChannelShareOut"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/ConditionsOut"
+          },
+          "top_regions": {
+            "items": {
+              "$ref": "#/components/schemas/RegionCountOut"
+            },
+            "type": "array",
+            "title": "Top Regions"
+          },
+          "setup": {
+            "$ref": "#/components/schemas/SetupOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "as_of",
+          "timezone",
+          "kpis",
+          "daily",
+          "previous_daily",
+          "channels",
+          "conditions",
+          "top_regions",
+          "setup"
+        ],
+        "title": "DashboardSummaryOut"
+      },
+      "DayCountOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "count"
+        ],
+        "title": "DayCountOut"
       },
       "DraftChoiceOption": {
         "properties": {
@@ -7268,6 +7596,30 @@
         ],
         "title": "JoinCodeOut"
       },
+      "KpisOut": {
+        "properties": {
+          "reports_today": {
+            "$ref": "#/components/schemas/ReportsTodayOut"
+          },
+          "workers": {
+            "$ref": "#/components/schemas/WorkersKpiOut"
+          },
+          "monitored_land": {
+            "$ref": "#/components/schemas/MonitoredLandOut"
+          },
+          "completion": {
+            "$ref": "#/components/schemas/CompletionOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reports_today",
+          "workers",
+          "monitored_land",
+          "completion"
+        ],
+        "title": "KpisOut"
+      },
       "LatLng": {
         "properties": {
           "lat": {
@@ -7461,6 +7813,29 @@
           "timestamp"
         ],
         "title": "Meta"
+      },
+      "MonitoredLandOut": {
+        "properties": {
+          "area_ha": {
+            "type": "number",
+            "title": "Area Ha"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "regencies": {
+            "type": "integer",
+            "title": "Regencies"
+          }
+        },
+        "type": "object",
+        "required": [
+          "area_ha",
+          "points",
+          "regencies"
+        ],
+        "title": "MonitoredLandOut"
       },
       "NamedRef": {
         "properties": {
@@ -7677,6 +8052,30 @@
           "source"
         ],
         "title": "ReferenceItemOut"
+      },
+      "RegionCountOut": {
+        "properties": {
+          "region_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Region Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "region_id",
+          "name",
+          "count"
+        ],
+        "title": "RegionCountOut"
       },
       "RegionPathOut": {
         "properties": {
@@ -8186,6 +8585,44 @@
         ],
         "title": "ReportReviewOut"
       },
+      "ReportsTodayOut": {
+        "properties": {
+          "value": {
+            "type": "integer",
+            "title": "Value"
+          },
+          "yesterday_same_time": {
+            "type": "integer",
+            "title": "Yesterday Same Time"
+          },
+          "delta_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Pct"
+          },
+          "trend": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Trend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "yesterday_same_time",
+          "delta_pct",
+          "trend"
+        ],
+        "title": "ReportsTodayOut"
+      },
       "ResetPasswordRequest": {
         "properties": {
           "token": {
@@ -8282,6 +8719,29 @@
           "equals"
         ],
         "title": "RuleCondition"
+      },
+      "SetupOut": {
+        "properties": {
+          "form_created": {
+            "type": "boolean",
+            "title": "Form Created"
+          },
+          "channel_and_worker": {
+            "type": "boolean",
+            "title": "Channel And Worker"
+          },
+          "has_reports": {
+            "type": "boolean",
+            "title": "Has Reports"
+          }
+        },
+        "type": "object",
+        "required": [
+          "form_created",
+          "channel_and_worker",
+          "has_reports"
+        ],
+        "title": "SetupOut"
       },
       "TemplateChipOut": {
         "properties": {
@@ -8786,6 +9246,29 @@
         ],
         "title": "WorkerTopicOut",
         "description": "The structure the worker asked to join, and the code they used."
+      },
+      "WorkersKpiOut": {
+        "properties": {
+          "active": {
+            "type": "integer",
+            "title": "Active"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "not_reported": {
+            "type": "integer",
+            "title": "Not Reported"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active",
+          "total",
+          "not_reported"
+        ],
+        "title": "WorkersKpiOut"
       },
       "WorkspaceOut": {
         "properties": {
