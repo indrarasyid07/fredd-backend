@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     audit_logs,
     auth,
+    bots,
     form_templates,
     forms,
     invites,
@@ -22,6 +23,7 @@ router.include_router(workspaces.router, prefix="/workspace", tags=["workspace"]
 router.include_router(members.router, prefix="/members", tags=["members"])
 router.include_router(invites.router, prefix="/invites", tags=["invites"])
 router.include_router(audit_logs.router, prefix="/audit-logs", tags=["audit-logs"])
+router.include_router(bots.router, prefix="/bots", tags=["bots"])
 router.include_router(reference_data.router, prefix="/reference-data", tags=["reference-data"])
 router.include_router(forms.router, prefix="/forms", tags=["forms"])
 router.include_router(form_templates.router, prefix="/form-templates", tags=["forms"])

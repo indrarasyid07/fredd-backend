@@ -70,7 +70,7 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 | GET, POST | `/extension-workers` | reviewer / admin |
 | GET, PATCH, DELETE | `/extension-workers/{id}` | reviewer / admin |
 | GET, PATCH | `/forms/{id}/join-code` | reviewer / admin (PATCH: admin). **Ada**: kode (`K7M2-9QXA`), status, `approval_mode`, `max_uses`, `expires_at`, `use_count`, `claimable` (kode aktif dan form pilot/aktif), tautan WhatsApp/Telegram (null bila bot belum diatur). PATCH: `status` (`active`/`paused`), `approval_mode`, `max_uses`, `expires_at` |
-| POST | `/forms/{id}/join-code/rotate` | admin |
+| POST | `/forms/{id}/join-code/rotate` | admin. **Ada (3.10)**: kode lama `revoked` (+`revoked_at`), kode baru dengan `approval_mode`, `max_uses`, `expires_at` (bila belum lewat) dan status jeda yang sama, `use_count` 0; audit `join_code.rotated`. Penyuluh yang sudah bergabung tetap terhubung |
 | POST | `/extension-workers/{id}/approve`, `/block` | admin |
 | ~~POST~~ | ~~`/extension-workers/invites`, `/invites/{id}/resend`~~ | dihapus (B-048) |
 
@@ -115,7 +115,7 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 
 | Method | Path | Peran |
 |---|---|---|
-| GET | `/bots` | semua anggota (hanya baca: nomor WhatsApp, username Telegram, status) |
+| GET | `/bots` | semua anggota. **Ada (3.10)**: daftar `{type, name, handle, url, available}` untuk WhatsApp dan Telegram dari env `WHATSAPP_PUBLIC_NUMBER` / `TELEGRAM_BOT_USERNAME`; `available: false` bila belum diatur di lingkungan itu |
 | GET | `/channels/logs` | admin (aktivitas pesan organisasi di bot bersama) |
 | ~~POST, DELETE~~ | ~~`/channels/telegram`, `/channels/whatsapp`, `/channels/{id}/test`, `/channels/{id}`~~ | dihapus (B-048): organisasi tidak menghubungkan kanal |
 

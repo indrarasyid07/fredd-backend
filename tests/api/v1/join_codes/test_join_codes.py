@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.modules.audit.models import AuditLog
 from app.modules.forms import service as forms
 from app.modules.forms.schemas import FormDefinition
 from app.modules.join_codes.models import JoinCode
@@ -94,3 +95,63 @@ async def test_roles_and_tenants(
     await db.flush()
     elsewhere = await _form(db, other.id)
     assert (await reviewer.get(f"/api/v1/forms/{elsewhere}/join-code")).status_code == 404
+
+
+async def test_rotate_issues_a_new_code_with_the_same_settings(
+    admin: AsyncClient, db: AsyncSession, organization: Workspace
+) -> None:
+    form_id = await _form(db, organization.id)
+    url = f"/api/v1/forms/{form_id}/join-code"
+    before = (
+        await admin.patch(url, json={"approval_mode": "manual", "max_uses": 30, "status": "paused"})
+    ).json()["data"]
+
+    response = await admin.post(f"{url}/rotate")
+    assert response.status_code == 200
+    after = response.json()["data"]
+    assert after["code"] != before["code"]
+    assert (after["approval_mode"], after["max_uses"], after["status"]) == ("manual", 30, "paused")
+    assert after["use_count"] == 0
+    assert (await admin.get(url)).json()["data"]["code"] == after["code"]
+
+    codes = (await db.scalars(select(JoinCode).where(JoinCode.form_id == form_id))).all()
+    assert sorted(c.status for c in codes) == ["paused", "revoked"]
+    old = next(c for c in codes if c.status == "revoked")
+    assert old.revoked_at is not None
+    action = await db.scalar(select(AuditLog.action).where(AuditLog.target == form_id))
+    assert action == "join_code.rotated"
+
+
+async def test_rotate_is_for_admins_and_own_workspace(
+    client: AsyncClient, db: AsyncSession, organization: Workspace
+) -> None:
+    form_id = await _form(db, organization.id)
+    await add_member(db, organization.id, email="fajar@contoh.id", role="form_editor")
+    editor = await sign_in(client, "fajar@contoh.id", organization.id)
+    assert (await editor.post(f"/api/v1/forms/{form_id}/join-code/rotate")).status_code == 403
+
+    other = Workspace(name="Lain", type="organization")
+    db.add(other)
+    await db.flush()
+    elsewhere = await _form(db, other.id)
+    admin = await sign_in(client, "dina@contoh.id", organization.id)
+    assert (await admin.post(f"/api/v1/forms/{elsewhere}/join-code/rotate")).status_code == 404
+
+
+async def test_bots_follow_the_environment(
+    admin: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "telegram_bot_username", "FluctuzBot")
+    monkeypatch.setattr(settings, "whatsapp_public_number", "")
+    response = await admin.get("/api/v1/bots")
+    assert response.status_code == 200
+    bots = {b["type"]: b for b in response.json()["data"]}
+    assert bots["telegram"] == {
+        "type": "telegram", "name": "Telegram Fluctuz", "handle": "@FluctuzBot",
+        "url": "https://t.me/FluctuzBot", "available": True,
+    }  # fmt: skip
+    assert (bots["whatsapp"]["available"], bots["whatsapp"]["url"]) == (False, None)
+
+
+async def test_bots_need_a_session(client: AsyncClient) -> None:
+    assert (await client.get("/api/v1/bots")).status_code == 401

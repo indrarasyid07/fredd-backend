@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.time import now_utc
+from app.modules.audit import service as audit
 from app.modules.forms import service as forms
 from app.modules.join_codes import errors, repository
 from app.modules.join_codes.constants import ALPHABET, CLAIMABLE_FORM_STATUSES, LENGTH
@@ -82,6 +83,41 @@ async def update_for_form(
     await db.commit()
     await db.refresh(join_code)
     return _out(join_code, form_status)
+
+
+async def rotate_for_form(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    form_id: uuid.UUID,
+    user_id: uuid.UUID,
+    *,
+    form_status: str,
+) -> JoinCodeOut:
+    """Revoke the structure's code and issue a new one with the same settings. People who
+    already joined stay joined; only newcomers need the new code (join-codes.md)."""
+    old = await repository.get_live_for_form(db, workspace_id, form_id, for_update=True)
+    if old is None:
+        raise errors.JoinCodeNotFound()
+    was_paused = old.status == "paused"
+    old.status, old.revoked_at = "revoked", now_utc()
+    await db.flush()  # free the one-live-code-per-form slot before adding the new one
+    new = await create_for_form(db, workspace_id, form_id, user_id)
+    new.approval_mode = old.approval_mode
+    new.max_uses = old.max_uses
+    new.expires_at = old.expires_at if old.expires_at and old.expires_at > now_utc() else None
+    if was_paused:
+        new.status = "paused"
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=user_id,
+        action="join_code.rotated",
+        target=str(form_id),
+        details={"old_code_id": str(old.id), "new_code_id": str(new.id)},
+    )
+    await db.commit()
+    await db.refresh(new)
+    return _out(new, form_status)
 
 
 def _out(join_code: JoinCode, form_status: str) -> JoinCodeOut:

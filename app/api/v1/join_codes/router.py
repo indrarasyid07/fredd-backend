@@ -1,4 +1,4 @@
-"""A structure's join code: read (any member), change approval and limits (admin).
+"""A structure's join code: read (any member), change approval and limits, or rotate (admin).
 Mounted under /forms; served by the join_codes module with the form's status from forms."""
 
 import uuid
@@ -37,3 +37,15 @@ async def update_join_code(
         db, member.workspace.id, form.id, body, form_status=form.status
     )
     return ok(code, message="Pengaturan kode gabung disimpan.")
+
+
+@router.post(
+    "/{form_id}/join-code/rotate", response_model=ApiResponse[JoinCodeOut], responses=_GUARDS
+)
+async def rotate_join_code(form_id: uuid.UUID, member: AdminMember, db: DB):
+    """Revoke the code and issue a new one. Workers who already joined stay joined."""
+    form = await forms.get_form(db, member.workspace.id, form_id)
+    code = await service.rotate_for_form(
+        db, member.workspace.id, form.id, member.member.user_id, form_status=form.status
+    )
+    return ok(code, message="Kode baru dibuat. Kode lama tidak bisa dipakai lagi.")
