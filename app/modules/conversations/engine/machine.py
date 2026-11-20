@@ -58,6 +58,7 @@ _CODE = re.compile(
     r"^(?:/start\s+|gabung\s+|kode\s+)?([a-hj-km-np-tv-z2-9]{4})[\s-]?([a-hj-km-np-tv-z2-9]{4})$"
 )
 _MEDIA_TYPES = ("photo", "video", "voice", "document", "signature")
+_DRAFT = ("asking", "confirming_summary")
 _ACCEPTS = {
     "photo": ("photo",),
     "video": ("video",),
@@ -78,7 +79,8 @@ def extract_join_code(text: str | None) -> str | None:
 
 def handle(state: ConversationState, message: Inbound, ctx: EngineContext) -> Step:
     s = replace(state, answers=dict(state.answers), required_by_rules=list(state.required_by_rules),
-                review_reasons=list(state.review_reasons))  # fmt: skip
+                review_reasons=list(state.review_reasons),
+                held_media=list(state.held_media))  # fmt: skip
     if s.status == "taken_over":
         return Step(s)  # the admin is answering; keep quiet
     text = normalize(message.text or "")
@@ -99,6 +101,16 @@ def handle(state: ConversationState, message: Inbound, ctx: EngineContext) -> St
     if text in _HELP or message.button == "help":
         return _needs_help(s, "asked_for_help")
 
+    if message.media is not None:
+        album = _album(s, message, ctx)
+        if album is not None:
+            return album
+        if s.status not in ("choosing_form", *_DRAFT) and message.media.kind == "photo":
+            # A photo before "mulai" starts a report and answers its first photo field.
+            s.held_media = [message.media.ref]
+            s.media_group = message.media.group
+            return _begin(s, ctx)
+
     if s.status == "choosing_form":
         return _choose_topic(s, message, ctx)
     if s.status == "asking" and ctx.definition is not None:
@@ -116,14 +128,69 @@ def start(state: ConversationState, ctx: EngineContext) -> Step:
     s = ConversationState(status="asking", topic_id=state.topic_id)
     definition = ctx.definition
     if definition is None:
+        s.held_media, s.media_group = list(state.held_media), state.media_group
         return Step(s)
+    notes = _use_held_media(s, state, definition)
     first = _next_field(s, definition)
     if first is None:
-        return _show_summary(s, definition, ctx)
+        summary = _show_summary(s, definition, ctx)
+        return Step(summary.state, replies=(*notes, *summary.replies))
     s.step = first.key
     question = _question(s, definition, first)
     greeting = replace(question, text=copy.greet(ctx.salutation, ctx.topic_label, question.text))
-    return Step(s, replies=(greeting,))
+    return Step(s, replies=(*notes, greeting))
+
+
+def _use_held_media(
+    s: ConversationState, state: ConversationState, definition: FormDefinition
+) -> tuple[Outbound, ...]:
+    """Photos sent before the report started answer its first photo field (up to its `max`)."""
+    if not state.held_media:
+        return ()
+    s.media_group = state.media_group
+    target = _first_photo_field(definition)
+    if target is None:
+        return (Outbound(copy.NO_PHOTO_FIELD),)
+    high = int(target.max) if target.max else None
+    files = state.held_media[:high] if high else list(state.held_media)
+    s.answers[target.key] = files
+    _evaluate_rules(s, definition)
+    notes = [Outbound(copy.photo_first_saved(len(files)))]
+    if high is not None and len(state.held_media) > high:
+        notes.append(Outbound(copy.media_extra_ignored(high)))
+    return tuple(notes)
+
+
+def _album(s: ConversationState, message: Inbound, ctx: EngineContext) -> Step | None:
+    """The rest of an album whose first photo started the report; None when the message is not
+    part of it (or the open question collects photos anyway)."""
+    media = message.media
+    if media is None or media.group is None or media.group != s.media_group:
+        return None
+    if media.kind != "photo":
+        return Step(s)
+    if s.status not in _DRAFT:
+        s.held_media.append(media.ref)  # still choosing the topic
+        return Step(s)
+    definition = ctx.definition
+    if s.status != "asking" or definition is None:
+        return Step(s)
+    current = definition.field(s.step or "")
+    if current is not None and current.type in _MEDIA_TYPES:
+        return None
+    target = _first_photo_field(definition)
+    if target is None:
+        return Step(s)
+    files = list(s.answers.get(target.key) or [])
+    high = int(target.max) if target.max else None
+    if high is not None and len(files) >= high:
+        return Step(s, replies=(Outbound(copy.media_extra_ignored(high)),))
+    s.answers[target.key] = [*files, media.ref]
+    return Step(s)
+
+
+def _first_photo_field(definition: FormDefinition) -> FieldDefinition | None:
+    return next((f for f in definition.fields if f.type == "photo"), None)
 
 
 def report_saved(code: str, ctx: EngineContext) -> Outbound:
@@ -186,6 +253,11 @@ def _asking(
 
     if current.type in _MEDIA_TYPES:
         return _media(s, message, ctx, definition, current)
+    if message.media is not None and message.media.kind != "voice":
+        # A photo while a text question is open: carry on or start over (resume/restart are
+        # handled by the service's command layer).
+        buttons = (Button(copy.RESUME, "resume"), Button(copy.RESTART, "restart:yes"))
+        return Step(s, replies=(Outbound(copy.DRAFT_EXISTS, buttons),))
     outcome = _read(current, message, ctx)
     if isinstance(outcome, str):
         return _failed(s, definition, current, outcome)

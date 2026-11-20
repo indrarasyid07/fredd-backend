@@ -37,7 +37,12 @@ Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | |
 | `ENCRYPTION_KEYS` | Daftar kunci Fernet dipisah koma, terbaru di depan |
 | `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | WhatsApp Cloud API |
-| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | |
+| `STORAGE_ENABLED` | `true` = foto chat ke penyimpanan objek S3-compatible (MinIO/R2/S3); `false` = disk lokal `MEDIA_DIR` (hanya tes & uji cepat) |
+| `STORAGE_ENDPOINT_URL`, `STORAGE_BUCKET`, `STORAGE_REGION` | Bucket **privat**; MinIO/R2 memakai endpoint sendiri |
+| `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY` | Rahasia; hanya di env server |
+| `STORAGE_KEY_PREFIX` | Awalan kunci objek, bawaan `fluctuz/` (bucket boleh dipakai bersama aplikasi lain) |
+| `STORAGE_PRESIGN_EXPIRY_SECONDS` | Umur URL bertanda tangan (dipakai mulai Langkah 5.1) |
+| `MEDIA_DIR` | Folder media saat `STORAGE_ENABLED=false`, bawaan `var/media` |
 | `LLM_*`, `STT_*` | Menunggu pilihan penyedia |
 | `ENVIRONMENT` | `development` / `staging` / `production` |
 

@@ -229,6 +229,22 @@ CONFIRM_TOPIC_FIRST = (
 UNSUPPORTED = (
     "Jenis pesan ini belum bisa saya baca. Mohon kirim teks, foto, atau lokasi sesuai pertanyaan."
 )
+MEDIA_TOO_LARGE = (
+    "Berkasnya terlalu besar (maksimal 20 MB). Mohon kirim ulang dalam ukuran lebih kecil."
+)
+MEDIA_WRONG_TYPE = "Berkas ini tidak bisa saya terima. Mohon kirim sebagai foto biasa."
+NO_PHOTO_FIELD = "Topik ini tidak meminta foto, jadi fotonya tidak saya simpan."
+PHOTO_RESEND = "Fotonya belum tersimpan untuk topik ini. Mohon kirim ulang fotonya nanti."
+
+
+def photo_first_saved(count: int) -> str:
+    return f"{count} foto diterima." if count > 1 else "Foto diterima."
+
+
+def media_extra_ignored(high: int) -> str:
+    return f"Cukup {high} foto saja; foto selebihnya tidak saya simpan."
+
+
 RESUME = "Lanjutkan"
 RESTART = "Mulai ulang"
 DRAFT_EXISTS = "Ada laporan yang belum selesai. Mau dilanjutkan atau mulai ulang dari awal?"

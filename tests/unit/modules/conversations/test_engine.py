@@ -295,3 +295,65 @@ def test_bare_letters_mid_report_are_an_answer(sim: Simulator) -> None:
     sim.share_location(-6.9, 107.6, 8)
     sim.say("BAMBANGS")  # eight code-like letters: a name here, not a join code
     assert sim.state.answers["farmer_name"] == "BAMBANGS"
+
+
+# --- Photo before "mulai" (roadmap 3.8) ----------------------------------------------------------
+
+
+def test_photo_before_start_begins_a_report_with_it(sim: Simulator) -> None:
+    sim.say(CODE)
+    sim.state.status = "submitted"
+    saved, question = sim.send_media("photo", "media/a.jpg")
+    assert saved.text == copy.photo_first_saved(1)
+    # The photo answered its field; the report goes on from the first unanswered field.
+    assert sim.state.answers["photos"] == ["media/a.jpg"]
+    assert sim.state.status == "asking" and sim.state.step == "location"
+    assert "2/5" in question.text
+
+
+def test_album_before_start_fills_the_photo_field_up_to_its_max(sim: Simulator) -> None:
+    sim.say(CODE)
+    sim.state.status = "submitted"
+    sim.send_media("photo", "media/1.jpg", group="g1")
+    assert sim.send_media("photo", "media/2.jpg", group="g1") == []  # quiet: same album
+    sim.send_media("photo", "media/3.jpg", group="g1")
+    extra = sim.send_media("photo", "media/4.jpg", group="g1")
+    assert [r.text for r in extra] == [copy.media_extra_ignored(3)]
+    assert sim.state.answers["photos"] == ["media/1.jpg", "media/2.jpg", "media/3.jpg"]
+    assert sim.state.step == "location"
+
+
+def test_photo_for_a_topic_without_photo_field_is_ignored_with_a_note() -> None:
+    definition = crop_survey()
+    definition["fields"] = [f for f in definition["fields"] if f["type"] != "photo"]
+    definition["rules"] = []
+    topic = SimTopic("t1", "Dinas · Survei", FormDefinition.model_validate(definition), CODE)
+    sim = Simulator(topics=[topic])
+    sim.say(CODE)
+    sim.state.status = "submitted"
+    note, question = sim.send_media("photo", "media/a.jpg")
+    assert note.text == copy.NO_PHOTO_FIELD and "1/" in question.text
+    assert sim.state.answers == {}
+
+
+def test_photo_with_two_topics_waits_for_the_topic(sim: Simulator) -> None:
+    sim.topics.append(_topic("t2", "Dinas Pertanian · Panen", "R4H8T2NW"))
+    sim.say(CODE)
+    sim.say("R4H8-T2NW")
+    sim.state = ConversationState(status="submitted", topic_id="t2")
+    choose = sim.send_media("photo", "media/a.jpg", group="g1")[0]
+    assert choose.text == copy.CHOOSE_TOPIC
+    sim.send_media("photo", "media/b.jpg", group="g1")  # rest of the album, held too
+    sim.tap("topic:t1")
+    assert sim.state.topic_id == "t1"
+    assert sim.state.answers["photos"] == ["media/a.jpg", "media/b.jpg"]
+    assert sim.state.held_media == []
+
+
+def test_photo_during_a_text_question_offers_resume_or_restart(sim: Simulator) -> None:
+    sim.say(CODE)
+    sim.share_location(-6.9, 107.6, 8)
+    (offer,) = sim.send_media("photo", "media/a.jpg")
+    assert offer.text == copy.DRAFT_EXISTS
+    assert [b.value for b in offer.buttons] == ["resume", "restart:yes"]
+    assert sim.state.failed_attempts == 0 and "photos" not in sim.state.answers

@@ -26,7 +26,7 @@ from app.modules.channels.telegram import (
     TelegramError,
     parse_update,
 )
-from app.modules.conversations import joining, reporting, repository
+from app.modules.conversations import joining, media, reporting, repository
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.types import Button, ConversationState, Outbound
 from app.modules.conversations.models import Message
@@ -155,6 +155,7 @@ async def process_chat(
             if message.payload.get("edited"):
                 answer = [Outbound(copy.EDITED)]
             else:
+                await _store_media(db, client, chat, message)
                 answer = await reporting.handle(db, chat, message)
         # After routing, so the message that joined a topic belongs to it too.
         owner = await _owner(db, chat)
@@ -186,6 +187,18 @@ async def process_chat(
 
 
 Owner = tuple[uuid.UUID | None, uuid.UUID | None]
+
+
+async def _store_media(
+    db: AsyncSession, client: BotApi, chat: joining.Chat, message: Message
+) -> None:
+    """Copy a photo or file to storage under the organization of the chat's active topic, the
+    one the report flow answers for (roadmap 3.8)."""
+    if message.kind not in media.MEDIA_KINDS:
+        return
+    assignment = await workers.active_assignment(db, chat.channel_id, chat.chat_id)
+    if assignment is not None:
+        await media.store(client, message, assignment.workspace_id)
 
 
 async def _owner(db: AsyncSession, chat: joining.Chat) -> Owner:

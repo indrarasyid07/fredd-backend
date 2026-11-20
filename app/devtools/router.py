@@ -5,6 +5,7 @@ processed, replies recorded as outbound messages. Only the Bot API is replaced (
 marked sent, not delivered anywhere). Writes to the configured database like the real bot.
 """
 
+import base64
 import uuid
 from pathlib import Path
 from typing import Annotated, Any
@@ -26,6 +27,12 @@ router = APIRouter(prefix="/devtools", include_in_schema=False)
 PAGE = Path(__file__).with_name("chat.html")
 
 
+TINY_JPEG = base64.b64decode(
+    "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////"
+    "////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
+)
+
+
 class DevtoolsTelegram:
     """Stands in for the Bot API: every send succeeds and goes nowhere."""
 
@@ -37,6 +44,10 @@ class DevtoolsTelegram:
 
     async def leave_chat(self, chat_id: str) -> None:
         return None
+
+    async def download_file(self, file_id: str, max_bytes: int) -> bytes:
+        # A 1x1 JPEG stands in for the photo, so the simulator exercises the storage too.
+        return TINY_JPEG
 
 
 class SimulatedLocation(BaseModel):
@@ -72,7 +83,7 @@ def _update(update_id: int, msg: SimulatedMessage, now: int) -> dict[str, Any]:
         message["location"] = {"latitude": msg.location.lat, "longitude": msg.location.lng,
                                "horizontal_accuracy": msg.location.accuracy_m}  # fmt: skip
     elif msg.photo:
-        # A made-up file reference: nothing is downloaded from the simulator.
+        # A made-up file reference; "downloading" it gives TINY_JPEG.
         message["photo"] = [{"file_id": f"devtools-photo-{update_id}",
                              "file_unique_id": f"devtools-{update_id}", "width": 1280}]  # fmt: skip
     else:
