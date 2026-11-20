@@ -2,7 +2,7 @@
 
 Data di balik halaman `/app` ([frontend ui/dashboard.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/dashboard.md)): ringkasan angka, peta, daftar laporan terbaru, ekspor, dan event realtime. Format respons: [api-conventions.md](../03-api/api-conventions.md#format-respons).
 
-**Status: rancangan, belum dibangun** (16 November 2026). Tampilan frontend sudah dibangun dengan data contoh; daftar kebutuhan per elemen layar: [backend-needs.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/backend-needs.md). Semua endpoint di bawah **menunggu modul `workspaces`, `forms`, `extension_workers`, dan `reports`** (urutannya di [roadmap](../10-roadmap/roadmap.md)); dashboard hanya membaca, tidak menulis data lapangan.
+**Status: sebagian dibangun** (20 November 2026): `GET /reports` dan `GET /reports/{id}` **ada (4.3)**, lihat [endpoints.md](../03-api/endpoints.md#laporan-field-reports); `summary`, `map`, `count`, SSE, dan ekspor masih rancangan. Tampilan frontend sudah dibangun dengan data contoh; daftar kebutuhan per elemen layar: [backend-needs.md](https://github.com/indrarasyid07/fredd-frontend/blob/development/docs/06-domain-guides/ui/backend-needs.md). Semua endpoint di bawah **menunggu modul `workspaces`, `forms`, `extension_workers`, dan `reports`** (urutannya di [roadmap](../10-roadmap/roadmap.md)); dashboard hanya membaca, tidak menulis data lapangan.
 
 ## Prinsip
 
@@ -117,7 +117,7 @@ Rincian untuk panel detail:
 }
 ```
 
-`fields` mengikuti urutan dan label **versi struktur data saat laporan dibuat** (`form_versions.definition`), jadi laporan lama tetap terbaca setelah struktur berubah. URL foto bertanda tangan, berlaku 15 menit. `region.report_count` mengikuti rentang aktif di dashboard bila `range` dikirim.
+**Bentuk yang dibangun (4.3)** sedikit berbeda dari contoh di atas: tiap isian berisi `key`, `label`, `type` (jenis isian struktur), `value` (jawaban mentah), `display` (teks siap tampil), `unit`; `worker` tanpa `region`; `region` tanpa `report_count`; foto `{id, field_key, position, url, expires_at}` tanpa `thumb_url` (menyusul 5.1); `review.reasons` berupa daftar kalimat. `fields` mengikuti urutan dan label **versi struktur data saat laporan dibuat** (`form_versions.definition`), jadi laporan lama tetap terbaca setelah struktur berubah. URL foto bertanda tangan, berlaku 15 menit. `region.report_count` mengikuti rentang aktif di dashboard bila `range` dikirim.
 
 ### `GET /reports?limit=5&sort=-received_at`
 

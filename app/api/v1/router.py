@@ -13,6 +13,7 @@ from app.api.v1 import (
     join_codes,
     members,
     reference_data,
+    reports,
     system,
     workspaces,
 )
@@ -32,3 +33,4 @@ router.include_router(join_codes.router, prefix="/forms", tags=["join-codes"])
 router.include_router(
     extension_workers.router, prefix="/extension-workers", tags=["extension-workers"]
 )
+router.include_router(reports.router, prefix="/reports", tags=["reports"])

@@ -10,18 +10,33 @@ the region from the point, and the 50 m plot key for "unique plots".
 import hashlib
 import math
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+from app.core.pagination import InvalidCursor
+from app.core.storage import get_storage
 from app.core.time import now_utc
+from app.modules.forms import service as forms
 from app.modules.forms.constants import CONDITION_VALUES
 from app.modules.forms.schemas import FieldDefinition, FormDefinition
 from app.modules.reference_data import service as reference_data
 from app.modules.reports import repository
+from app.modules.reports.errors import ReportNotFound
 from app.modules.reports.models import Report, ReportPhoto
+from app.modules.reports.schemas import (
+    NamedRef,
+    ReportDetailOut,
+    ReportFieldOut,
+    ReportFormOut,
+    ReportListItemOut,
+    ReportLocationOut,
+    ReportPhotoOut,
+    ReportReviewOut,
+)
 
 # "Titik lahan": a point rounded to a 50 m grid, per worker and structure (dashboard.md).
 PLOT_GRID_METERS = 50
@@ -152,3 +167,230 @@ def plot_key(lat: float, lng: float, worker_id: uuid.UUID, form_id: uuid.UUID) -
     step_lng = PLOT_GRID_METERS / (_METERS_PER_DEGREE * max(math.cos(math.radians(lat)), 0.01))
     cell = f"{math.floor(lat / step_lat)}:{math.floor(lng / step_lng)}"
     return hashlib.sha256(f"{worker_id}:{form_id}:{cell}".encode()).hexdigest()[:32]
+
+
+# --- Reading (roadmap 4.3) ----------------------------------------------------------------------
+
+_CONDITION_LABELS = {"healthy": "Sehat", "attention": "Perlu perhatian", "infected": "Terserang"}
+_MEDIA_WORDS = {
+    "photo": "foto",
+    "video": "video",
+    "voice": "pesan suara",
+    "document": "berkas",
+    "signature": "tanda tangan",
+}
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des")
+SKIPPED = "Dilewati"
+
+
+async def list_reports(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    *,
+    form_id: uuid.UUID | None = None,
+    extension_worker_id: uuid.UUID | None = None,
+    region_id: uuid.UUID | None = None,
+    conditions: list[str] | None = None,
+    needs_review: bool | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    after: list[str] | None = None,
+    limit: int = 20,
+) -> tuple[list[ReportListItemOut], list[str] | None]:
+    """A page of reports (newest first) and the next cursor's values (None on the last page)."""
+    rows = await repository.list_reports(
+        db,
+        workspace_id,
+        form_id=form_id,
+        extension_worker_id=extension_worker_id,
+        region_id=region_id,
+        conditions=conditions,
+        needs_review=needs_review,
+        since=since,
+        until=until,
+        after=_parse_after(after),
+        limit=limit,
+    )
+    page = rows[:limit]
+    more = None
+    if len(rows) > limit:
+        last = page[-1].report
+        more = [last.received_at.isoformat(), str(last.id)]
+    return [_list_item(r) for r in page], more
+
+
+async def get_report_detail(
+    db: AsyncSession, workspace_id: uuid.UUID, report_id: uuid.UUID
+) -> ReportDetailOut:
+    row = await repository.get_report_row(db, workspace_id, report_id)
+    if row is None:
+        raise ReportNotFound()
+    report = row.report
+    # The version the report was made with: an old report keeps its old labels and order.
+    version = await forms.get_version_definition(
+        db, workspace_id, report.form_version_id, published_only=False
+    )
+    definition = version.definition
+    location = None
+    if report.latitude is not None and report.longitude is not None:
+        location = ReportLocationOut(
+            lat=report.latitude, lng=report.longitude, accuracy_m=report.accuracy_m
+        )
+    return ReportDetailOut(
+        id=report.id,
+        code=report.code,
+        form=ReportFormOut(id=report.form_id, name=row.form_name, version=version.version),
+        worker=NamedRef(id=report.extension_worker_id, name=row.worker_name),
+        channel=_channel(row),
+        received_at=report.received_at,
+        location=location,
+        region=_region(row),
+        condition=report.condition,  # type: ignore[arg-type]  # checked by the table
+        area_ha=float(report.area_ha) if report.area_ha is not None else None,
+        complete=report.complete,
+        fields=[_field(f, report.answers.get(f.key)) for f in definition.fields],
+        photos=await _photos(db, report.id),
+        review=ReportReviewOut(
+            needs_review=report.needs_review,
+            reasons=[_reason(definition, r) for r in report.review_reasons],
+        ),
+    )
+
+
+def _parse_after(after: list[str] | None) -> tuple[datetime, uuid.UUID] | None:
+    if after is None:
+        return None
+    try:
+        return datetime.fromisoformat(after[0]), uuid.UUID(after[1])
+    except ValueError:
+        raise InvalidCursor() from None
+
+
+def _channel(row: repository.ReportRow) -> Literal["telegram", "whatsapp"]:
+    return "telegram" if row.telegram_user_id else "whatsapp"
+
+
+def _region(row: repository.ReportRow) -> NamedRef | None:
+    region_id = row.report.region_id
+    if region_id is None or row.region_name is None:
+        return None
+    return NamedRef(id=region_id, name=row.region_name)
+
+
+def _list_item(row: repository.ReportRow) -> ReportListItemOut:
+    report = row.report
+    return ReportListItemOut(
+        id=report.id,
+        code=report.code,
+        form=NamedRef(id=report.form_id, name=row.form_name),
+        worker=NamedRef(id=report.extension_worker_id, name=row.worker_name),
+        channel=_channel(row),
+        region=_region(row),
+        condition=report.condition,  # type: ignore[arg-type]  # checked by the table
+        area_ha=float(report.area_ha) if report.area_ha is not None else None,
+        photo_count=row.photo_count,
+        needs_review=report.needs_review,
+        complete=report.complete,
+        received_at=report.received_at,
+    )
+
+
+async def _photos(db: AsyncSession, report_id: uuid.UUID) -> list[ReportPhotoOut]:
+    """Each photo with a short-lived signed link. A photo still kept as a Telegram reference
+    (its copy failed) has no link yet."""
+    seconds = settings.storage_presign_expiry_seconds
+    storage = get_storage()
+    out: list[ReportPhotoOut] = []
+    for photo in await repository.list_photos(db, report_id):
+        url = None
+        if not photo.object_key.startswith("telegram:"):
+            url = await storage.signed_url(photo.object_key, seconds)
+        out.append(
+            ReportPhotoOut(
+                id=photo.id,
+                field_key=photo.field_key,
+                position=photo.position,
+                url=url,
+                expires_at=now_utc() + timedelta(seconds=seconds) if url else None,
+            )
+        )
+    return out
+
+
+def _field(f: FieldDefinition, value: Any) -> ReportFieldOut:
+    return ReportFieldOut(
+        key=f.key, label=f.label, type=f.type, value=value, display=display(f, value), unit=f.unit
+    )
+
+
+def display(f: FieldDefinition, value: Any) -> str:
+    """An answer as it reads in Indonesian."""
+    if not _answered(value):
+        return SKIPPED
+    if f.type == "number":
+        text = _number(value)
+        return f"{text} {f.unit}" if f.unit else text
+    if f.type in ("single_choice", "multi_choice"):
+        values = value if isinstance(value, list) else [value]
+        return ", ".join(_option_label(f, v) for v in values)
+    if f.type == "datetime":
+        return _date(str(value))
+    if f.type == "location":
+        return _place(value)
+    if f.type in _MEDIA_WORDS:
+        count = len(value) if isinstance(value, list) else 1
+        return f"{count} {_MEDIA_WORDS[f.type]}"
+    return str(value)
+
+
+def _number(value: Any) -> str:
+    try:
+        number = Decimal(str(value)).normalize()
+    except InvalidOperation:
+        return str(value)
+    return f"{number:f}".replace(".", ",")
+
+
+def _option_label(f: FieldDefinition, value: Any) -> str:
+    for option in f.options:
+        if option.value == value:
+            return option.label
+    return _CONDITION_LABELS.get(str(value), str(value))
+
+
+def _date(value: str) -> str:
+    try:
+        when = datetime.fromisoformat(value)
+    except ValueError:
+        return value
+    text = f"{when.day} {_MONTHS[when.month - 1]} {when.year}"
+    if "T" in value:
+        text += f", {when:%H.%M}"
+    return text
+
+
+def _place(value: Any) -> str:
+    if not isinstance(value, dict):
+        return str(value)
+    if value.get("name"):
+        return str(value["name"])
+    try:
+        text = f"{float(value['lat']):.5f}, {float(value['lng']):.5f}"
+    except KeyError, TypeError, ValueError:
+        return str(value)
+    accuracy = value.get("accuracy_m")
+    return f"{text} (akurasi {round(float(accuracy))} m)" if accuracy else text
+
+
+def _reason(definition: FormDefinition, reason: str) -> str:
+    """Why a report waits for review: "review_above:<field>" or "rule:<index>"."""
+    kind, _, ref = reason.partition(":")
+    if kind == "review_above" and (f := definition.field(ref)) and f.review_above is not None:
+        limit = _number(f.review_above)
+        return f"{f.label} di atas {limit} {f.unit}" if f.unit else f"{f.label} di atas {limit}"
+    if kind == "rule" and ref.isdigit() and int(ref) < len(definition.rules):
+        rule = definition.rules[int(ref)]
+        f = definition.field(rule.if_.field)
+        if f is not None:
+            return f"Aturan: {f.label} = {display(f, rule.if_.equals)}"
+    return "Perlu ditinjau"

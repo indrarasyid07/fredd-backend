@@ -91,11 +91,11 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 
 | Method | Path | Peran |
 |---|---|---|
-| GET | `/reports` | reviewer (filter, cursor) |
+| GET | `/reports` | reviewer. **Ada (4.3)**: terbaru dahulu (`received_at`, cursor); filter `form_id`, `extension_worker_id`, `region_id`, `condition` (boleh berulang; `unknown` = tanpa kondisi), `needs_review`, `since` (inklusif), `until` (eksklusif). Baris: kode, struktur, penyuluh, kanal, wilayah, kondisi, `area_ha`, `photo_count`, `needs_review`, `complete`, `received_at` |
 | GET | `/reports/map` | reviewer (agregat per wilayah + titik; [dashboard.md](../06-domain-guides/dashboard.md#get-reportsmaprangeform_idcondition)) |
 | GET | `/reports/count` | reviewer (jumlah untuk jendela unduh) |
 | GET | `/reports/photos` | reviewer (galeri) |
-| GET | `/reports/{id}` | reviewer |
+| GET | `/reports/{id}` | reviewer. **Ada (4.3)**: isian berlabel menurut **versi struktur saat laporan dibuat** (`value` mentah + `display` Bahasa Indonesia, mis. "1,5 ha", "Terserang", "Dilewati"), lokasi, wilayah, foto dengan URL bertanda tangan (`STORAGE_PRESIGN_EXPIRY_SECONDS`; `url: null` bila foto masih rujukan Telegram atau penyimpanan lokal), alasan tinjauan dalam kalimat. Workspace lain → `404 report_not_found` |
 | PATCH | `/reports/{id}/review` | reviewer (tandai ditinjau) |
 | PUT | `/reports/{id}/follow-up` | reviewer (status, assignee, prioritas, catatan) |
 | POST | `/reports/exports` | form_editor (pekerjaan ekspor PDF/Excel/CSV; menggantikan `GET /reports/export`) |

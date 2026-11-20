@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 class Storage(Protocol):
     async def put(self, key: str, data: bytes, content_type: str) -> None: ...
+    async def signed_url(self, key: str, seconds: int) -> str | None: ...
 
 
 class S3Storage:
@@ -47,6 +48,15 @@ class S3Storage:
             ContentType=content_type,
         )
 
+    async def signed_url(self, key: str, seconds: int) -> str | None:
+        """A GET link that works for `seconds` (the bucket itself stays private)."""
+        return await asyncio.to_thread(
+            self._client.generate_presigned_url,
+            "get_object",
+            Params={"Bucket": self._bucket, "Key": settings.storage_key_prefix + key},
+            ExpiresIn=seconds,
+        )
+
 
 class LocalStorage:
     def __init__(self, root: Path) -> None:
@@ -57,6 +67,9 @@ class LocalStorage:
         if not path.is_relative_to(self._root):
             raise ValueError("storage key leaves the media folder")
         await asyncio.to_thread(_write, path, data)
+
+    async def signed_url(self, key: str, seconds: int) -> str | None:
+        return None  # local files are not served
 
 
 def _write(path: Path, data: bytes) -> None:

@@ -1,11 +1,19 @@
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
-from app.modules.reports.models import Report, ReportCodeCounter
+# Read-only joins for the names shown next to a report.
+from app.modules.extension_workers.models import ExtensionWorker
+from app.modules.forms.models import Form
+from app.modules.reference_data.models import ReferenceData
+from app.modules.reports.models import Report, ReportCodeCounter, ReportPhoto
 from app.modules.workspaces.models import Workspace
 
 
@@ -34,3 +42,104 @@ async def get_report(
     return await db.scalar(
         select(Report).where(Report.workspace_id == workspace_id, Report.id == report_id)
     )
+
+
+@dataclass(frozen=True)
+class ReportRow:
+    """A report with the names a list shows next to it."""
+
+    report: Report
+    worker_name: str
+    telegram_user_id: str | None
+    form_name: str
+    region_name: str | None
+    photo_count: int
+
+
+def _rows_query() -> Select[Report, str, str | None, str, str, int]:
+    photos = (
+        select(func.count(ReportPhoto.id))
+        .where(ReportPhoto.report_id == Report.id)
+        .correlate(Report)
+        .scalar_subquery()
+    )
+    region = aliased(ReferenceData)
+    return (
+        select(
+            Report,
+            ExtensionWorker.name,
+            ExtensionWorker.telegram_user_id,
+            Form.name,
+            region.value,
+            photos,
+        )
+        .join(ExtensionWorker, ExtensionWorker.id == Report.extension_worker_id)
+        .join(Form, Form.id == Report.form_id)
+        .outerjoin(region, region.id == Report.region_id)
+    )
+
+
+def _row(values: Any) -> ReportRow:
+    report, worker_name, telegram_user_id, form_name, region_name, photo_count = values
+    return ReportRow(report, worker_name, telegram_user_id, form_name, region_name, photo_count)
+
+
+async def list_reports(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    *,
+    form_id: uuid.UUID | None,
+    extension_worker_id: uuid.UUID | None,
+    region_id: uuid.UUID | None,
+    conditions: list[str] | None,
+    needs_review: bool | None,
+    since: datetime | None,
+    until: datetime | None,
+    after: tuple[datetime, uuid.UUID] | None,
+    limit: int,
+) -> list[ReportRow]:
+    """Newest first. One extra row tells the caller there is a next page; `after` is the
+    (received_at, id) of the previous page's last row."""
+    stmt = _rows_query().where(Report.workspace_id == workspace_id)
+    if form_id is not None:
+        stmt = stmt.where(Report.form_id == form_id)
+    if extension_worker_id is not None:
+        stmt = stmt.where(Report.extension_worker_id == extension_worker_id)
+    if region_id is not None:
+        stmt = stmt.where(Report.region_id == region_id)
+    if conditions:
+        known = [c for c in conditions if c != "unknown"]
+        clauses = [Report.condition.in_(known)] if known else []
+        if "unknown" in conditions:
+            clauses.append(Report.condition.is_(None))
+        stmt = stmt.where(or_(*clauses))
+    if needs_review is not None:
+        stmt = stmt.where(Report.needs_review.is_(needs_review))
+    if since is not None:
+        stmt = stmt.where(Report.received_at >= since)
+    if until is not None:
+        stmt = stmt.where(Report.received_at < until)
+    if after is not None:
+        at, last_id = after
+        stmt = stmt.where(
+            or_(Report.received_at < at, and_(Report.received_at == at, Report.id < last_id))
+        )
+    stmt = stmt.order_by(Report.received_at.desc(), Report.id.desc()).limit(limit + 1)
+    return [_row(r) for r in (await db.execute(stmt)).all()]
+
+
+async def get_report_row(
+    db: AsyncSession, workspace_id: uuid.UUID, report_id: uuid.UUID
+) -> ReportRow | None:
+    stmt = _rows_query().where(Report.workspace_id == workspace_id, Report.id == report_id)
+    values = (await db.execute(stmt)).one_or_none()
+    return _row(values) if values is not None else None
+
+
+async def list_photos(db: AsyncSession, report_id: uuid.UUID) -> list[ReportPhoto]:
+    rows = await db.scalars(
+        select(ReportPhoto)
+        .where(ReportPhoto.report_id == report_id)
+        .order_by(ReportPhoto.field_key, ReportPhoto.position)
+    )
+    return list(rows)
