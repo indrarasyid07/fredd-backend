@@ -30,9 +30,10 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `form_assignments` | workspace_id, extension_worker_id, form_id, status (`active`, `left`), joined_via_code_id, left_at | Topik penyuluh: diikat ke **form**, bukan versi, agar publikasi ulang tidak memutus ikatan; unik (extension_worker_id, form_id). Pilot memakai baris ini juga. **Ada (3.4)** |
 | `conversations` | workspace_id, extension_worker_id, form_id, form_version_id, channel_id, chat_id, status (state mesin), step, state JSONB (`ConversationState`, termasuk jawaban draf), failed_attempts, last_inbound_at, taken_over_by_user_id, taken_over_at, next_reminder_at | Satu per (penyuluh, topik); laporan diisi bergantian di percakapan yang sama. `last_inbound_at` untuk jendela 24 jam WA. **Ada (3.4)** |
 | `messages` | workspace_id, conversation_id, channel_id, chat_id, direction (`in`, `out`), kind, body, payload JSONB, media_key, external_id, channel_sent_at, processed_at, delivery_status (`pending`, `sent`, `uncertain`, `failed`, `delivered`, `read`), attempts, error | `UNIQUE (channel_id, direction, external_id)` (webhook berulang disimpan sekali). Pesan dari chat yang belum terikat: `workspace_id` dan `conversation_id` kosong (tidak pernah membuat data di organisasi). Indeks pesan masuk yang belum diproses per chat. **Ada (3.4)** |
-| `reports` | workspace_id, code, form_version_id, extension_worker_id, conversation_id, answers JSONB, latitude, longitude, accuracy_m, region_id, commodity_id, condition, area_ha, plot_key, complete, needs_review, received_at | Kolom filter disalin dari `answers` dan diindeks |
+| `reports` | workspace_id, code, form_id, form_version_id, extension_worker_id, conversation_id, answers JSONB, latitude, longitude, accuracy_m, region_id, commodity_id, condition, area_ha, plot_key, complete, needs_review, review_reasons JSONB, received_at | Kolom filter disalin dari `answers` sekali saat dibuat (`reports.service.create_report`) dan diindeks. `region_id` = kecamatan (atau kabupaten) titik lokasi; `commodity_id` tetap kosong sampai ada peran isian komoditas. **Ada (4.0)** |
 | `report_exports` | workspace_id, requested_by, params JSONB, status, object_key, row_count, error, created_at, finished_at, expires_at | Ekspor dashboard; lihat [dashboard.md](../06-domain-guides/dashboard.md#model-data-tambahan) |
-| `report_photos` | report_id, object_key, size_bytes, blur_score, ai_note | |
+| `report_photos` | report_id, field_key, position, object_key, size_bytes, blur_score, ai_note | Satu baris per file dari isian `photo`; `object_key` = rujukan dari chat sampai penyimpanan final (5.1). **Ada (4.0)** |
+| `report_code_counters` | workspace_id, period (`YYMM`), last_value | Penghitung kode laporan per workspace dan bulan; diambil dengan satu upsert atomik. **Ada (4.0)** |
 | `report_follow_ups` | report_id, assignee_member_id, priority, status, note | |
 | `activity_events` | workspace_id, occurred_at, extension_worker_id, channel, type, details JSONB, status | Log Aktivitas Agent |
 | `member_invites` | workspace_id, email (huruf kecil), role, token_hash, invited_by_user_id, sent_at, expires_at, accepted_at, revoked_at | Undangan anggota (B-055). Unik (workspace_id, email) selama terbuka (`accepted_at` dan `revoked_at` kosong) |
@@ -45,7 +46,7 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 
 ## Detail penting
 
-**Kode laporan.** `code` dibuat dari sequence Postgres per tahun-bulan (`LP-2411-0248`) dengan `UNIQUE (workspace_id, code)`. Jangan memakai "nomor terbesar + 1" karena dua laporan bersamaan bisa mendapat kode sama.
+**Kode laporan.** `code` = `LP-YYMM-NNNN` (mis. `LP-2611-0248`), bernomor per workspace dan bulan di zona waktu workspace, dengan `UNIQUE (workspace_id, code)`. Nomor diambil dari `report_code_counters` lewat satu `INSERT … ON CONFLICT DO UPDATE … RETURNING` (kunci baris, aman untuk laporan bersamaan; B-XXX), bukan "nomor terbesar + 1". Lewat 9999 dalam sebulan, angkanya tetap bertambah (`LP-2611-10000`).
 
 **Takeover.** Ambil alih memakai satu query bersyarat:
 
