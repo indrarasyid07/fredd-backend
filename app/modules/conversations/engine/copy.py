@@ -174,6 +174,25 @@ def waiting_approval(organization: str) -> str:
     )
 
 
+def approved(name: str | None, organization: str, topic: str, privacy_url: str) -> str:
+    """Sent by the admin's approval (roadmap 4.6), with the usual Ya, tetap / Bukan, ganti."""
+    hello = f"Halo {name}!" if name else "Halo!"
+    return (
+        f"{hello} Permintaan Anda sudah disetujui admin {organization}. "
+        f"Anda bergabung di *{topic_title(organization, topic)}*. "
+        "Laporan Anda akan masuk ke topik ini seterusnya. Sudah benar?\n\n"
+        + consent(organization, privacy_url)
+    )
+
+
+def approved_elsewhere(organization: str, topic: str) -> str:
+    """Approved while the chat is busy with another topic: the current one stays."""
+    return (
+        f"Permintaan Anda untuk *{topic_title(organization, topic)}* sudah disetujui. "
+        "Kirim kodenya lagi bila ingin pindah ke topik ini atau menambahkannya."
+    )
+
+
 def already_joined(organization: str, topic: str) -> str:
     title = topic_title(organization, topic)
     return f"Anda sudah tergabung di *{title}*. Ketik *mulai* untuk melapor."

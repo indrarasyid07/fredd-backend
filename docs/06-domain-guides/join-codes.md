@@ -104,7 +104,15 @@ Kuota penyuluh paket ([billing-and-plans.md](billing-and-plans.md)) dihitung dar
 - Kepemilikan pesan: setelah diproses, pesan masuk dan balasannya diberi `workspace_id` + `conversation_id` dari topik aktif chat (ditentukan setelah routing, jadi pesan kode yang membuat bergabung ikut menjadi milik topik itu). Chat tanpa topik tetap `NULL`. Pindah topik hanya memengaruhi pesan berikutnya.
 - Rate limit tebakan: Redis `join-wrong:{channel}:{chat}`; 5 kode tak dikenal per jam dibalas, setelah itu chat tanpa topik didiamkan sampai jendela habis.
 - Kalimat persetujuan (UU PDP) **draf, menunggu persetujuan pemilik produk**: "Data laporan Anda dikelola oleh {organisasi} sebagai pengendali data, dengan Fluctuz sebagai pemroses data. Kebijakan privasi: {PRIVACY_POLICY_URL}" (tautan dihilangkan bila env kosong; halaman Kebijakan Privasi belum ada di frontend).
-- Belum: kuota penyuluh per paket (menunggu billing), `activity_events`/event realtime `worker_joined` (Langkah 4), persetujuan admin di dashboard, WhatsApp.
+- Belum: kuota penyuluh per paket (menunggu billing), `activity_events`/event realtime `worker_joined` (Langkah 4), WhatsApp.
+
+## Status implementasi (Langkah 4.6, persetujuan admin)
+
+- `GET /extension-workers?status=pending_approval` (reviewer) menampilkan antrean beserta topik terbaru dan kode yang dipakai.
+- `POST /extension-workers/{id}/approve` (admin): penyuluh `active`, `pending_reason` dikosongkan, audit `extension_worker.approved`. Topik terbaru dibuka di chat (`chat_contexts`, `conversations.status = joining`) dan bot mengirim "Halo {nama}! Permintaan Anda sudah disetujui admin {organisasi}. Anda bergabung di **organisasi · topik**… Sudah benar?" + kalimat persetujuan data + tombol `join:keep` / `join:change`, sehingga alur konfirmasi sama dengan bergabung otomatis. Bila chat sudah punya topik lain, topik itu tidak diganti; bot mengabarkan persetujuan dan meminta kode dikirim lagi untuk pindah/tambah. Pesan dikirim lewat job `conversations.deliver`.
+- `POST /extension-workers/{id}/block` (admin): penyuluh `blocked`, audit `extension_worker.blocked`, tanpa pesan. Chat itu lalu mendapat balasan "kirim kode" biasa; kode organisasi ini dibalas "kode tertutup".
+- Hanya penyuluh `pending_approval` yang bisa disetujui/diblokir (`409 extension_worker_not_pending`). Memblokir penyuluh aktif dan membuka blokir belum ada.
+- Kuota (`pending_reason = quota`) belum diperiksa saat menyetujui (menunggu billing).
 
 ## Endpoint
 

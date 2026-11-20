@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.time import now_utc
 from app.modules.channels import service as channels
 from app.modules.channels.telegram import (
@@ -25,9 +26,12 @@ from app.modules.channels.telegram import (
 )
 from app.modules.conversations import joining, repository
 from app.modules.conversations.engine import copy
-from app.modules.conversations.engine.types import Button, Outbound
+from app.modules.conversations.engine.types import Button, ConversationState, Outbound
 from app.modules.conversations.models import Message
 from app.modules.extension_workers import service as workers
+from app.modules.extension_workers.schemas import ExtensionWorkerOut
+from app.modules.forms import service as forms
+from app.modules.workspaces import service as workspaces
 
 logger = logging.getLogger(__name__)
 
@@ -186,3 +190,57 @@ async def chat_history(
     db: AsyncSession, channel_id: uuid.UUID, chat_id: str, limit: int = 200
 ) -> list[Message]:
     return await repository.list_chat_messages(db, channel_id, chat_id, limit)
+
+
+# --- Admin approval (roadmap 4.6) ---------------------------------------------------------------
+
+
+async def approve_worker(
+    db: AsyncSession, workspace_id: uuid.UUID, worker_id: uuid.UUID, actor_user_id: uuid.UUID
+) -> tuple[ExtensionWorkerOut, list[uuid.UUID]]:
+    """Approve a waiting worker and tell them in their chat. Their topic opens with the usual
+    "Ya, tetap / Bukan, ganti" question, unless the chat moved on to another topic meanwhile.
+    Returns the outbound rows the caller queues for delivery."""
+    worker, assignment = await workers.approve(db, workspace_id, worker_id, actor_user_id)
+    conversation = (
+        await repository.get_conversation(db, worker.id, assignment.form_id)
+        if assignment is not None
+        else None
+    )
+    outbound: list[Message] = []
+    if assignment is not None and conversation is not None:
+        organization = await workspaces.get_name(db, workspace_id)
+        topic = (await forms.get_form(db, workspace_id, assignment.form_id)).name
+        channel_id, chat_id = conversation.channel_id, conversation.chat_id
+        busy = await workers.active_assignment(db, channel_id, chat_id)
+        if busy is None:
+            await workers.set_active(db, channel_id, chat_id, assignment.id)
+            conversation.status = "joining"
+            conversation.state = ConversationState(
+                status="joining", topic_id=str(assignment.form_id)
+            ).to_json()
+            first = worker.name.split()[0] if worker.name else None
+            reply = Outbound(
+                copy.approved(first, organization, topic, settings.privacy_policy_url),
+                buttons=(Button(copy.KEEP, joining.KEEP), Button(copy.NOT_MINE, joining.CHANGE)),
+            )
+            owner: Owner = (workspace_id, conversation.id)
+        else:
+            reply = Outbound(copy.approved_elsewhere(organization, topic))
+            owner = await _owner(db, joining.Chat(channel_id, chat_id))
+        outbound.append(
+            Message(
+                workspace_id=owner[0],
+                conversation_id=owner[1],
+                channel_id=channel_id,
+                chat_id=chat_id,
+                direction="out",
+                kind="text",
+                body=reply.text,
+                payload=_payload(reply),
+                delivery_status="pending",
+            )
+        )
+        db.add_all(outbound)
+    await db.commit()
+    return await workers.describe(db, worker), [m.id for m in outbound]

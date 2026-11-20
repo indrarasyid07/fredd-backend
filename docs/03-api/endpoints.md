@@ -67,11 +67,11 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 
 | Method | Path | Peran |
 |---|---|---|
-| GET, POST | `/extension-workers` | reviewer / admin |
+| GET, POST | `/extension-workers` | reviewer / admin. **GET ada (4.6)**: filter `status`, cursor, terbaru dulu; tiap baris berisi `name`, `status`, `pending_reason`, `channel`, `telegram_username`, `phone_e164`, `joined_at`, `confirmed_at`, `topic` (`form_id`, `form_name`, `join_code`). POST belum |
 | GET, PATCH, DELETE | `/extension-workers/{id}` | reviewer / admin |
 | GET, PATCH | `/forms/{id}/join-code` | reviewer / admin (PATCH: admin). **Ada**: kode (`K7M2-9QXA`), status, `approval_mode`, `max_uses`, `expires_at`, `use_count`, `claimable` (kode aktif dan form pilot/aktif), tautan WhatsApp/Telegram (null bila bot belum diatur). PATCH: `status` (`active`/`paused`), `approval_mode`, `max_uses`, `expires_at` |
 | POST | `/forms/{id}/join-code/rotate` | admin. **Ada (3.10)**: kode lama `revoked` (+`revoked_at`), kode baru dengan `approval_mode`, `max_uses`, `expires_at` (bila belum lewat) dan status jeda yang sama, `use_count` 0; audit `join_code.rotated`. Penyuluh yang sudah bergabung tetap terhubung |
-| POST | `/extension-workers/{id}/approve`, `/block` | admin |
+| POST | `/extension-workers/{id}/approve`, `/block` | admin. **Ada (4.6)**: hanya untuk `pending_approval` (selain itu `409 extension_worker_not_pending`; workspace lain `404 extension_worker_not_found`). Approve → `active`, topik terbaru dibuka di chat dan bot mengirim "Permintaan Anda sudah disetujui… Sudah benar?" dengan tombol Ya, tetap / Bukan, ganti (bila chat sedang di topik lain, topik itu tetap dan bot hanya mengabarkan). Block → `blocked`, tanpa pesan. Audit `extension_worker.approved` / `.blocked` |
 | ~~POST~~ | ~~`/extension-workers/invites`, `/invites/{id}/resend`~~ | dihapus (B-048) |
 
 ## Dashboard

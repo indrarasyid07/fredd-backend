@@ -7,9 +7,11 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.pagination import InvalidCursor
 from app.modules.audit import service as audit
-from app.modules.extension_workers import repository
+from app.modules.extension_workers import errors, repository
 from app.modules.extension_workers.models import ChatContext, ExtensionWorker, FormAssignment
+from app.modules.extension_workers.schemas import ExtensionWorkerOut, WorkerTopicOut
 
 
 @dataclass(frozen=True)
@@ -136,3 +138,119 @@ async def pending_worker(db: AsyncSession, telegram_user_id: str) -> ExtensionWo
 
 async def get_by_id(db: AsyncSession, worker_id: uuid.UUID) -> ExtensionWorker | None:
     return await db.get(ExtensionWorker, worker_id)
+
+
+# --- Dashboard: list, approve, block (roadmap 4.6) ----------------------------------------------
+
+Key = tuple[datetime, uuid.UUID]
+
+
+def _key(after: list[str] | None) -> Key | None:
+    """Turn a decoded cursor [timestamp, id] back into its sort key."""
+    if after is None:
+        return None
+    try:
+        return datetime.fromisoformat(after[0]), uuid.UUID(after[1])
+    except ValueError:
+        raise InvalidCursor() from None
+
+
+async def list_workers(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    *,
+    status: str | None,
+    after: list[str] | None,
+    limit: int,
+) -> tuple[list[ExtensionWorkerOut], Key | None]:
+    rows = await repository.list_workers(
+        db, workspace_id, status=status, after=_key(after), limit=limit
+    )
+    page = rows[:limit]
+    more = (page[-1].created_at, page[-1].id) if len(rows) > limit else None
+    return await _describe(db, workspace_id, page), more
+
+
+async def describe(db: AsyncSession, worker: ExtensionWorker) -> ExtensionWorkerOut:
+    return (await _describe(db, worker.workspace_id, [worker]))[0]
+
+
+async def _describe(
+    db: AsyncSession, workspace_id: uuid.UUID, page: list[ExtensionWorker]
+) -> list[ExtensionWorkerOut]:
+    topics = {
+        worker_id: WorkerTopicOut(
+            form_id=form_id,
+            form_name=form_name,
+            join_code=f"{code[:4]}-{code[4:]}" if code else None,
+        )
+        for worker_id, form_id, form_name, code in await repository.list_latest_topics(
+            db, workspace_id, [w.id for w in page]
+        )
+    }
+    return [_out(w, topics.get(w.id)) for w in page]
+
+
+def _out(worker: ExtensionWorker, topic: WorkerTopicOut | None) -> ExtensionWorkerOut:
+    return ExtensionWorkerOut(
+        id=worker.id,
+        name=worker.name,
+        status=worker.status,  # type: ignore[arg-type]
+        pending_reason=worker.pending_reason,  # type: ignore[arg-type]
+        channel="telegram" if worker.telegram_user_id else "whatsapp",
+        telegram_username=worker.telegram_username,
+        phone_e164=worker.phone_e164,
+        joined_at=worker.joined_at,
+        confirmed_at=worker.confirmed_at,
+        topic=topic,
+    )
+
+
+async def _pending(
+    db: AsyncSession, workspace_id: uuid.UUID, worker_id: uuid.UUID
+) -> ExtensionWorker:
+    worker = await repository.get_worker(db, workspace_id, worker_id)
+    if worker is None:
+        raise errors.ExtensionWorkerNotFound()
+    if worker.status != "pending_approval":
+        raise errors.ExtensionWorkerNotPending()
+    return worker
+
+
+async def approve(
+    db: AsyncSession, workspace_id: uuid.UUID, worker_id: uuid.UUID, actor_user_id: uuid.UUID
+) -> tuple[ExtensionWorker, FormAssignment | None]:
+    """A waiting worker becomes active. Returns the topic to open in their chat (the most recent
+    one). The caller tells the worker and commits."""
+    worker = await _pending(db, workspace_id, worker_id)
+    worker.status, worker.pending_reason = "active", None
+    assignments = await repository.list_active_assignments(db, worker.id)
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=actor_user_id,
+        action="extension_worker.approved",
+        target=str(worker.id),
+        details={},
+    )
+    await db.flush()
+    return worker, assignments[0] if assignments else None
+
+
+async def block(
+    db: AsyncSession, workspace_id: uuid.UUID, worker_id: uuid.UUID, actor_user_id: uuid.UUID
+) -> ExtensionWorker:
+    """Refuse a waiting worker. The bot never tells them why; their codes for this organization
+    stop working for them."""
+    worker = await _pending(db, workspace_id, worker_id)
+    worker.status, worker.pending_reason = "blocked", None
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=actor_user_id,
+        action="extension_worker.blocked",
+        target=str(worker.id),
+        details={},
+    )
+    await db.commit()
+    return worker
