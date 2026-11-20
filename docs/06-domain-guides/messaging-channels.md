@@ -36,7 +36,8 @@ Konsekuensi:
 
 ## Telegram: Bot API
 
-- Satu bot milik Fluctuz dibuat operator di @BotFather; token disimpan sebagai rahasia lingkungan, bukan per organisasi.
+- Satu bot milik Fluctuz **per lingkungan** dibuat operator di @BotFather; token disimpan sebagai rahasia lingkungan, bukan per organisasi.
+- **Bot terpisah untuk development, staging, dan produksi** (B-XXX, Langkah 3.0). Satu bot hanya punya satu webhook, jadi `setWebhook` dari mesin dev atau staging akan memutus bot produksi. Setiap developer memakai bot dev pribadinya (mode polling `scripts.telegram_poll`, tanpa webhook). Nama bot yang disarankan: `FluctuzBot` (produksi), `FluctuzStagingBot` (staging), `Fluctuz<Nama>DevBot` (dev). Env per lingkungan: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` (kosong di dev polling).
 - Operator memanggil `getMe` lalu `setWebhook` sekali ke `/webhooks/telegram` dengan `secret_token` acak.
 - Tidak ada jendela 24 jam, tetapi penyuluh harus menekan Start dulu; tautan kode gabung `t.me/<bot>?start=<kode>` sekaligus memulai dan mengikat penyuluh ke topik.
 - Setiap tombol inline yang ditekan dijawab `answerCallbackQuery` agar tombol tidak terus berputar.

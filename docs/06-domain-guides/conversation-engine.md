@@ -52,6 +52,26 @@ idle → joining → identifying → choosing_form → asking(step) → confirmi
 - **Ringkasan:** "Kirim sekarang" → `SubmitReport`; "Ubah jawaban" → pilih isian → tanya ulang → kembali ke ringkasan. "lanjut" mengulang pertanyaan saat ini, "mulai ulang" mengosongkan draf, "mulai" setelah terkirim membuka laporan baru (memilih topik bila lebih dari satu). `taken_over`: bot diam.
 - `engine/simulator.py`: `FakeChannel` + `Simulator` (service tiruan di memori) untuk tes dan simulator chat (3.9).
 
+## Kata perintah resmi (Langkah 3.0)
+
+Diputuskan 20 November 2026 (B-XXX). Tidak peka huruf besar/kecil, spasi berlebih diabaikan, garis miring di depan boleh (`/lanjut`). Perintah dikenali di semua state kecuali `taken_over` (bot diam; pesan diteruskan ke admin) dan `joining` (yang berlaku tombol konfirmasi). Di tengah pertanyaan teks, kata perintah yang **persis** sama (seluruh pesan) dibaca sebagai perintah, bukan jawaban.
+
+| Perintah | Alias | Perilaku | Konfirmasi |
+|---|---|---|---|
+| `mulai` | `/start` tanpa kode, `lapor`, `laporan baru` | Mulai laporan baru. Ada draf → tawarkan [Lanjutkan] [Mulai ulang]. Lebih dari satu topik → pilih topik dulu | – |
+| `lanjut` | `lanjutkan` | Ulangi pertanyaan terakhir dari draf. Tanpa draf → seperti `mulai` | – |
+| `mulai ulang` | `ulang dari awal`, `/ulang` | Kosongkan draf, mulai dari isian pertama versi yang sama | Ya, karena jawaban hilang |
+| `topik` | `ganti topik` | Tampilkan topik yang terikat (organisasi · topik) untuk dipilih. Draf topik lama tetap tersimpan. Hanya satu topik → sebutkan topiknya | – |
+| `batal` | `batalkan` | Buang draf yang sedang diisi, kembali ke `idle` | Ya |
+| `bantuan` | `tolong`, `help`, `minta bantuan` | Daftar perintah singkat + tombol [Minta bantuan admin] (→ `needs_help`) | – |
+| `berhenti` | `stop`, `keluar` | Opt-out (wajib menurut kebijakan WhatsApp): lepas **semua** ikatan chat ini, lihat di bawah | Ya |
+
+Kata `ya/tidak` tetap dibaca sebagai jawaban konfirmasi (`parse_yes_no`), bukan perintah. `selesai` hanya berarti "cukup" saat mengumpulkan foto.
+
+**`berhenti`.** Bot bertanya "Berhenti menerima pesan dari Fluctuz untuk semua topik di chat ini? Draf yang belum terkirim akan dibuang." [Ya, berhenti] [Batal]. Setelah "Ya": semua `form_assignments` aktif chat itu menjadi `left`, penyuluh yang tidak punya topik lain menjadi `left`, `chat_contexts` dikosongkan, draf dibuang, `next_reminder_at` dihapus, audit `extension_worker.opted_out`. Balasan terakhir: "Anda tidak akan menerima pesan lagi. Untuk bergabung kembali, kirim kode dari admin Anda." Laporan yang sudah terkirim tidak dihapus. Bergabung lagi cukup dengan mengirim kode (ikatan dihidupkan lagi).
+
+**Foto sebelum `mulai`.** Pesan sambutan mengajak "Kirim foto lahan atau ketik *mulai*". Foto (atau album) yang dikirim saat `idle` dengan satu topik aktif memulai laporan baru: foto disimpan sebagai jawaban **isian foto pertama** (urutan definisi), lalu bot menanyakan isian lain mulai dari isian pertama yang belum terjawab. Batas `max` isian itu tetap berlaku (kelebihan diabaikan dengan pemberitahuan). Struktur tanpa isian foto → laporan tetap dimulai, foto diabaikan dengan pemberitahuan "Topik ini tidak meminta foto". Lebih dari satu topik → bot menanyakan topik dulu, foto disimpan sementara di draf dan dipakai setelah topik dipilih. Ada draf yang belum selesai → foto diperlakukan sebagai jawaban pertanyaan saat ini (bila isian foto) atau bot menawarkan [Lanjutkan] [Mulai ulang].
+
 ## Pengurai jawaban (Langkah 3.2)
 
 `app/modules/conversations/engine/parsers.py`: fungsi murni tanpa I/O; mengembalikan `None` bila jawaban tidak terbaca dengan yakin (mesin lalu bertanya ulang dengan contoh, tidak menebak).
@@ -85,6 +105,21 @@ Tes: tabel kasus + tes properti **hypothesis** (bilangan bulat berpemisah ribuan
 - Admin mengambil alih (`taken_over_by` diisi lewat UPDATE bersyarat). Selama itu pesan penyuluh tetap disimpan dan ditampilkan ke admin, tetapi Fluctuz tidak membalas.
 - Worker membaca ulang status takeover tepat sebelum mengirim, agar balasan Fluctuz tidak menyela admin.
 - "Kembalikan ke Fluctuz" melanjutkan dari `step` saat ini.
+
+## Pesan keluar tanpa dobel (Langkah 3.0, ada sejak 3.5/3.9a)
+
+Setiap balasan dicatat dulu sebagai baris `messages` keluar `pending` (dalam transaksi yang sama dengan pemrosesan pesan masuk), baru dikirim ke kanal. Hasil kirim: `sent` + `external_id`; timeout → `uncertain` dan **tidak** dikirim ulang otomatis (pesan mungkin sudah sampai); galat lain → `failed`; `403` (bot diblokir) → penyuluh `unreachable`. `deliver` mengunci baris (`FOR UPDATE SKIP LOCKED`) dan hanya mengirim baris yang masih `pending`, sehingga dua worker tidak mengirim pesan yang sama. Pesan yang dibuat di luar pemrosesan chat (mis. persetujuan admin, 4.6) memakai job `conversations.deliver` dengan aturan yang sama. Kirim ulang manual untuk `failed`/`uncertain` ada di Langkah 7.2.
+
+## Antrean kirim yang adil (rancangan Langkah 3.0, dibangun di 7.3)
+
+Satu bot dipakai semua organisasi, jadi batas kirim kanal (Telegram ±30 pesan/detik per bot dan 1 pesan/detik per chat; WhatsApp sesuai tier nomor) dibagi bersama. Rancangan:
+
+| Jalur | Isi | Aturan |
+|---|---|---|
+| **Interaktif** | Balasan atas pesan penyuluh, konfirmasi bergabung, kabar persetujuan admin, pesan admin saat takeover | Selalu didahulukan; tidak dibatasi kuota organisasi, hanya batas kanal per chat |
+| **Proaktif** | Pengingat draf, pengumuman/broadcast, pesan terjadwal | Antrean terpisah; token bucket Redis **per organisasi** (`send-budget:{workspace_id}`) dengan jatah per menit sesuai paket, plus batas global per bot; jatuh tempo di jam tenang ditunda |
+
+Pekerja kirim mengambil dari jalur interaktif lebih dulu, lalu proaktif secara round-robin antar organisasi, sehingga satu organisasi yang mengirim pengumuman besar tidak menunda balasan organisasi lain. Kuota harian per paket (D12/9.1) dihitung dari jalur proaktif.
 
 ## Urutan pemrosesan
 
