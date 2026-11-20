@@ -167,7 +167,7 @@ async def test_photos_get_signed_links_only_when_stored(
         async def signed_url(self, key: str, seconds: int) -> str:
             return f"https://files.example/{key}?ttl={seconds}"
 
-    monkeypatch.setattr("app.modules.reports.service.get_storage", lambda: Signing())
+    monkeypatch.setattr("app.core.storage.override", Signing())
     report = await topic.report(db)
     photos = (await admin.get(f"{URL}/{report.id}")).json()["data"]["photos"]
     assert [(p["field_key"], p["position"]) for p in photos] == [("photos", 0), ("photos", 1)]

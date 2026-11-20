@@ -1,0 +1,218 @@
+{
+  "_note": "Development/staging demo (ROADMAP 4.1). Names are fictional; phones use +62 811-0000-xxxx only.",
+  "form": {
+    "name": "Survei Kondisi Tanaman",
+    "definition": {
+      "fields": [
+        {
+          "key": "location",
+          "type": "location",
+          "label": "Lokasi lahan",
+          "question": "Di mana lahan yang dikunjungi hari ini?",
+          "max_accuracy_m": 50
+        },
+        {
+          "key": "farmer_name",
+          "type": "short_text",
+          "label": "Nama petani",
+          "question": "Siapa nama petani pemilik lahan?"
+        },
+        {
+          "key": "commodity",
+          "type": "single_choice",
+          "label": "Komoditas",
+          "question": "Komoditas apa yang ditanam?",
+          "options": [
+            {
+              "value": "padi",
+              "label": "Padi"
+            },
+            {
+              "value": "jagung",
+              "label": "Jagung"
+            },
+            {
+              "value": "cabai",
+              "label": "Cabai"
+            },
+            {
+              "value": "kedelai",
+              "label": "Kedelai"
+            }
+          ],
+          "answer_modes": [
+            "choose",
+            "type"
+          ]
+        },
+        {
+          "key": "land_area",
+          "type": "number",
+          "label": "Luas lahan",
+          "question": "Berapa luas lahannya?",
+          "unit": "ha",
+          "min": 0,
+          "max": 500,
+          "review_above": 50,
+          "role": "area"
+        },
+        {
+          "key": "condition",
+          "type": "single_choice",
+          "label": "Kondisi tanaman",
+          "question": "Bagaimana kondisi tanamannya?",
+          "role": "condition",
+          "options": [
+            {
+              "value": "healthy",
+              "label": "Sehat"
+            },
+            {
+              "value": "attention",
+              "label": "Perlu perhatian"
+            },
+            {
+              "value": "infected",
+              "label": "Terserang"
+            }
+          ],
+          "answer_modes": [
+            "choose",
+            "type"
+          ]
+        },
+        {
+          "key": "photos",
+          "type": "photo",
+          "label": "Foto lahan",
+          "question": "Boleh kirim 1 sampai 3 foto lahannya?",
+          "required": false,
+          "min": 1,
+          "max": 3
+        },
+        {
+          "key": "notes",
+          "type": "long_text",
+          "label": "Catatan",
+          "question": "Ada catatan tambahan?",
+          "required": false
+        }
+      ],
+      "rules": [
+        {
+          "if": {
+            "field": "condition",
+            "equals": "infected"
+          },
+          "then": {
+            "require": "photos"
+          }
+        }
+      ]
+    }
+  },
+  "workers": [
+    {
+      "name": "Budi Santoso",
+      "phone": "+628110000101",
+      "channel": "telegram",
+      "district": "32.03.03"
+    },
+    {
+      "name": "Siti Rahayu",
+      "phone": "+628110000102",
+      "channel": "whatsapp",
+      "district": "32.03.02"
+    },
+    {
+      "name": "Agus Wibowo",
+      "phone": "+628110000103",
+      "channel": "telegram",
+      "district": "32.05.01"
+    },
+    {
+      "name": "Dewi Lestari",
+      "phone": "+628110000104",
+      "channel": "whatsapp",
+      "district": "32.05.04"
+    },
+    {
+      "name": "Hendra Gunawan",
+      "phone": "+628110000105",
+      "channel": "telegram",
+      "district": "32.02.01"
+    },
+    {
+      "name": "Rina Marlina",
+      "phone": "+628110000106",
+      "channel": "whatsapp",
+      "district": "32.02.04"
+    },
+    {
+      "name": "Yusuf Hidayat",
+      "phone": "+628110000107",
+      "channel": "telegram",
+      "district": "32.17.01"
+    },
+    {
+      "name": "Lina Marlina",
+      "phone": "+628110000108",
+      "channel": "whatsapp",
+      "district": "32.17.03"
+    },
+    {
+      "name": "Dedi Kurniawan",
+      "phone": "+628110000109",
+      "channel": "telegram",
+      "district": "32.13.03"
+    },
+    {
+      "name": "Nur Aini",
+      "phone": "+628110000110",
+      "channel": "whatsapp",
+      "district": "32.13.04"
+    },
+    {
+      "name": "Asep Saepudin",
+      "phone": "+628110000111",
+      "channel": "telegram",
+      "district": "32.14.01"
+    },
+    {
+      "name": "Wulan Sari",
+      "phone": "+628110000112",
+      "channel": "whatsapp",
+      "district": "32.14.03"
+    }
+  ],
+  "farmers": [
+    "Pak Slamet",
+    "Bu Iis",
+    "Pak Ujang",
+    "Bu Euis",
+    "Pak Dadang",
+    "Bu Neneng",
+    "Pak Engkus",
+    "Bu Cucu",
+    "Pak Oman",
+    "Bu Yati"
+  ],
+  "notes": [
+    "Hujan deras dua hari terakhir.",
+    "Bercak coklat mulai menyebar ke petak sebelah.",
+    "Irigasi lancar, tanaman tumbuh baik.",
+    "Daun menguning di sebagian petak.",
+    "Hama wereng terlihat di pinggir sawah."
+  ],
+  "photos": [
+    "field-a.jpg",
+    "field-b.jpg",
+    "field-c.jpg",
+    "field-d.jpg"
+  ],
+  "reports": {
+    "days": 14,
+    "total": 150,
+    "random_seed": 20261120
+  }
+}
