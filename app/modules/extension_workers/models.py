@@ -36,6 +36,7 @@ class ExtensionWorker(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
             unique=True,
             postgresql_where=text("telegram_user_id is not null"),
         ),
+        Index("ix_extension_workers_workspace_last_active", "workspace_id", "last_active_at"),
     )
 
     name: Mapped[str] = mapped_column(String(200))
@@ -56,6 +57,8 @@ class ExtensionWorker(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
     joined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # The worker answered "Ya, tetap" to the binding question; reports need it.
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Their latest message to a topic of this organization ("Terakhir aktif").
+    last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class FormAssignment(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):

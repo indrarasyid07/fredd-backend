@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.pagination import InvalidCursor
 from app.modules.reference_data import errors, repository
 from app.modules.reference_data.constants import MAX_GEOMETRY_LIMIT, NEAREST_DISTRICT_METERS
+from app.modules.reference_data.models import ReferenceData
 from app.modules.reference_data.schemas import (
     LatLng,
     ReferenceItemOut,
@@ -80,6 +81,16 @@ async def locate(db: AsyncSession, *, lat: float, lng: float) -> RegionPathOut:
         parents = await repository.get_platform_regions(db, [current.parent_id])
         current = parents[0] if parents else None
     return RegionPathOut(**path)
+
+
+async def get_region(
+    db: AsyncSession, workspace_id: uuid.UUID, region_id: uuid.UUID, *, field: str = "region_id"
+) -> ReferenceData:
+    """A region the workspace can see (platform or its own). Raises UnknownRegion on `field`."""
+    item = await repository.get_visible(db, workspace_id, region_id)
+    if item is None or item.type != "region":
+        raise errors.UnknownRegion(field=field)
+    return item
 
 
 async def check_work_area(

@@ -121,7 +121,7 @@ async def test_approved_while_busy_keeps_the_current_topic(
     assert await db.scalar(select(ChatContext.active_assignment_id)) == busy_with
 
 
-async def test_only_waiting_workers_and_only_admins(
+async def test_only_waiting_workers_are_approved_and_only_by_admins(
     chat: Chat, db: AsyncSession, user: User, organization: Workspace
 ) -> None:
     worker = await _waiting(chat, db, organization)
@@ -134,7 +134,7 @@ async def test_only_waiting_workers_and_only_admins(
 
     api = await _admin(chat, user, organization)
     assert (await api.post(f"{URL}/{worker.id}/approve")).status_code == 200
-    again = await api.post(f"{URL}/{worker.id}/block")
+    again = await api.post(f"{URL}/{worker.id}/approve")
     assert again.status_code == 409
     assert again.json()["errors"][0]["code"] == "extension_worker_not_pending"
 

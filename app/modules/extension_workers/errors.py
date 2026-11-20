@@ -9,3 +9,13 @@ class ExtensionWorkerNotFound(NotFound):
 class ExtensionWorkerNotPending(Conflict):
     code = "extension_worker_not_pending"
     message = "Penyuluh ini tidak sedang menunggu persetujuan."
+
+
+class ExtensionWorkerAlreadyBlocked(Conflict):
+    code = "extension_worker_already_blocked"
+    message = "Penyuluh ini sudah diblokir."
+
+
+class ExtensionWorkerNotBlocked(Conflict):
+    code = "extension_worker_not_blocked"
+    message = "Penyuluh ini tidak sedang diblokir."
