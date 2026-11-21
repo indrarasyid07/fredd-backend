@@ -16,6 +16,8 @@ from app.modules.forms.schemas import (
     FormDetailOut,
     FormOut,
     UpdateFormRequest,
+    VoiceTestOut,
+    VoiceTestRequest,
 )
 
 router = APIRouter()
@@ -57,6 +59,17 @@ async def update_form(form_id: uuid.UUID, body: UpdateFormRequest, member: Edito
         await service.update_form(db, member.workspace.id, form_id, body),
         message="Perubahan tersimpan.",
     )
+
+
+@router.post(
+    "/{form_id}/voice-test",
+    response_model=ApiResponse[VoiceTestOut],
+    responses={**_GUARDS, 409: _ERR, 422: _ERR},
+)
+async def voice_test(form_id: uuid.UUID, body: VoiceTestRequest, member: EditorMember, db: DB):
+    """What Fluctuz reads from a spoken sentence with the draft (Voice Lab, roadmap 12.2).
+    Nothing is stored."""
+    return ok(await service.voice_test(db, member.workspace.id, form_id, body.text))
 
 
 @router.post(

@@ -48,6 +48,7 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 | GET | `/form-templates` | reviewer. **Ada**: katalog template wizard per sektor |
 | GET | `/forms/{id}/versions` | reviewer |
 | POST | `/forms/{id}/validate` | form_editor (periksa otomatis). **Ada**: selalu 200 dengan `{valid, errors[], warnings[]}`; tiap masalah punya `code`, `message`, `field` bertitik (`fields.2.question`); tanpa draf → 409 |
+| POST | `/forms/{id}/voice-test` | form_editor. **Ada (12.2)**: `{text}` (≤ 1.000 karakter, kalimat yang akan diucapkan analis) → nilai yang terbaca memakai draf yang sedang disunting (atau versi terbit bila tanpa draf): `values[]` (`key`, `label`, `value`, `display`, `confidence`, `confident`, `heard`, `doubt`) dan `missing[]` isian wajib yang belum disebut. Tidak menyimpan apa pun. Lihat [voice-lab.md](../06-domain-guides/voice-lab.md) |
 | POST | `/forms/{id}/test-runs` | form_editor (uji di akun sendiri) |
 | POST | `/forms/{id}/pilot` | admin (body: daftar extension_worker_id) |
 | POST | `/forms/{id}/publish` | admin. **Ada**: draf → versi terbit (`published_at`, `current_version_id`), status `active`, audit `form.publish`; masih ada masalah → 422 `form_has_problems`; tanpa draf → 409 `form_not_editable`; diarsipkan → 409 `form_archived` |

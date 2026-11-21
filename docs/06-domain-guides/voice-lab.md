@@ -7,7 +7,7 @@ Analis atau peneliti lab merekam hasil kerjanya dengan suara lewat bot Telegram/
 | Langkah | Isi | Status |
 |---|---|---|
 | 12.1 | Lapisan `app/modules/ai/`: STT + pengambil isian | **Ada** |
-| 12.2 | Susun isian suara, uji dengan ucapan | Belum |
+| 12.2 | Susun isian suara (`voice_cues`, `unit_aliases`, `settings.input_mode`), uji dengan ucapan (`POST /forms/{id}/voice-test`) | **Ada** |
 | 12.3 | Voice note di bot → isian terisi sekaligus | Belum |
 | 12.4–12.6 | Halaman Voice data asli, koreksi & verifikasi, unduh | Belum |
 | 12.7 | Penyedia STT/LLM cloud | Menunggu D7 |
@@ -20,7 +20,7 @@ Analis atau peneliti lab merekam hasil kerjanya dengan suara lewat bot Telegram/
 
 `extract(teks, struktur, cues=..., today=...) -> Extraction(values, missing)`.
 
-1. **Penanda** tiap isian: label, kunci (`room_temp` → "room temp"), dan contoh ucapan dari admin (`cues`, Langkah 12.2). Penanda yang lebih panjang menang atas yang lebih pendek di dalamnya ("suhu ruang" sebelum "suhu"); tiap isian memakai kemunculan pertamanya.
+1. **Penanda** tiap isian: label, kunci (`room_temp` → "room temp"), sebutan lain dari admin (`voice_cues`, Langkah 12.2), dan `cues` tambahan dari pemanggil. Sebutan satuan per isian (`unit_aliases`, mis. "derajat" untuk °C) berarti persis satuan isian itu. Penanda yang lebih panjang menang atas yang lebih pendek di dalamnya ("suhu ruang" sebelum "suhu"); tiap isian memakai kemunculan pertamanya.
 2. Kata antara penanda dan penanda berikutnya dibaca sesuai jenis isian: angka (`parse_number` + satuan lab), pilihan tunggal/ganda (`parse_choice`, `parse_multi_choice`), tanggal (`parse_date`), teks apa adanya. Kata pengisi ("-nya", "adalah", "sebesar", ":") diabaikan.
 3. Jenis lokasi dan media tidak diambil dari suara.
 

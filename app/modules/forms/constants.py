@@ -61,6 +61,8 @@ ANSWER_MODES_BY_TYPE: dict[str, tuple[str, ...]] = {
 }
 
 CHOICE_TYPES = ("single_choice", "multi_choice")
+# Fields a value can be read from a spoken sentence for (Voice Lab, roadmap 12).
+SPOKEN_TYPES = ("short_text", "long_text", "number", "single_choice", "multi_choice", "datetime")
 MEDIA_TYPES = ("photo", "video", "document")
 # Types where `min`/`max` apply: the value itself (number) or how many answers (choices, media).
 BOUNDED_TYPES = ("number", "multi_choice", *MEDIA_TYPES)

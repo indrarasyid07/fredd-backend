@@ -2750,6 +2750,128 @@
         }
       }
     },
+    "/api/v1/forms/{form_id}/voice-test": {
+      "post": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "Voice Test",
+        "description": "What Fluctuz reads from a spoken sentence with the draft (Voice Lab, roadmap 12.2).\nNothing is stored.",
+        "operationId": "voice_test_api_v1_forms__form_id__voice_test_post",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceTestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_VoiceTestOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/forms/{form_id}/validate": {
       "post": {
         "tags": [
@@ -5526,6 +5648,54 @@
         ],
         "title": "ApiResponse[ReportDetailOut]"
       },
+      "ApiResponse_VoiceTestOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VoiceTestOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[VoiceTestOut]"
+      },
       "ApiResponse_WorkspaceOut_": {
         "properties": {
           "success": {
@@ -6612,6 +6782,26 @@
               }
             ],
             "title": "Max Accuracy M"
+          },
+          "voice_cues": {
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Voice Cues"
+          },
+          "unit_aliases": {
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Unit Aliases"
           }
         },
         "additionalProperties": false,
@@ -7038,6 +7228,24 @@
         ],
         "title": "ExtensionWorkerSummaryOut",
         "description": "Counts for the list's tabs and KPI cards (no report numbers: those come with reports)."
+      },
+      "FieldRefOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "FieldRefOut"
       },
       "FieldStatOut": {
         "properties": {
@@ -7610,6 +7818,15 @@
             "type": "boolean",
             "title": "Voice To Text",
             "default": true
+          },
+          "input_mode": {
+            "type": "string",
+            "enum": [
+              "chat",
+              "voice"
+            ],
+            "title": "Input Mode",
+            "default": "chat"
           },
           "blur_retry": {
             "type": "boolean",
@@ -9524,6 +9741,105 @@
         ],
         "title": "ValidationError"
       },
+      "VoiceTestOut": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceValueOut"
+            },
+            "type": "array",
+            "title": "Values"
+          },
+          "missing": {
+            "items": {
+              "$ref": "#/components/schemas/FieldRefOut"
+            },
+            "type": "array",
+            "title": "Missing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "values",
+          "missing"
+        ],
+        "title": "VoiceTestOut"
+      },
+      "VoiceTestRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "VoiceTestRequest"
+      },
+      "VoiceValueOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "title": "Value"
+          },
+          "display": {
+            "type": "string",
+            "title": "Display"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "confident": {
+            "type": "boolean",
+            "title": "Confident"
+          },
+          "heard": {
+            "type": "string",
+            "title": "Heard"
+          },
+          "doubt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doubt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "value",
+          "display",
+          "confidence",
+          "confident",
+          "heard",
+          "doubt"
+        ],
+        "title": "VoiceValueOut"
+      },
       "WorkerRegionOut": {
         "properties": {
           "id": {
@@ -9972,6 +10288,26 @@
             ],
             "default": null,
             "title": "Max Accuracy M"
+          },
+          "voice_cues": {
+            "items": {
+              "maxLength": 60,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Voice Cues",
+            "type": "array"
+          },
+          "unit_aliases": {
+            "items": {
+              "maxLength": 60,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Unit Aliases",
+            "type": "array"
           }
         },
         "required": [
