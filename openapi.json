@@ -4558,6 +4558,22 @@
             }
           },
           {
+            "name": "verified",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Verified"
+            }
+          },
+          {
             "name": "voice",
             "in": "query",
             "required": false,
@@ -4815,6 +4831,240 @@
               }
             },
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{report_id}/corrections": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Correct Report Value",
+        "description": "Replace one value with a reason (roadmap 12.5). Refused once the report is verified.",
+        "operationId": "correct_report_value_api_v1_reports__report_id__corrections_post",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ReportDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{report_id}/verify": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Verify Report",
+        "description": "A supervisor confirms the values; corrections are no longer possible (roadmap 12.5).",
+        "operationId": "verify_report_api_v1_reports__report_id__verify_post",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ReportDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
           },
           "422": {
             "description": "Validation Error",
@@ -6480,6 +6730,35 @@
           "top_infected_regions"
         ],
         "title": "ConditionsOut"
+      },
+      "CorrectValueRequest": {
+        "properties": {
+          "field_key": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Field Key"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Value"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field_key",
+          "value",
+          "reason"
+        ],
+        "title": "CorrectValueRequest"
       },
       "CreateFormRequest": {
         "properties": {
@@ -8823,6 +9102,57 @@
         ],
         "title": "RegisterRequest"
       },
+      "ReportCorrectionOut": {
+        "properties": {
+          "field_key": {
+            "type": "string",
+            "title": "Field Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "old_display": {
+            "type": "string",
+            "title": "Old Display"
+          },
+          "new_display": {
+            "type": "string",
+            "title": "New Display"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field_key",
+          "label",
+          "old_display",
+          "new_display",
+          "reason",
+          "by",
+          "at"
+        ],
+        "title": "ReportCorrectionOut"
+      },
       "ReportDetailOut": {
         "properties": {
           "id": {
@@ -8930,6 +9260,16 @@
                 "type": "null"
               }
             ]
+          },
+          "verification": {
+            "$ref": "#/components/schemas/ReportVerificationOut"
+          },
+          "corrections": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCorrectionOut"
+            },
+            "type": "array",
+            "title": "Corrections"
           }
         },
         "type": "object",
@@ -8947,7 +9287,9 @@
           "complete",
           "fields",
           "photos",
-          "review"
+          "review",
+          "verification",
+          "corrections"
         ],
         "title": "ReportDetailOut"
       },
@@ -9108,6 +9450,11 @@
               }
             ],
             "title": "Transcript"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
           }
         },
         "type": "object",
@@ -9227,6 +9574,44 @@
           "reasons"
         ],
         "title": "ReportReviewOut"
+      },
+      "ReportVerificationOut": {
+        "properties": {
+          "verified": {
+            "type": "boolean",
+            "title": "Verified"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
+          },
+          "verified_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verified",
+          "verified_at",
+          "verified_by"
+        ],
+        "title": "ReportVerificationOut"
       },
       "ReportVoiceOut": {
         "properties": {

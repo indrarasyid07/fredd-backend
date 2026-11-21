@@ -4,16 +4,23 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, and_, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 # Read-only joins for the names shown next to a report.
+from app.modules.auth.models import User
 from app.modules.extension_workers.models import ExtensionWorker
 from app.modules.forms.models import Form
 from app.modules.reference_data.models import ReferenceData
-from app.modules.reports.models import Report, ReportCodeCounter, ReportPhoto
+from app.modules.reports.models import (
+    Report,
+    ReportCodeCounter,
+    ReportCorrection,
+    ReportPhoto,
+    ReportValue,
+)
 from app.modules.workspaces.models import Workspace
 
 
@@ -93,6 +100,7 @@ async def list_reports(
     region_id: uuid.UUID | None,
     conditions: list[str] | None,
     needs_review: bool | None,
+    verified: bool | None,
     voice: bool | None,
     since: datetime | None,
     until: datetime | None,
@@ -116,6 +124,9 @@ async def list_reports(
         stmt = stmt.where(or_(*clauses))
     if needs_review is not None:
         stmt = stmt.where(Report.needs_review.is_(needs_review))
+    if verified is not None:
+        is_verified = Report.verified_at.is_not(None)
+        stmt = stmt.where(is_verified if verified else ~is_verified)
     if voice is not None:
         # A JSON object, not SQL NULL nor a JSON null left by an older write.
         is_voice = func.coalesce(func.jsonb_typeof(Report.voice), "null") == "object"
@@ -148,3 +159,33 @@ async def list_photos(db: AsyncSession, report_id: uuid.UUID) -> list[ReportPhot
         .order_by(ReportPhoto.field_key, ReportPhoto.position)
     )
     return list(rows)
+
+
+async def get_report_for_update(
+    db: AsyncSession, workspace_id: uuid.UUID, report_id: uuid.UUID
+) -> Report | None:
+    return await db.scalar(
+        select(Report)
+        .where(Report.workspace_id == workspace_id, Report.id == report_id)
+        .with_for_update()
+    )
+
+
+async def delete_values(db: AsyncSession, report_id: uuid.UUID) -> None:
+    await db.execute(delete(ReportValue).where(ReportValue.report_id == report_id))
+
+
+async def list_corrections(db: AsyncSession, report_id: uuid.UUID) -> list[ReportCorrection]:
+    rows = await db.scalars(
+        select(ReportCorrection)
+        .where(ReportCorrection.report_id == report_id)
+        .order_by(ReportCorrection.created_at)
+    )
+    return list(rows)
+
+
+async def user_names(db: AsyncSession, user_ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
+    if not user_ids:
+        return {}
+    rows = await db.execute(select(User.id, User.name).where(User.id.in_(user_ids)))
+    return {uid: name for uid, name in rows.all()}

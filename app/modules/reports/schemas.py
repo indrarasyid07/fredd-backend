@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 Condition = Literal["healthy", "attention", "infected"]
 # "unknown" = reports without a condition (structure without a `condition` field, or skipped).
@@ -32,6 +32,8 @@ class ReportListItemOut(BaseModel):
     received_at: datetime
     # Voice Lab: what was said, for reports filled from a voice note; null otherwise.
     transcript: str | None = None
+    # A supervisor verified the values (roadmap 12.5).
+    verified: bool = False
 
 
 class ReportFieldOut(BaseModel):
@@ -88,6 +90,30 @@ class ReportVoiceOut(BaseModel):
     fields: list[VoiceFieldOut]
 
 
+class ReportVerificationOut(BaseModel):
+    verified: bool
+    verified_at: datetime | None
+    # Name of the supervisor; null if not verified or the account is gone.
+    verified_by: str | None
+
+
+class ReportCorrectionOut(BaseModel):
+    field_key: str
+    label: str
+    old_display: str
+    new_display: str
+    reason: str
+    by: str | None
+    at: datetime
+
+
+class CorrectValueRequest(BaseModel):
+    field_key: str = Field(min_length=1, max_length=64)
+    # The right value as the supervisor types it ("26 derajat", "Lolos", "S-2042").
+    value: str = Field(min_length=1, max_length=500)
+    reason: str = Field(min_length=3, max_length=500)
+
+
 class ReportFormOut(NamedRef):
     version: int
 
@@ -108,3 +134,5 @@ class ReportDetailOut(BaseModel):
     photos: list[ReportPhotoOut]
     review: ReportReviewOut
     voice: ReportVoiceOut | None = None
+    verification: ReportVerificationOut
+    corrections: list[ReportCorrectionOut]

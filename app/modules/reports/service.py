@@ -20,16 +20,25 @@ from app.core.config import settings
 from app.core.pagination import InvalidCursor
 from app.core.storage import get_storage
 from app.core.time import now_utc
+from app.modules.ai import extraction
 from app.modules.ai.extraction import CONFIDENT
+from app.modules.audit import service as audit
 from app.modules.forms import service as forms
 from app.modules.forms.constants import CONDITION_VALUES
 from app.modules.forms.schemas import FieldDefinition, FormDefinition
 from app.modules.reference_data import service as reference_data
 from app.modules.reports import repository
-from app.modules.reports.errors import ReportNotFound
-from app.modules.reports.models import Report, ReportPhoto, ReportValue
+from app.modules.reports.errors import (
+    FieldNotCorrectable,
+    InvalidCorrection,
+    ReportAlreadyVerified,
+    ReportNotFound,
+)
+from app.modules.reports.models import Report, ReportCorrection, ReportPhoto, ReportValue
 from app.modules.reports.schemas import (
+    CorrectValueRequest,
     NamedRef,
+    ReportCorrectionOut,
     ReportDetailOut,
     ReportFieldOut,
     ReportFormOut,
@@ -37,6 +46,7 @@ from app.modules.reports.schemas import (
     ReportLocationOut,
     ReportPhotoOut,
     ReportReviewOut,
+    ReportVerificationOut,
     ReportVoiceOut,
     VoiceFieldOut,
 )
@@ -238,6 +248,7 @@ async def list_reports(
     region_id: uuid.UUID | None = None,
     conditions: list[str] | None = None,
     needs_review: bool | None = None,
+    verified: bool | None = None,
     voice: bool | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
@@ -253,6 +264,7 @@ async def list_reports(
         region_id=region_id,
         conditions=conditions,
         needs_review=needs_review,
+        verified=verified,
         voice=voice,
         since=since,
         until=until,
@@ -303,6 +315,8 @@ async def get_report_detail(
             reasons=[_reason(definition, r) for r in report.review_reasons],
         ),
         voice=await _voice(report.voice, definition),
+        verification=await _verification(db, report),
+        corrections=await _corrections(db, report.id, definition),
     )
 
 
@@ -342,6 +356,7 @@ def _list_item(row: repository.ReportRow) -> ReportListItemOut:
         complete=report.complete,
         received_at=report.received_at,
         transcript=(report.voice or {}).get("transcript"),
+        verified=report.verified_at is not None,
     )
 
 
@@ -473,3 +488,121 @@ def _reason(definition: FormDefinition, reason: str) -> str:
         if f is not None:
             return f"Aturan: {f.label} = {display(f, rule.if_.equals)}"
     return "Perlu ditinjau"
+
+
+# --- Corrections and verification (roadmap 12.5) -------------------------------------------------
+
+_CORRECTABLE = ("short_text", "long_text", "number", "single_choice", "multi_choice", "datetime")
+
+
+async def correct_value(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    report_id: uuid.UUID,
+    user_id: uuid.UUID,
+    request: CorrectValueRequest,
+) -> ReportDetailOut:
+    """A supervisor replaces one value (reason required). The typed value is read like a spoken
+    one; the filter columns and dashboard values follow the new answers."""
+    report = await repository.get_report_for_update(db, workspace_id, report_id)
+    if report is None:
+        raise ReportNotFound()
+    if report.verified_at is not None:
+        raise ReportAlreadyVerified()
+    version = await forms.get_version_definition(
+        db, workspace_id, report.form_version_id, published_only=False
+    )
+    definition = version.definition
+    f = definition.field(request.field_key)
+    if f is None or f.type not in _CORRECTABLE:
+        raise FieldNotCorrectable(field="field_key")
+    read = extraction.read_value(f, request.value)
+    if read is None or read.value is None:
+        doubt = read.doubt if read is not None else None
+        raise InvalidCorrection(f"{doubt}." if doubt else None, field="value")
+    if read.doubt == "Satuan yang terdengar bukan " + (f.unit or ""):
+        raise InvalidCorrection(f"Satuannya harus {f.unit}.", field="value")
+
+    old = report.answers.get(f.key)
+    answers = {**report.answers, f.key: read.value}  # a new dict, so the JSONB change is saved
+    report.answers = answers
+    report.condition = _condition(definition, answers)
+    report.area_ha = _area(definition, answers)
+    report.complete = is_complete(definition, answers)
+    await repository.delete_values(db, report.id)
+    db.add_all(_values(report, definition, answers))
+    db.add(
+        ReportCorrection(
+            workspace_id=workspace_id,
+            report_id=report.id,
+            field_key=f.key,
+            old_value=old,
+            new_value=read.value,
+            reason=request.reason.strip(),
+            user_id=user_id,
+        )
+    )
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=user_id,
+        action="report.corrected",
+        target=str(report.id),
+        details={"field": f.key, "old": old, "new": read.value, "reason": request.reason.strip()},
+    )
+    await db.commit()
+    return await get_report_detail(db, workspace_id, report_id)
+
+
+async def verify_report(
+    db: AsyncSession, workspace_id: uuid.UUID, report_id: uuid.UUID, user_id: uuid.UUID
+) -> ReportDetailOut:
+    report = await repository.get_report_for_update(db, workspace_id, report_id)
+    if report is None:
+        raise ReportNotFound()
+    if report.verified_at is not None:
+        raise ReportAlreadyVerified()
+    report.verified_at = now_utc()
+    report.verified_by_user_id = user_id
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=user_id,
+        action="report.verified",
+        target=str(report.id),
+        details={"code": report.code},
+    )
+    await db.commit()
+    return await get_report_detail(db, workspace_id, report_id)
+
+
+async def _verification(db: AsyncSession, report: Report) -> ReportVerificationOut:
+    by = report.verified_by_user_id
+    names = await repository.user_names(db, {by}) if by else {}
+    return ReportVerificationOut(
+        verified=report.verified_at is not None,
+        verified_at=report.verified_at,
+        verified_by=names.get(by) if by else None,
+    )
+
+
+async def _corrections(
+    db: AsyncSession, report_id: uuid.UUID, definition: FormDefinition
+) -> list[ReportCorrectionOut]:
+    rows = await repository.list_corrections(db, report_id)
+    names = await repository.user_names(db, {r.user_id for r in rows if r.user_id})
+    out = []
+    for r in rows:
+        f = definition.field(r.field_key)
+        out.append(
+            ReportCorrectionOut(
+                field_key=r.field_key,
+                label=f.label if f else r.field_key,
+                old_display=display(f, r.old_value) if f else str(r.old_value),
+                new_display=display(f, r.new_value) if f else str(r.new_value),
+                reason=r.reason,
+                by=names.get(r.user_id) if r.user_id else None,
+                at=r.created_at,
+            )
+        )
+    return out

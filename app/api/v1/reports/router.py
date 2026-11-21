@@ -10,7 +10,12 @@ from app.api.deps import DB, ReviewerMember
 from app.api.pagination import Cursor, Limit, decode_cursor, encode_cursor
 from app.api.responses import ApiErrorResponse, ApiResponse, Pagination, ok
 from app.modules.reports import service
-from app.modules.reports.schemas import ConditionFilter, ReportDetailOut, ReportListItemOut
+from app.modules.reports.schemas import (
+    ConditionFilter,
+    CorrectValueRequest,
+    ReportDetailOut,
+    ReportListItemOut,
+)
 
 router = APIRouter()
 
@@ -30,6 +35,7 @@ async def list_reports(
         Query(description="Saring kondisi (boleh lebih dari satu); `unknown` = tanpa kondisi."),
     ] = None,
     needs_review: bool | None = None,
+    verified: bool | None = None,
     voice: Annotated[
         bool | None, Query(description="true: hanya laporan dari pesan suara (Voice Lab).")
     ] = None,
@@ -46,6 +52,7 @@ async def list_reports(
         region_id=region_id,
         conditions=list(condition) if condition else None,
         needs_review=needs_review,
+        verified=verified,
         voice=voice,
         since=since,
         until=until,
@@ -62,3 +69,29 @@ async def list_reports(
 @router.get("/{report_id}", response_model=ApiResponse[ReportDetailOut], responses=_GUARDS)
 async def get_report(report_id: uuid.UUID, member: ReviewerMember, db: DB):
     return ok(await service.get_report_detail(db, member.workspace_id, report_id))
+
+
+@router.post(
+    "/{report_id}/corrections",
+    response_model=ApiResponse[ReportDetailOut],
+    responses={**_GUARDS, 409: _ERR, 422: _ERR},
+)
+async def correct_report_value(
+    report_id: uuid.UUID, body: CorrectValueRequest, member: ReviewerMember, db: DB
+):
+    """Replace one value with a reason (roadmap 12.5). Refused once the report is verified."""
+    detail = await service.correct_value(
+        db, member.workspace_id, report_id, member.member.user_id, body
+    )
+    return ok(detail, message="Nilai dikoreksi dan dicatat di jejak audit.")
+
+
+@router.post(
+    "/{report_id}/verify",
+    response_model=ApiResponse[ReportDetailOut],
+    responses={**_GUARDS, 409: _ERR},
+)
+async def verify_report(report_id: uuid.UUID, member: ReviewerMember, db: DB):
+    """A supervisor confirms the values; corrections are no longer possible (roadmap 12.5)."""
+    detail = await service.verify_report(db, member.workspace_id, report_id, member.member.user_id)
+    return ok(detail, message="Laporan diverifikasi.")

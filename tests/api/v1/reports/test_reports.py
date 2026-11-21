@@ -11,7 +11,6 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.auth.models import User
 from app.modules.extension_workers.models import ExtensionWorker
 from app.modules.forms import service as forms
 from app.modules.forms.models import Form, FormVersion
@@ -63,16 +62,6 @@ async def _topic(db: AsyncSession, workspace: Workspace, worker_name: str = "Bud
     await db.flush()
     assert version is not None
     return Topic(workspace, form, version, worker)
-
-
-@pytest.fixture
-async def topic(db: AsyncSession, organization: Workspace) -> Topic:
-    return await _topic(db, organization)
-
-
-@pytest.fixture
-async def admin(client: AsyncClient, organization: Workspace, user: User) -> AsyncClient:
-    return await sign_in(client, user.email, organization.id)
 
 
 async def test_list_newest_first_with_names(

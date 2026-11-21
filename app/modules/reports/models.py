@@ -90,6 +90,11 @@ class Report(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
     # Voice Lab (roadmap 12.3): the sentence that filled the report: transcript, audio object
     # key, and per field the words heard and the confidence. Null for chat reports.
     voice: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    # A supervisor checked the values (roadmap 12.5); verified reports are no longer corrected.
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verified_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
 
 
 class ReportPhoto(UUIDPrimaryKey, Timestamps, Base):
@@ -147,3 +152,19 @@ class ReportValue(UUIDPrimaryKey, WorkspaceOwned, Base):
     choice: Mapped[str | None] = mapped_column(String(200))
     number: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ReportCorrection(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
+    """One value a supervisor changed, with the mandatory reason (roadmap 12.5). The report keeps
+    the new value; this row keeps what it was, for the history and the audit trail."""
+
+    __tablename__ = "report_corrections"
+
+    report_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("reports.id", ondelete="CASCADE"), index=True
+    )
+    field_key: Mapped[str] = mapped_column(String(64))
+    old_value: Mapped[Any] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    new_value: Mapped[Any] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    reason: Mapped[str] = mapped_column(String(500))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
