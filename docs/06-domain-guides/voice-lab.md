@@ -10,7 +10,8 @@ Analis atau peneliti lab merekam hasil kerjanya dengan suara lewat bot Telegram/
 | 12.2 | Susun isian suara (`voice_cues`, `unit_aliases`, `settings.input_mode`), uji dengan ucapan (`POST /forms/{id}/voice-test`) | **Ada** |
 | 12.3 | Voice note di bot → isian terisi sekaligus, `reports.voice` | **Ada** |
 | 12.4 | Halaman Voice data asli: `GET /reports?voice=true`, `GET /reports/{id}.voice` | **Ada** |
-| 12.5–12.6 | Koreksi & verifikasi, unduh | Belum |
+| 12.5 | Koreksi nilai (alasan wajib) & verifikasi penyelia, jejak audit | **Ada** |
+| 12.6 | Unduh CSV/Excel | Belum |
 | 12.7 | Penyedia STT/LLM cloud | Menunggu D7 |
 
 ## Mengubah suara jadi teks (`app/modules/ai/speech.py`)
@@ -60,4 +61,12 @@ Voice adalah laporan yang diisi dari pesan suara, jadi memakai endpoint laporan 
 - `GET /reports/{id}` → bagian `voice` (null untuk laporan chat): `transcript`, `audio_url` + `audio_expires_at` (URL bertanda tangan seperti foto), dan `fields[]` (`key`, `label`, `heard`, `confidence`, `confident`) dalam urutan versi struktur.
 
 `reports.voice` disimpan dengan `NULL` SQL untuk laporan chat; filter memeriksa `jsonb_typeof = 'object'` sehingga baris lama dengan JSON `null` tetap terhitung sebagai bukan suara.
+
+## Koreksi dan verifikasi (Langkah 12.5)
+
+Berlaku untuk semua laporan (bukan hanya Voice), sehingga antrean tinjauan 5.3 nanti tinggal memperluasnya.
+
+- **Koreksi** (`POST /reports/{id}/corrections`, reviewer ke atas): penyelia mengetik nilai yang benar ("26 derajat") dan alasannya. Nilai dibaca dengan `extraction.read_value` (aturan yang sama dengan suara); satuan lain dari satuan isian ditolak ("Satuannya harus °C."). Laporan menyimpan nilai baru; `report_corrections` menyimpan nilai lama, baru, alasan, dan siapa; `audit_logs` mencatat `report.corrected`.
+- **Verifikasi** (`POST /reports/{id}/verify`): mengunci laporan (koreksi berikutnya `409`), audit `report.verified`.
+- Belum: edit transkrip (desain Alur Voice 6–7), tanda tangan PIN, tolak/minta konfirmasi analis (5.3).
 

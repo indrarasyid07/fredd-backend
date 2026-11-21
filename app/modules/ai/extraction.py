@@ -147,6 +147,14 @@ def _locate(
     return sorted(taken, key=lambda c: c[0])
 
 
+def read_value(
+    f: FieldDefinition, words: str, today: dt.date | None = None
+) -> ExtractedValue | None:
+    """One field's value from words already known to be its answer (a supervisor's correction,
+    roadmap 12.5), read with the same rules as a spoken sentence."""
+    return _read(f, words.strip(_TRIM), today or dt.date.today())
+
+
 def _read(f: FieldDefinition, words: str, today: dt.date) -> ExtractedValue | None:
     if not words:
         return None

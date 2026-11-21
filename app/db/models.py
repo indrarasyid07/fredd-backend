@@ -10,7 +10,13 @@ from app.modules.forms.models import Form, FormTemplate, FormTemplateSector, For
 from app.modules.join_codes.models import JoinCode
 from app.modules.members.models import MemberInvite
 from app.modules.reference_data.models import ReferenceData
-from app.modules.reports.models import Report, ReportCodeCounter, ReportPhoto, ReportValue
+from app.modules.reports.models import (
+    Report,
+    ReportCodeCounter,
+    ReportCorrection,
+    ReportPhoto,
+    ReportValue,
+)
 from app.modules.workspaces.models import Member, Workspace
 
 __all__ = [
@@ -33,6 +39,7 @@ __all__ = [
     "ReferenceData",
     "Report",
     "ReportCodeCounter",
+    "ReportCorrection",
     "ReportPhoto",
     "ReportValue",
     "Session",
