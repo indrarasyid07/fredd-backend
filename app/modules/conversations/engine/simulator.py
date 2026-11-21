@@ -48,6 +48,7 @@ class SimTopic:
     label: str
     definition: FormDefinition
     code: str  # join code without the dash
+    voice_mode: bool = False
 
 
 @dataclass
@@ -76,6 +77,10 @@ class Simulator:
     ) -> list[Outbound]:
         return self._receive(Inbound(location=Location(lat, lng, accuracy_m)))
 
+    def speak(self, text: str, audio: str | None = "media/voice.ogg") -> list[Outbound]:
+        """A voice note whose transcript is `text` (Voice Lab)."""
+        return self._receive(Inbound(text=text, spoken=True, audio=audio))
+
     def send_media(self, kind: Any, ref: str, group: str | None = None) -> list[Outbound]:
         return self._receive(Inbound(media=Media(kind, ref, group)))
 
@@ -90,6 +95,7 @@ class Simulator:
             topics=[Topic(t.id, t.label) for t in mine],
             definition=active.definition if active else None,
             topic_label=active.label if active else "",
+            voice_mode=bool(active and active.voice_mode),
         )
 
     def _receive(self, message: Inbound) -> list[Outbound]:
@@ -126,6 +132,7 @@ class Simulator:
                     "answers": effect.answers,
                     "needs_review": effect.needs_review,
                     "review_reasons": effect.review_reasons,
+                    "voice": effect.voice,
                 }
             )
             self.channel.send(machine.report_saved(code, self._context()))

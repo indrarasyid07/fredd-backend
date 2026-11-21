@@ -25,6 +25,7 @@ from app.modules.conversations.models import Conversation, Message
 from app.modules.extension_workers import service as workers
 from app.modules.extension_workers.models import FormAssignment
 from app.modules.extension_workers.service import TelegramIdentity
+from app.modules.forms import service as forms
 from app.modules.join_codes import service as join_codes
 from app.modules.join_codes.service import Claimable
 from app.modules.workspaces import service as workspaces
@@ -243,7 +244,9 @@ async def _confirm(db: AsyncSession, chat: Chat, keep: bool) -> list[Outbound]:
         worker = await workers.get_by_id(db, current.extension_worker_id)
         if worker is not None:
             worker.confirmed_at = now_utc()
-        return [Outbound(copy.AFTER_KEEP)]
+        form = await forms.get_form(db, current.workspace_id, current.form_id)
+        voice = (form.settings or {}).get("input_mode") == "voice"
+        return [Outbound(copy.AFTER_KEEP_VOICE if voice else copy.AFTER_KEEP)]
     await workers.leave(db, current, now_utc())
     await workers.set_active(db, chat.channel_id, chat.chat_id, None)
     return [Outbound(copy.AFTER_CHANGE)]

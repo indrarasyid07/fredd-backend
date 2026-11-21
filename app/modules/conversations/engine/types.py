@@ -51,6 +51,9 @@ class Inbound:
     button: str | None = None
     location: Location | None = None
     media: Media | None = None
+    # `text` is the transcript of a voice note (roadmap 12.3); `audio` is where it is stored.
+    spoken: bool = False
+    audio: str | None = None
 
 
 # --- Out ----------------------------------------------------------------------------------------
@@ -94,6 +97,8 @@ class SubmitReport:
     answers: dict[str, Any]
     needs_review: bool
     review_reasons: tuple[str, ...]
+    # Voice Lab (roadmap 12.3): transcript, audio, and per field the words heard and confidence.
+    voice: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -131,6 +136,8 @@ class EngineContext:
     topic_label: str = ""
     # Extra unit aliases from reference data (alias → unit code).
     units: Mapping[str, str] = field(default_factory=dict)
+    # The topic's structure is in voice mode (Voice Lab, roadmap 12.3): one message, many fields.
+    voice_mode: bool = False
 
 
 @dataclass
@@ -152,6 +159,8 @@ class ConversationState:
     # came in, so the rest of that album joins them (conversation-engine.md "Foto sebelum mulai").
     held_media: list[str] = field(default_factory=list)
     media_group: str | None = None
+    # Voice Lab: what the sentence that filled the report was (see SubmitReport.voice).
+    voice: dict[str, Any] | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {k: v for k, v in self.__dict__.items()}
