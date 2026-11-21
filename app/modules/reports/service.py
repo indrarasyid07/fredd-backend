@@ -20,6 +20,7 @@ from app.core.config import settings
 from app.core.pagination import InvalidCursor
 from app.core.storage import get_storage
 from app.core.time import now_utc
+from app.modules.ai.extraction import CONFIDENT
 from app.modules.forms import service as forms
 from app.modules.forms.constants import CONDITION_VALUES
 from app.modules.forms.schemas import FieldDefinition, FormDefinition
@@ -36,6 +37,8 @@ from app.modules.reports.schemas import (
     ReportLocationOut,
     ReportPhotoOut,
     ReportReviewOut,
+    ReportVoiceOut,
+    VoiceFieldOut,
 )
 
 # "Titik lahan": a point rounded to a 50 m grid, per worker and structure (dashboard.md).
@@ -235,6 +238,7 @@ async def list_reports(
     region_id: uuid.UUID | None = None,
     conditions: list[str] | None = None,
     needs_review: bool | None = None,
+    voice: bool | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
     after: list[str] | None = None,
@@ -249,6 +253,7 @@ async def list_reports(
         region_id=region_id,
         conditions=conditions,
         needs_review=needs_review,
+        voice=voice,
         since=since,
         until=until,
         after=_parse_after(after),
@@ -297,6 +302,7 @@ async def get_report_detail(
             needs_review=report.needs_review,
             reasons=[_reason(definition, r) for r in report.review_reasons],
         ),
+        voice=await _voice(report.voice, definition),
     )
 
 
@@ -335,6 +341,36 @@ def _list_item(row: repository.ReportRow) -> ReportListItemOut:
         needs_review=report.needs_review,
         complete=report.complete,
         received_at=report.received_at,
+        transcript=(report.voice or {}).get("transcript"),
+    )
+
+
+async def _voice(voice: dict[str, Any] | None, definition: FormDefinition) -> ReportVoiceOut | None:
+    """The voice note behind a report, with a short-lived link to the recording and, per field
+    in the version's order, the words heard and the confidence."""
+    if not voice or not voice.get("transcript"):
+        return None
+    seconds = settings.storage_presign_expiry_seconds
+    audio = voice.get("audio")
+    url = await get_storage().signed_url(audio, seconds) if audio else None
+    heard: dict[str, str] = voice.get("heard") or {}
+    confidence: dict[str, float] = voice.get("confidence") or {}
+    fields = [
+        VoiceFieldOut(
+            key=f.key,
+            label=f.label,
+            heard=heard[f.key],
+            confidence=float(confidence.get(f.key, 0)),
+            confident=float(confidence.get(f.key, 0)) >= CONFIDENT,
+        )
+        for f in definition.fields
+        if f.key in heard
+    ]
+    return ReportVoiceOut(
+        transcript=str(voice["transcript"]),
+        audio_url=url,
+        audio_expires_at=now_utc() + timedelta(seconds=seconds) if url else None,
+        fields=fields,
     )
 
 

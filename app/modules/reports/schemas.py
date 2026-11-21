@@ -30,6 +30,8 @@ class ReportListItemOut(BaseModel):
     needs_review: bool
     complete: bool
     received_at: datetime
+    # Voice Lab: what was said, for reports filled from a voice note; null otherwise.
+    transcript: str | None = None
 
 
 class ReportFieldOut(BaseModel):
@@ -67,6 +69,25 @@ class ReportReviewOut(BaseModel):
     reasons: list[str]
 
 
+class VoiceFieldOut(BaseModel):
+    key: str
+    label: str
+    # The words this value was read from, and how sure Fluctuz was (0–1).
+    heard: str
+    confidence: float
+    confident: bool
+
+
+class ReportVoiceOut(BaseModel):
+    """The voice note that filled the report (Voice Lab, roadmap 12.3/12.4)."""
+
+    transcript: str
+    # Signed link to the recording, valid until `audio_expires_at`; null when not served.
+    audio_url: str | None
+    audio_expires_at: datetime | None
+    fields: list[VoiceFieldOut]
+
+
 class ReportFormOut(NamedRef):
     version: int
 
@@ -86,3 +107,4 @@ class ReportDetailOut(BaseModel):
     fields: list[ReportFieldOut]
     photos: list[ReportPhotoOut]
     review: ReportReviewOut
+    voice: ReportVoiceOut | None = None
