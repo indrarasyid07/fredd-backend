@@ -228,3 +228,42 @@ async def test_reviewer_may_read_and_strangers_may_not(
     await add_member(db, other.id, email="x@contoh.id", role="admin")
     await sign_in(client, "x@contoh.id", organization.id)
     assert (await client.get(URL)).status_code in (403, 404)
+
+
+# --- Voice Lab (roadmap 12.4) -------------------------------------------------------------------
+
+VOICE = {
+    "transcript": "nama petani Pak Slamet, luas 1,5 hektar",
+    "audio": "workspaces/x/messages/2026/11/voice.ogg",
+    "heard": {"farmer_name": "Pak Slamet", "land_area": "1,5 hektar"},
+    "confidence": {"farmer_name": 0.75, "land_area": 0.5},
+}
+
+
+async def test_voice_reports_list_and_detail(
+    admin: AsyncClient, db: AsyncSession, topic: Topic, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Signing:
+        async def signed_url(self, key: str, seconds: int) -> str:
+            return f"https://files.example/{key}"
+
+    monkeypatch.setattr("app.core.storage.override", Signing())
+    chat = await topic.report(db, received_at=NOON)
+    spoken = await topic.report(db, received_at=NOON - timedelta(minutes=5), voice=VOICE)
+
+    rows = (await admin.get(URL, params={"voice": "true"})).json()["data"]
+    assert [r["id"] for r in rows] == [str(spoken.id)]
+    assert rows[0]["transcript"] == VOICE["transcript"]
+    others = (await admin.get(URL, params={"voice": "false"})).json()["data"]
+    assert [r["id"] for r in others] == [str(chat.id)]
+
+    voice = (await admin.get(f"{URL}/{spoken.id}")).json()["data"]["voice"]
+    assert voice["transcript"] == VOICE["transcript"]
+    assert voice["audio_url"] == "https://files.example/workspaces/x/messages/2026/11/voice.ogg"
+    assert voice["audio_expires_at"] is not None
+    # Version order; doubtful values flagged.
+    assert [(f["label"], f["heard"], f["confident"]) for f in voice["fields"]] == [
+        ("Nama petani", "Pak Slamet", True),
+        ("Luas lahan", "1,5 hektar", False),
+    ]
+    assert (await admin.get(f"{URL}/{chat.id}")).json()["data"]["voice"] is None

@@ -93,6 +93,7 @@ async def list_reports(
     region_id: uuid.UUID | None,
     conditions: list[str] | None,
     needs_review: bool | None,
+    voice: bool | None,
     since: datetime | None,
     until: datetime | None,
     after: tuple[datetime, uuid.UUID] | None,
@@ -115,6 +116,10 @@ async def list_reports(
         stmt = stmt.where(or_(*clauses))
     if needs_review is not None:
         stmt = stmt.where(Report.needs_review.is_(needs_review))
+    if voice is not None:
+        # A JSON object, not SQL NULL nor a JSON null left by an older write.
+        is_voice = func.coalesce(func.jsonb_typeof(Report.voice), "null") == "object"
+        stmt = stmt.where(is_voice if voice else ~is_voice)
     if since is not None:
         stmt = stmt.where(Report.received_at >= since)
     if until is not None:

@@ -89,7 +89,7 @@ class Report(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     # Voice Lab (roadmap 12.3): the sentence that filled the report: transcript, audio object
     # key, and per field the words heard and the confidence. Null for chat reports.
-    voice: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    voice: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class ReportPhoto(UUIDPrimaryKey, Timestamps, Base):

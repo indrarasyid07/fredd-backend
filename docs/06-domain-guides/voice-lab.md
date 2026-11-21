@@ -9,7 +9,8 @@ Analis atau peneliti lab merekam hasil kerjanya dengan suara lewat bot Telegram/
 | 12.1 | Lapisan `app/modules/ai/`: STT + pengambil isian | **Ada** |
 | 12.2 | Susun isian suara (`voice_cues`, `unit_aliases`, `settings.input_mode`), uji dengan ucapan (`POST /forms/{id}/voice-test`) | **Ada** |
 | 12.3 | Voice note di bot → isian terisi sekaligus, `reports.voice` | **Ada** |
-| 12.4–12.6 | Halaman Voice data asli, koreksi & verifikasi, unduh | Belum |
+| 12.4 | Halaman Voice data asli: `GET /reports?voice=true`, `GET /reports/{id}.voice` | **Ada** |
+| 12.5–12.6 | Koreksi & verifikasi, unduh | Belum |
 | 12.7 | Penyedia STT/LLM cloud | Menunggu D7 |
 
 ## Mengubah suara jadi teks (`app/modules/ai/speech.py`)
@@ -50,4 +51,13 @@ Berlaku untuk topik yang strukturnya `settings.input_mode = "voice"`; topik `cha
 Pengubah suara gagal (penyedia mati) → pesan tidak hilang; bot menjawab "Pesan suara belum bisa saya dengar. Coba kirim ulang, atau ketik hasilnya." Kalimat tanpa isian yang dikenali di langkah suara → contoh kalimat + hitungan gagal (3x → bantuan admin seperti alur chat).
 
 **Mencoba tanpa Telegram:** simulator `/devtools` punya tombol "🎤 Kirim sebagai pesan suara": isi kotak pesan menjadi kata-kata pesan suara (penyedia `fake` membacanya kembali).
+
+## API halaman Voice (Langkah 12.4)
+
+Voice adalah laporan yang diisi dari pesan suara, jadi memakai endpoint laporan (tanpa `/voice` terpisah):
+
+- `GET /reports?voice=true` → hanya laporan bersumber suara (`voice=false` → hanya chat); tiap baris membawa `transcript`.
+- `GET /reports/{id}` → bagian `voice` (null untuk laporan chat): `transcript`, `audio_url` + `audio_expires_at` (URL bertanda tangan seperti foto), dan `fields[]` (`key`, `label`, `heard`, `confidence`, `confident`) dalam urutan versi struktur.
+
+`reports.voice` disimpan dengan `NULL` SQL untuk laporan chat; filter memeriksa `jsonb_typeof = 'object'` sehingga baris lama dengan JSON `null` tetap terhitung sebagai bukan suara.
 

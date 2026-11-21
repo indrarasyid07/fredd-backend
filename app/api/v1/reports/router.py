@@ -30,6 +30,9 @@ async def list_reports(
         Query(description="Saring kondisi (boleh lebih dari satu); `unknown` = tanpa kondisi."),
     ] = None,
     needs_review: bool | None = None,
+    voice: Annotated[
+        bool | None, Query(description="true: hanya laporan dari pesan suara (Voice Lab).")
+    ] = None,
     since: Annotated[datetime | None, Query(description="Diterima sejak (inklusif).")] = None,
     until: Annotated[datetime | None, Query(description="Diterima sebelum (eksklusif).")] = None,
     limit: Limit = 20,
@@ -43,6 +46,7 @@ async def list_reports(
         region_id=region_id,
         conditions=list(condition) if condition else None,
         needs_review=needs_review,
+        voice=voice,
         since=since,
         until=until,
         after=decode_cursor(cursor, 2),

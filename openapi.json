@@ -4558,6 +4558,24 @@
             }
           },
           {
+            "name": "voice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "true: hanya laporan dari pesan suara (Voice Lab).",
+              "title": "Voice"
+            },
+            "description": "true: hanya laporan dari pesan suara (Voice Lab)."
+          },
+          {
             "name": "since",
             "in": "query",
             "required": false,
@@ -8902,6 +8920,16 @@
           },
           "review": {
             "$ref": "#/components/schemas/ReportReviewOut"
+          },
+          "voice": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportVoiceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -9069,6 +9097,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Received At"
+          },
+          "transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript"
           }
         },
         "type": "object",
@@ -9188,6 +9227,53 @@
           "reasons"
         ],
         "title": "ReportReviewOut"
+      },
+      "ReportVoiceOut": {
+        "properties": {
+          "transcript": {
+            "type": "string",
+            "title": "Transcript"
+          },
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
+          },
+          "audio_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Expires At"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceFieldOut"
+            },
+            "type": "array",
+            "title": "Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transcript",
+          "audio_url",
+          "audio_expires_at",
+          "fields"
+        ],
+        "title": "ReportVoiceOut",
+        "description": "The voice note that filled the report (Voice Lab, roadmap 12.3/12.4)."
       },
       "ReportsTodayOut": {
         "properties": {
@@ -9740,6 +9826,39 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VoiceFieldOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "heard": {
+            "type": "string",
+            "title": "Heard"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "confident": {
+            "type": "boolean",
+            "title": "Confident"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "heard",
+          "confidence",
+          "confident"
+        ],
+        "title": "VoiceFieldOut"
       },
       "VoiceTestOut": {
         "properties": {
