@@ -26,12 +26,23 @@ class SpeechToText(Protocol):
     ) -> Transcript: ...
 
 
+# Fake voice notes are an Ogg header followed by the spoken words, so they pass the media check
+# (a voice note must start with "OggS") and the fake provider can read them back.
+FAKE_AUDIO_PREFIX = b"OggS\x00"
+
+
+def fake_voice_note(said: str) -> bytes:
+    """Development and tests: a "recording" of `said` for the fake provider."""
+    return FAKE_AUDIO_PREFIX + said.encode()
+
+
 class FakeSpeechToText:
     """Development and tests only: the audio bytes are the spoken text in UTF-8."""
 
     name = "fake"
 
     async def transcribe(self, audio: bytes, content_type: str, language: str = "id") -> Transcript:
+        audio = audio.removeprefix(FAKE_AUDIO_PREFIX)
         return Transcript(audio.decode("utf-8", errors="replace").strip(), language, self.name)
 
 

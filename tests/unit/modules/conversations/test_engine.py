@@ -357,3 +357,76 @@ def test_photo_during_a_text_question_offers_resume_or_restart(sim: Simulator) -
     assert offer.text == copy.DRAFT_EXISTS
     assert [b.value for b in offer.buttons] == ["resume", "restart:yes"]
     assert sim.state.failed_attempts == 0 and "photos" not in sim.state.answers
+
+
+# --- Voice Lab: one sentence, many fields (roadmap 12.3) -----------------------------------------
+
+LAB = {
+    "fields": [
+        {"key": "sample", "type": "short_text", "label": "Nomor sampel",
+         "question": "Nomor sampel?", "voice_cues": ["sampel"]},
+        {"key": "ph", "type": "number", "label": "pH", "question": "Berapa pH?"},
+        {"key": "temp", "type": "number", "label": "Suhu", "question": "Berapa suhu?", "unit": "°C",
+         "unit_aliases": ["derajat"]},
+        {"key": "note", "type": "long_text", "label": "Catatan", "question": "Catatan?",
+         "required": False},
+    ],
+    "rules": [],
+}  # fmt: skip
+
+
+@pytest.fixture
+def lab() -> Simulator:
+    topic = SimTopic("lab", "Lab Air · Uji Sampel", FormDefinition.model_validate(LAB), CODE, True)
+    return Simulator(topics=[topic])
+
+
+def test_voice_mode_asks_for_one_sentence(lab: Simulator) -> None:
+    (prompt,) = lab.say(CODE)
+    assert "Ucapkan atau ketik hasilnya" in prompt.text and "Nomor sampel" in prompt.text
+    assert lab.state.step == "__voice__"
+
+
+def test_one_sentence_fills_the_report(lab: Simulator) -> None:
+    lab.say(CODE)
+    heard, question = lab.speak("sampel S-2041, pH 6,8, suhu 25 derajat")
+    assert heard.text.startswith("Tercatat: Nomor sampel *S-2041*")
+    assert "Suhu *25 °C*" in heard.text and "Perlu dipastikan" not in heard.text
+    assert "Catatan" in question.text and question.buttons[-1].value == "skip"  # optional left
+    summary = lab.tap("skip")[0]
+    assert summary.buttons[0].value == "submit"
+    lab.tap("submit")
+    (report,) = lab.reports
+    assert report["answers"] == {"sample": "S-2041", "ph": "6.8", "temp": "25", "note": None}
+    assert report["voice"]["transcript"] == "sampel S-2041, pH 6,8, suhu 25 derajat"
+    assert report["voice"]["audio"] == "media/voice.ogg"
+    assert report["voice"]["heard"]["temp"] == "25 derajat"
+
+
+def test_doubtful_and_missing_values_are_asked_one_by_one(lab: Simulator) -> None:
+    lab.say(CODE)
+    heard, question = lab.speak("pH 6,8, suhu 25 ml")
+    assert 'Perlu dipastikan: Suhu ("25 ml")' in heard.text
+    assert "Nomor sampel?" in question.text  # missing, asked first (field order)
+    assert "Berapa suhu?" in lab.say("S-9")[0].text  # then the doubtful one
+    lab.speak("26 derajat")  # a voice answer to a single question
+    assert lab.state.answers["temp"] == "26"
+
+
+def test_voice_note_starts_a_report_without_mulai(lab: Simulator) -> None:
+    lab.say(CODE)
+    lab.state.status = "submitted"
+    heard = lab.speak("sampel S-1 pH 7 suhu 20 derajat")[0]
+    assert heard.text.startswith("Tercatat:") and lab.state.answers["sample"] == "S-1"
+
+
+def test_nothing_recognised_is_explained(lab: Simulator) -> None:
+    lab.say(CODE)
+    (reply,) = lab.speak("selamat pagi")
+    assert reply.text.startswith("Belum ada isian yang saya kenali")
+    assert lab.state.step == "__voice__" and lab.state.failed_attempts == 1
+
+
+def test_chat_mode_topics_ignore_voice_reading(sim: Simulator) -> None:
+    sim.say(CODE)
+    assert sim.state.step == "location"  # crop survey asks one question at a time as before

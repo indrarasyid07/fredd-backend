@@ -75,6 +75,8 @@ class _Run:
     topics: list[repository.TopicRow]
     message: Message
     definition: FormDefinition | None = None
+    # The structure is in voice mode (Voice Lab): one message fills many fields.
+    voice_mode: bool = False
 
 
 async def handle(db: AsyncSession, chat: joining.Chat, message: Message) -> list[Outbound]:
@@ -142,6 +144,9 @@ def to_inbound(message: Message) -> Inbound | None:
             return None
         accuracy = p.get("accuracy_m")
         return Inbound(location=Location(lat, lng, float(accuracy) if accuracy else None))
+    if message.kind == "voice" and p.get("transcript") is not None:
+        # A voice note of a voice-mode topic, transcribed (Voice Lab, roadmap 12.3).
+        return Inbound(text=str(p["transcript"]), spoken=True, audio=message.media_key)
     if message.kind in ("photo", "video", "voice", "document") and p.get("file_id"):
         # The stored copy (roadmap 3.8); the Telegram file reference when it could not be made.
         ref = message.media_key or f"telegram:{p['file_id']}"
@@ -298,8 +303,9 @@ async def _prepare_definition(run: _Run, state: ConversationState) -> Outbound |
     even after a new one is published; a new report takes the current version."""
     conversation = run.conversation
     keep = state.status in _DRAFT and conversation.form_version_id is not None
+    form = await forms.get_form(run.db, conversation.workspace_id, conversation.form_id)
+    run.voice_mode = (form.settings or {}).get("input_mode") == "voice"
     if not keep:
-        form = await forms.get_form(run.db, conversation.workspace_id, conversation.form_id)
         if form.status not in ("pilot", "active") or form.current_version_id is None:
             return Outbound(copy.topic_closed(*_label(run, run.assignment)))
         conversation.form_version_id = form.current_version_id
@@ -323,6 +329,7 @@ async def _context(run: _Run) -> EngineContext:
         topics=[Topic(str(a.form_id), copy.topic_title(o, f)) for a, o, f in run.topics],
         definition=run.definition,
         topic_label=copy.topic_title(organization, form),
+        voice_mode=run.voice_mode,
     )
 
 
@@ -364,6 +371,7 @@ async def _submit(run: _Run, effect: SubmitReport, ctx: EngineContext) -> Outbou
         answers=effect.answers,
         needs_review=effect.needs_review,
         review_reasons=effect.review_reasons,
+        voice=effect.voice,
     )
     logger.info("report %s created", report.id)
     return machine.report_saved(report.code, ctx)

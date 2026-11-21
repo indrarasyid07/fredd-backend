@@ -17,6 +17,7 @@ from dataclasses import replace
 from decimal import Decimal
 from typing import Any
 
+from app.modules.ai.extraction import CONFIDENT, extract
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.parsers import (
     DEFAULT_UNITS,
@@ -40,6 +41,7 @@ from app.modules.conversations.engine.types import (
     Step,
     SubmitReport,
 )
+from app.modules.forms.constants import SPOKEN_TYPES
 from app.modules.forms.schemas import FieldDefinition, FormDefinition
 
 MAX_FAILURES = 3
@@ -59,6 +61,8 @@ _CODE = re.compile(
 )
 _MEDIA_TYPES = ("photo", "video", "voice", "document", "signature")
 _DRAFT = ("asking", "confirming_summary")
+# `step` while waiting for the one sentence of a voice-mode report (Voice Lab, roadmap 12.3).
+VOICE_STEP = "__voice__"
 _ACCEPTS = {
     "photo": ("photo",),
     "video": ("video",),
@@ -101,6 +105,22 @@ def handle(state: ConversationState, message: Inbound, ctx: EngineContext) -> St
     if text in _HELP or message.button == "help":
         return _needs_help(s, "asked_for_help")
 
+    unheard = message.media is not None and message.media.kind == "voice" and not message.text
+    if ctx.voice_mode and unheard and s.status not in ("choosing_form", *_DRAFT):
+        # A voice note the speech provider could not read: say so rather than start over.
+        return Step(s, replies=(Outbound(copy.VOICE_UNREAD),))
+    if (
+        ctx.voice_mode
+        and ctx.definition is not None
+        and s.status not in ("choosing_form", *_DRAFT)
+        and _is_sentence(message)
+    ):
+        # Voice Lab: the first message already carries the results (roadmap 12.3).
+        begun = start(s, ctx)
+        voiced = _voice(begun.state, message, ctx, ctx.definition, opening=False)
+        if voiced is not None:
+            return voiced
+
     if message.media is not None:
         album = _album(s, message, ctx)
         if album is not None:
@@ -131,6 +151,11 @@ def start(state: ConversationState, ctx: EngineContext) -> Step:
         s.held_media, s.media_group = list(state.held_media), state.media_group
         return Step(s)
     notes = _use_held_media(s, state, definition)
+    if ctx.voice_mode and not s.answers:
+        s.step = VOICE_STEP
+        prompt = copy.voice_prompt(_voice_example(definition))
+        greeting = copy.greet(ctx.salutation, ctx.topic_label, prompt)
+        return Step(s, replies=(*notes, Outbound(greeting)))
     first = _next_field(s, definition)
     if first is None:
         summary = _show_summary(s, definition, ctx)
@@ -189,6 +214,68 @@ def _album(s: ConversationState, message: Inbound, ctx: EngineContext) -> Step |
     return Step(s)
 
 
+def _is_sentence(message: Inbound) -> bool:
+    """A voice note's transcript, or typed text that is not a command word."""
+    text = normalize(message.text or "")
+    return bool(text) and (message.spoken or text not in (_START | _RESUME | _HELP))
+
+
+def _voice_example(definition: FormDefinition) -> str:
+    """An example sentence from the first spoken fields: "Nomor sampel …, pH …, Suhu … °C"."""
+    parts = []
+    for f in definition.fields:
+        if f.type in SPOKEN_TYPES and len(parts) < 3:
+            parts.append(f"{f.label} …" + (f" {f.unit}" if f.unit else ""))
+    return ", ".join(parts)
+
+
+def _voice(
+    s: ConversationState,
+    message: Inbound,
+    ctx: EngineContext,
+    definition: FormDefinition,
+    *,
+    opening: bool,
+) -> Step | None:
+    """Read many fields from one sentence (roadmap 12.1/12.3). Confident values are kept;
+    doubtful and missing ones are asked next, one at a time. None when nothing was recognised
+    and the message was not an answer to the voice prompt (`opening`)."""
+    said = message.text or ""
+    if not said.strip():
+        if message.media is not None and message.media.kind == "voice":
+            return Step(s, replies=(Outbound(copy.VOICE_UNREAD),))
+        return Step(s, replies=(Outbound(copy.voice_nothing(_voice_example(definition))),))
+    result = extract(said, definition, today=ctx.today)
+    if not result.values or all(v.value is None for v in result.values):
+        if not opening:
+            return None
+        s.failed_attempts += 1
+        return Step(s, replies=(Outbound(copy.voice_nothing(_voice_example(definition))),))
+    sure: list[tuple[str, str]] = []
+    unsure: list[tuple[str, str]] = []
+    for v in result.values:
+        f = definition.field(v.field_key)
+        assert f is not None
+        if v.confidence >= CONFIDENT and v.value is not None:
+            s.answers[f.key] = v.value
+            sure.append((f.label, v.display))
+        else:
+            unsure.append((f.label, v.heard))
+    s.voice = {
+        "transcript": said,
+        "audio": message.audio,
+        "heard": {v.field_key: v.heard for v in result.values},
+        "confidence": {v.field_key: round(v.confidence, 2) for v in result.values},
+    }
+    s.step = None
+    s.failed_attempts = 0
+    _evaluate_rules(s, definition)
+    following = _advance(s, ctx, definition)
+    return Step(
+        following.state, replies=(Outbound(copy.voice_heard(sure, unsure)), *following.replies)
+    )
+
+
 def _first_photo_field(definition: FormDefinition) -> FieldDefinition | None:
     return next((f for f in definition.fields if f.type == "photo"), None)
 
@@ -236,6 +323,10 @@ def _choose_topic(s: ConversationState, message: Inbound, ctx: EngineContext) ->
 def _asking(
     s: ConversationState, message: Inbound, ctx: EngineContext, definition: FormDefinition
 ) -> Step:
+    if s.step == VOICE_STEP:
+        voiced = _voice(s, message, ctx, definition, opening=True)
+        assert voiced is not None
+        return voiced
     current = definition.field(s.step or "")
     if current is None:
         return _advance(s, ctx, definition)
@@ -516,7 +607,9 @@ def _summary_step(
     text = normalize(message.text or "")
     if button == "submit" or text in ("kirim", "kirim sekarang") or parse_yes_no(text) is True:
         s.status = "submitted"
-        effect = SubmitReport(dict(s.answers), bool(s.review_reasons), tuple(s.review_reasons))
+        effect = SubmitReport(
+            dict(s.answers), bool(s.review_reasons), tuple(s.review_reasons), voice=s.voice
+        )
         return Step(s, effects=(effect,))
     if button == "edit" or text in ("ubah", "ubah jawaban") or parse_yes_no(text) is False:
         buttons = tuple(Button(f.label, f"edit:{f.key}") for f in definition.fields)

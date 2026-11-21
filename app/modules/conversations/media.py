@@ -52,14 +52,15 @@ def object_key(workspace_id: uuid.UUID, message: Message, ext: str) -> str:
     return f"workspaces/{workspace_id}/messages/{when:%Y/%m}/{message.id}{ext}"
 
 
-async def store(client: BotApi, message: Message, workspace_id: uuid.UUID) -> None:
-    """Copy the message's file to storage and set `media_key`, or mark why it was refused."""
+async def store(client: BotApi, message: Message, workspace_id: uuid.UUID) -> bytes | None:
+    """Copy the message's file to storage and set `media_key`, or mark why it was refused.
+    Returns the bytes stored (a voice note is transcribed from them), None otherwise."""
     file_id = message.payload.get("file_id")
     if message.kind not in MEDIA_KINDS or not file_id or message.media_key:
-        return
+        return None
     if (message.payload.get("file_size") or 0) > settings.media_max_bytes:
         message.payload = {**message.payload, "media_refused": TOO_LARGE}
-        return
+        return None
     try:
         data = await client.download_file(str(file_id), settings.media_max_bytes)
     except TelegramError as exc:
@@ -67,17 +68,18 @@ async def store(client: BotApi, message: Message, workspace_id: uuid.UUID) -> No
             message.payload = {**message.payload, "media_refused": TOO_LARGE}
         else:
             logger.warning("telegram file download failed: %s", exc.status)
-        return
+        return None
     found = sniff(message.kind, data)
     if found is None:
         message.payload = {**message.payload, "media_refused": WRONG_TYPE}
-        return
+        return None
     content_type, ext = found
     key = object_key(workspace_id, message, ext)
     try:
         await get_storage().put(key, data, content_type)
     except Exception:  # any storage failure: keep the Telegram reference instead
         logger.warning("media storage failed", exc_info=True)
-        return
+        return None
     message.media_key = key
     message.payload = {**message.payload, "size_bytes": len(data), "content_type": content_type}
+    return data

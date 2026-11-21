@@ -62,6 +62,7 @@
     <label>Lokasi (lat,lng)<input id="loc" value="-6.8214,107.1402" size="18"></label>
     <button type="button" id="send-loc">📍 Kirim lokasi</button>
     <button type="button" id="send-photo">📷 Kirim foto</button>
+    <button type="button" id="send-voice">🎤 Kirim sebagai pesan suara</button>
   </div>
 </main>
 <script>
@@ -137,6 +138,13 @@ $("send-loc").onclick = () => {
   send({ location: { lat, lng, accuracy_m: 10 } }, `📍 ${lat}, ${lng}`);
 };
 $("send-photo").onclick = () => send({ photo: true }, "📷 (foto)");
+// The text box becomes the words of a voice note (the fake speech provider reads them back).
+$("send-voice").onclick = () => {
+  const voice = $("text").value.trim();
+  if (!voice) { $("err").textContent = "Ketik dulu kata-kata yang diucapkan"; return; }
+  $("text").value = "";
+  send({ voice }, `🎤 "${voice}"`);
+};
 $("chat").onchange = load;
 load();
 </script>

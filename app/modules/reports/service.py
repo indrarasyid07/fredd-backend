@@ -62,6 +62,7 @@ async def create_report(
     needs_review: bool = False,
     review_reasons: list[str] | tuple[str, ...] = (),
     received_at: datetime | None = None,
+    voice: dict[str, Any] | None = None,
 ) -> Report:
     received = received_at or now_utc()
     tz = await repository.get_timezone(db, workspace_id)
@@ -94,6 +95,7 @@ async def create_report(
         needs_review=needs_review,
         review_reasons=list(review_reasons),
         received_at=received,
+        voice=voice,
     )
     db.add(report)
     await db.flush()

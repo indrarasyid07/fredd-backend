@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.core.redis import redis
 from app.core.time import now_utc
+from app.modules.ai.speech import fake_voice_note
 from app.modules.channels import service as channels
 from app.modules.conversations import service
 from app.modules.conversations.engine.types import Outbound
@@ -33,6 +34,10 @@ TINY_JPEG = base64.b64decode(
 )
 
 
+# Words of simulated voice notes by file id, until the pipeline "downloads" them.
+SPOKEN: dict[str, str] = {}
+
+
 class DevtoolsTelegram:
     """Stands in for the Bot API: every send succeeds and goes nowhere."""
 
@@ -46,7 +51,10 @@ class DevtoolsTelegram:
         return None
 
     async def download_file(self, file_id: str, max_bytes: int) -> bytes:
-        # A 1x1 JPEG stands in for the photo, so the simulator exercises the storage too.
+        # A simulated voice note carries its words; a 1x1 JPEG stands in for any photo. Either
+        # way the simulator exercises the storage too.
+        if said := SPOKEN.pop(file_id, None):
+            return fake_voice_note(said)
         return TINY_JPEG
 
 
@@ -64,6 +72,8 @@ class SimulatedMessage(BaseModel):
     # A shared location or a photo instead of text (roadmap 3.7: report fields).
     location: SimulatedLocation | None = None
     photo: bool = False
+    # A voice note: these are the words the fake speech provider "hears" (Voice Lab).
+    voice: str | None = Field(default=None, max_length=1000)
 
 
 def _update(update_id: int, msg: SimulatedMessage, now: int) -> dict[str, Any]:
@@ -82,6 +92,10 @@ def _update(update_id: int, msg: SimulatedMessage, now: int) -> dict[str, Any]:
     if msg.location is not None:
         message["location"] = {"latitude": msg.location.lat, "longitude": msg.location.lng,
                                "horizontal_accuracy": msg.location.accuracy_m}  # fmt: skip
+    elif msg.voice is not None:
+        file_id = f"devtools-voice-{update_id}"
+        SPOKEN[file_id] = msg.voice
+        message["voice"] = {"file_id": file_id, "duration": 4, "mime_type": "audio/ogg"}
     elif msg.photo:
         # A made-up file reference; "downloading" it gives TINY_JPEG.
         message["photo"] = [{"file_id": f"devtools-photo-{update_id}",
@@ -97,6 +111,9 @@ def _shown(message: Message) -> str:
         return f"📍 {message.payload.get('lat')}, {message.payload.get('lng')}"
     if message.kind == "photo":
         return "📷 (foto)"
+    if message.kind == "voice":
+        heard = message.payload.get("transcript")
+        return f'🎤 "{heard}"' if heard else "🎤 (pesan suara)"
     return f"({message.kind})"
 
 

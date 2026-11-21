@@ -40,6 +40,11 @@ AFTER_KEEP = (
     "Siap. Saya Fluctuz, asisten yang membantu mencatat laporan lapangan. "
     "Ketik *mulai* untuk melapor."
 )
+# Voice-mode topics (Voice Lab): the first voice note already carries the results.
+AFTER_KEEP_VOICE = (
+    "Siap. Saya Fluctuz, asisten yang mencatat hasil kerja Anda. "
+    "Kirim *pesan suara* berisi hasilnya, atau ketik *mulai*."
+)
 AFTER_CHANGE = (
     "Baik, tidak jadi bergabung. Kirim kode yang benar dari admin Anda, contoh: K7M2-9QXA."
 )
@@ -243,6 +248,34 @@ def photo_first_saved(count: int) -> str:
 
 def media_extra_ignored(high: int) -> str:
     return f"Cukup {high} foto saja; foto selebihnya tidak saya simpan."
+
+
+VOICE_UNREAD = "Pesan suara belum bisa saya dengar. Coba kirim ulang, atau ketik hasilnya."
+
+
+def voice_prompt(example: str) -> str:
+    return f"Ucapkan atau ketik hasilnya dalam satu pesan, misalnya: _{example}_"
+
+
+def voice_nothing(example: str) -> str:
+    return (
+        "Belum ada isian yang saya kenali. Sebutkan nama isiannya lalu nilainya, "
+        f"misalnya: _{example}_"
+    )
+
+
+def voice_heard(sure: list[tuple[str, str]], unsure: list[tuple[str, str]]) -> str:
+    """What one sentence filled, and what still needs a word (asked next, one at a time)."""
+    lines = []
+    if sure:
+        lines.append("Tercatat: " + " · ".join(f"{label} *{value}*" for label, value in sure) + ".")
+    if unsure:
+        lines.append(
+            "Perlu dipastikan: "
+            + ", ".join(f'{label} ("{heard}")' for label, heard in unsure)
+            + "."
+        )
+    return "\n".join(lines)
 
 
 RESUME = "Lanjutkan"

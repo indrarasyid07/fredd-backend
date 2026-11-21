@@ -87,6 +87,9 @@ class Report(UUIDPrimaryKey, Timestamps, WorkspaceOwned, Base):
     needs_review: Mapped[bool] = mapped_column(Boolean, server_default="false")
     review_reasons: Mapped[list[str]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Voice Lab (roadmap 12.3): the sentence that filled the report: transcript, audio object
+    # key, and per field the words heard and the confidence. Null for chat reports.
+    voice: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
 
 class ReportPhoto(UUIDPrimaryKey, Timestamps, Base):

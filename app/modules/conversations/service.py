@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.redis import redis
 from app.core.time import now_utc
+from app.modules.ai import speech
 from app.modules.channels import service as channels
 from app.modules.channels.telegram import (
     BotApi,
@@ -197,8 +198,29 @@ async def _store_media(
     if message.kind not in media.MEDIA_KINDS:
         return
     assignment = await workers.active_assignment(db, chat.channel_id, chat.chat_id)
-    if assignment is not None:
-        await media.store(client, message, assignment.workspace_id)
+    if assignment is None:
+        return
+    data = await media.store(client, message, assignment.workspace_id)
+    if message.kind == "voice" and data is not None:
+        form = await forms.get_form(db, assignment.workspace_id, assignment.form_id)
+        if (form.settings or {}).get("input_mode") == "voice":
+            await _transcribe(message, data)
+
+
+async def _transcribe(message: Message, audio: bytes) -> None:
+    """A voice-mode topic's voice note as text (Voice Lab, roadmap 12.3). A failing provider
+    leaves the note untranscribed; the bot then asks to resend or type it."""
+    content_type = str(message.payload.get("content_type") or "audio/ogg")
+    try:
+        transcript = await speech.get_speech_to_text().transcribe(audio, content_type)
+    except Exception:  # any provider failure: never lose the message over it
+        logger.warning("voice note not transcribed", exc_info=True)
+        return
+    message.payload = {
+        **message.payload,
+        "transcript": transcript.text,
+        "stt_provider": transcript.provider,
+    }
 
 
 async def _owner(db: AsyncSession, chat: joining.Chat) -> Owner:
