@@ -24,7 +24,8 @@ from app.modules.conversations.engine.parsers import (
     parse_multi_choice,
     parse_number,
 )
-from app.modules.forms.schemas import FieldDefinition, FormDefinition
+from app.modules.forms.constants import SPOKEN_TYPES
+from app.modules.forms.schemas import DraftFormDefinition, FieldDefinition, FormDefinition
 
 # At or above: kept as heard. Below: the analyst is asked to confirm or repeat.
 CONFIDENT = 0.7
@@ -59,7 +60,6 @@ UNITS = {**DEFAULT_UNITS, **LAB_UNITS}
 # Words between a cue and its value that carry nothing ("pH-nya adalah 6,8").
 _FILLER = re.compile(r"^(?:(?:nya|adalah|yaitu|ialah|sebesar|=|:)(?:\s+|$|(?=\d)))+", re.IGNORECASE)
 _TRIM = " ,.;:-–—\t"
-_VOICE_TYPES = ("short_text", "long_text", "number", "single_choice", "multi_choice", "datetime")
 
 
 @dataclass(frozen=True)
@@ -99,15 +99,15 @@ def unit_code(unit: str | None) -> str | None:
 
 def extract(
     text: str,
-    definition: FormDefinition,
+    definition: FormDefinition | DraftFormDefinition,
     *,
     cues: Mapping[str, Sequence[str]] | None = None,
     today: dt.date | None = None,
 ) -> Extraction:
-    """Every field value said in `text`. `cues` adds spoken names per field key ("sampel",
-    "suhu ruang")."""
+    """Every field value said in `text`. Each field's `voice_cues` and `unit_aliases` (roadmap
+    12.2) are used; `cues` adds more spoken names per field key."""
     said = re.sub(r"\s+", " ", text).strip()
-    fields = [f for f in definition.fields if f.type in _VOICE_TYPES]
+    fields = [f for f in definition.fields if f.type in SPOKEN_TYPES]
     found = _locate(said, fields, cues or {})
     out = Extraction()
     for i, (_start, end, f) in enumerate(found):
@@ -122,7 +122,7 @@ def extract(
 
 
 def _cues(f: FieldDefinition, extra: Sequence[str]) -> list[str]:
-    names = [f.label, f.key.replace("_", " "), *extra]
+    names = [f.label, f.key.replace("_", " "), *f.voice_cues, *extra]
     return sorted({n.strip().lower() for n in names if n.strip()}, key=len, reverse=True)
 
 
@@ -164,12 +164,14 @@ def _read(f: FieldDefinition, words: str, today: dt.date) -> ExtractedValue | No
 
 
 def _number(f: FieldDefinition, words: str) -> ExtractedValue:
-    parsed = parse_number(words, LAB_UNITS)
+    expected = unit_code(f.unit)
+    # Words the admin listed for this field's unit ("derajat") mean exactly that unit.
+    own = {a.lower(): expected for a in f.unit_aliases if expected}
+    parsed = parse_number(words, {**LAB_UNITS, **own})
     if parsed is None:
         return ExtractedValue(f.key, None, words, 0.0, words, "Angka tidak terbaca")
     text = f"{parsed.value.normalize():f}"
     display = text.replace(".", ",") + (f" {f.unit}" if f.unit else "")
-    expected = unit_code(f.unit)
     if parsed.unit and expected and parsed.unit != expected:
         doubt = f"Satuan yang terdengar bukan {f.unit}"
         return ExtractedValue(f.key, text, display, 0.4, words, doubt)

@@ -64,6 +64,8 @@ Kode: `app/modules/forms/` (`schemas.py` = `FormDefinition`, `service.py` = anta
 | `unit` | `number` | Satuan tampilan (`ha`, `kg`, `Rp`) |
 | `options` | `single_choice`, `multi_choice` (wajib ≥ 2, ≤ 30, `value` unik) | `{value, label, color?}`; `color` `#RRGGBB` dipakai peta |
 | `max_accuracy_m` | `location` | Titik dengan akurasi lebih buruk diminta ulang |
+| `voice_cues` | jenis yang bisa diucapkan (teks, angka, pilihan, tanggal) | Voice Lab (12.2): sebutan lain isian saat diucapkan ("sampel", "kode sampel"); maks. 10 × 60 karakter; jenis lain → `voice_cues_not_allowed` |
+| `unit_aliases` | `number` | Voice Lab (12.2): kata yang diucapkan untuk satuannya ("derajat" untuk °C); jenis lain → `unit_aliases_not_allowed` |
 | `role` | lihat bawah | Arti isian bagi dashboard |
 
 ### Peran isian (`role`)
@@ -114,3 +116,7 @@ Galat bentuk (tipe salah, properti tidak dikenal, pola `key`) memakai kode umum 
 | `create_form(db, workspace_id, user_id, name, definition, description=None)` | Form `draft` dengan versi 1 sebagai draf; juga untuk fixture tes domain lain |
 
 `FormDefinition.field_with_role("condition")` dan `.field(key)` membantu mesin dan laporan menemukan isian. Contoh definisi untuk tes: `tests/form_definitions.py` (`crop_survey()`).
+
+## Mode masukan (`settings.input_mode`, Voice Lab 12.2)
+
+`chat` (bawaan): bot menanyakan isian satu per satu. `voice`: satu pesan suara mengisi banyak isian sekaligus dan hanya nilai yang ragu ditanyakan ulang (alur bot di Langkah 12.3). Admin mencoba kalimat dengan `POST /forms/{id}/voice-test` (panel "Uji dengan ucapan" di wizard).

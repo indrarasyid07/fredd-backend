@@ -23,6 +23,7 @@ from app.modules.forms.constants import (
     MAX_FIELDS,
     MAX_OPTIONS,
     MAX_RULES,
+    SPOKEN_TYPES,
     UNIQUE_ROLES,
     AnswerMode,
     FieldRole,
@@ -36,6 +37,9 @@ Color = Annotated[str, Field(pattern=r"^#[0-9A-Fa-f]{6}$")]
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+VoiceWord = Annotated[str, Field(min_length=1, max_length=60)]
 
 
 class ChoiceOption(_Strict):
@@ -67,6 +71,10 @@ class FieldDefinition(_Strict):
     role: FieldRole | None = None
     # location only: a shared point less accurate than this is asked again.
     max_accuracy_m: int | None = Field(default=None, gt=0, le=10_000)
+    # Voice (roadmap 12.2): other names people say for this field ("sampel", "suhu ruang"),
+    # and, for numbers, words said for its unit ("derajat", "celcius").
+    voice_cues: list[VoiceWord] = Field(default_factory=list, max_length=10)
+    unit_aliases: list[VoiceWord] = Field(default_factory=list, max_length=10)
 
 
 class RuleCondition(_Strict):
@@ -140,6 +148,8 @@ MESSAGES: dict[str, LiteralString] = {
     "invalid_condition_value": "Nilai kondisi harus healthy, attention, atau infected.",
     "invalid_area_unit": "Isian luas memakai satuan ha.",
     "status_not_choice": "Isian status harus berupa pilihan.",
+    "unit_aliases_not_allowed": "Sebutan satuan hanya untuk isian angka.",
+    "voice_cues_not_allowed": "Contoh sebutan hanya untuk isian yang bisa diucapkan.",
     "measure_not_number": "Isian ukuran harus berupa angka.",
     "unknown_field": "Aturan merujuk isian yang tidak ada.",
     "unknown_option": "Nilai ini tidak ada di pilihan isian.",
@@ -226,6 +236,10 @@ def _check_fields(fields: list[FieldDefinition], p: _Problems) -> None:
             p.add((*at, "type"), "status_not_choice", f.type)
         if f.role == "measure" and f.type != "number":
             p.add((*at, "type"), "measure_not_number", f.type)
+        if f.unit_aliases and f.type != "number":
+            p.add((*at, "unit_aliases"), "unit_aliases_not_allowed", f.type)
+        if f.voice_cues and f.type not in SPOKEN_TYPES:
+            p.add((*at, "voice_cues"), "voice_cues_not_allowed", f.type)
         if f.role == "condition":
             if f.type != "single_choice":
                 p.add((*at, "type"), "condition_not_single_choice", f.type)
@@ -319,6 +333,9 @@ class FormSettings(_Strict):
     frequency: Literal["daily", "weekly", "event"] = "weekly"
     agent_style: Literal["ramah", "singkat", "formal"] = "ramah"
     voice_to_text: bool = True
+    # "voice" (Voice Lab, roadmap 12): one voice note fills several fields at once; "chat": the
+    # bot asks one field at a time.
+    input_mode: Literal["chat", "voice"] = "chat"
     blur_retry: bool = True
 
 
@@ -404,3 +421,37 @@ class FormCheckOut(BaseModel):
     valid: bool
     errors: list[FormProblem]
     warnings: list[FormProblem]
+
+
+# --- Voice test (roadmap 12.2) ------------------------------------------------------------------
+
+
+class VoiceTestRequest(_Strict):
+    # What an analyst would say, typed or pasted (the spoken words, not audio).
+    text: str = Field(min_length=1, max_length=1000)
+
+
+class VoiceValueOut(BaseModel):
+    key: str
+    label: str
+    # As it would be stored: decimal string, option value(s), ISO date, text; null if unreadable.
+    value: Any
+    display: str
+    confidence: float
+    # True at or above the threshold: kept as heard. False: the analyst would be asked again.
+    confident: bool
+    # The words this value was read from.
+    heard: str
+    doubt: str | None
+
+
+class FieldRefOut(BaseModel):
+    key: str
+    label: str
+
+
+class VoiceTestOut(BaseModel):
+    text: str
+    values: list[VoiceValueOut]
+    # Required fields the sentence did not mention.
+    missing: list[FieldRefOut]

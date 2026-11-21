@@ -15,12 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import InvalidCursor
 from app.core.time import now_utc
+from app.modules.ai import extraction
 from app.modules.audit import service as audit
 from app.modules.forms import errors, repository
 from app.modules.forms.models import Form, FormTemplate, FormTemplateSector, FormVersion
 from app.modules.forms.schemas import (
     CreateFormRequest,
     DraftFormDefinition,
+    FieldRefOut,
     FormCheckOut,
     FormDefinition,
     FormDetailOut,
@@ -32,6 +34,8 @@ from app.modules.forms.schemas import (
     FormTemplateSectorOut,
     TemplateChipOut,
     UpdateFormRequest,
+    VoiceTestOut,
+    VoiceValueOut,
     find_problems,
 )
 from app.modules.join_codes import service as join_codes
@@ -208,6 +212,44 @@ async def check_form(db: AsyncSession, workspace_id: uuid.UUID, form_id: uuid.UU
         except ValidationError as exc:
             problems = [_problem(e) for e in exc.errors()]
     return FormCheckOut(valid=not problems, errors=problems, warnings=_warnings(draft.definition))
+
+
+async def voice_test(
+    db: AsyncSession, workspace_id: uuid.UUID, form_id: uuid.UUID, text: str
+) -> VoiceTestOut:
+    """What Fluctuz would read from `text` with the draft being edited (else the published
+    version), so an admin can try spoken sentences before analysts use it (roadmap 12.2)."""
+    form = await get_form(db, workspace_id, form_id)
+    draft = (await repository.get_drafts(db, [form.id])).get(form.id)
+    if draft is not None:
+        definition: FormDefinition | DraftFormDefinition = DraftFormDefinition.model_validate(
+            draft.definition
+        )
+    elif form.current_version_id is not None:
+        definition = (
+            await get_version_definition(db, workspace_id, form.current_version_id)
+        ).definition
+    else:
+        raise errors.FormNotEditable()
+    result = extraction.extract(text, definition)
+    labels = {f.key: f.label or f.key for f in definition.fields}
+    return VoiceTestOut(
+        text=text,
+        values=[
+            VoiceValueOut(
+                key=v.field_key,
+                label=labels.get(v.field_key, v.field_key),
+                value=v.value,
+                display=v.display,
+                confidence=v.confidence,
+                confident=v.confidence >= extraction.CONFIDENT,
+                heard=v.heard,
+                doubt=v.doubt,
+            )
+            for v in result.values
+        ],
+        missing=[FieldRefOut(key=k, label=labels.get(k, k)) for k in result.missing],
+    )
 
 
 _EMPTY = {
