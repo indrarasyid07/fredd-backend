@@ -350,10 +350,24 @@ def _asking(
         buttons = (Button(copy.RESUME, "resume"), Button(copy.RESTART, "restart:yes"))
         return Step(s, replies=(Outbound(copy.DRAFT_EXISTS, buttons),))
     outcome = _read(current, message, ctx)
+    if isinstance(outcome, str) and message.ai_text:
+        # The parsers could not read it; try the language model's rewrite under the same rules.
+        rewritten = replace(message, text=message.ai_text)
+        guessed = _read(current, rewritten, ctx)
+        if not isinstance(guessed, str):
+            value, display, _ = guessed
+            s.pending = {"field": current.key, "value": value, "display": display}
+            return Step(s, replies=(_confirm_question(current, display),))
+        if not _unreadable(current, rewritten, guessed):
+            outcome = guessed  # understood, but out of range or the like: say that instead
     if isinstance(outcome, str):
-        return _failed(s, definition, current, outcome)
+        failed = _failed(s, definition, current, outcome)
+        if message.ai_text is None and _unreadable(current, message, outcome):
+            return replace(failed, unread=current.key)
+        return failed
     value, display, needs_confirm = outcome
-    if needs_confirm:
+    if needs_confirm or _heard(message):
+        # A spoken answer may be misheard: say what was understood before saving it.
         s.pending = {"field": current.key, "value": value, "display": display}
         return Step(s, replies=(_confirm_question(current, display),))
     s.answers[current.key] = value
@@ -421,7 +435,8 @@ def _media(
 def _read(f: FieldDefinition, message: Inbound, ctx: EngineContext) -> tuple[Any, str, bool] | str:
     """(value, how it is shown, needs confirmation) or the reason it was not accepted."""
     if message.media and message.media.kind == "voice" and f.type != "voice":
-        return copy.VOICE_LATER
+        if not _heard(message):
+            return copy.VOICE_LATER  # not transcribed: no speech provider, or it failed
     raw = message.text or ""
     if f.type in ("short_text", "long_text"):
         cleaned = raw.strip()
@@ -483,6 +498,30 @@ def _read(f: FieldDefinition, message: Inbound, ctx: EngineContext) -> tuple[Any
         return copy.NEED_LOCATION
 
     return copy.EMPTY_TEXT
+
+
+def _heard(message: Inbound) -> bool:
+    """A voice note with its transcript, answering a question (roadmap 12.7)."""
+    media = message.media
+    return media is not None and media.kind == "voice" and bool((message.text or "").strip())
+
+
+def _unreadable(f: FieldDefinition, message: Inbound, reason: str) -> bool:
+    """The typed answer was not understood (not: understood but out of range, wrong unit, too
+    many choices). Only then can a language model help (roadmap 12.7)."""
+    if not (message.text or "").strip():
+        return False
+    if message.media is not None and not _heard(message):
+        return False
+    if f.type == "number":
+        return reason == copy.NOT_A_NUMBER
+    if f.type == "single_choice":
+        return reason == copy.NOT_A_CHOICE
+    if f.type == "multi_choice":
+        return reason != copy.choice_count(f.min, f.max)
+    if f.type == "datetime":
+        return reason == copy.NOT_A_DATE
+    return False
 
 
 def _failed(

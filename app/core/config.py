@@ -70,9 +70,26 @@ class Settings(BaseSettings):
     # Telegram bots cannot download files above 20 MB.
     media_max_bytes: int = 20 * 1024 * 1024
 
-    # Speech to text for Voice Lab (roadmap 12, D7). "fake" reads the audio as the spoken text
-    # (development, devtools, tests); a cloud provider is wired in roadmap 12.7.
-    stt_provider: str = "fake"
+    # Speech to text (roadmap 12, D7). "fake" reads the audio as the spoken text (development,
+    # devtools, tests) and only runs for Voice Lab topics; "openai" transcribes every voice note
+    # in a chat with an active topic, so a spoken answer counts like a typed one.
+    stt_provider: Literal["fake", "openai"] = "fake"
+    stt_model: str = "gpt-4o-mini-transcribe"
+
+    # Language model (roadmap 12.7, D7) for reading chat answers the parsers cannot, and for
+    # checking report photos. "off" keeps the bot fully deterministic; "openai" calls the OpenAI
+    # API. An answer it reads is always confirmed by the extension worker before it is saved
+    # (conversation-engine.md "Deterministik dulu"); a photo note is advice for reviewers only.
+    llm_provider: Literal["off", "openai"] = "off"
+    openai_api_key: str = ""
+    # Empty = api.openai.com; set for Azure OpenAI or another OpenAI-compatible endpoint.
+    openai_base_url: str = ""
+    llm_model: str = "gpt-5.4-mini"
+    # Sent only when set; reasoning models (gpt-5 family) accept it, others reject it.
+    llm_reasoning_effort: str = "low"
+    # The call runs inside the chat's transaction: keep it short; on timeout the bot falls back
+    # to asking again, as it did before.
+    llm_timeout_seconds: float = 15.0
 
     @property
     def is_development(self) -> bool:

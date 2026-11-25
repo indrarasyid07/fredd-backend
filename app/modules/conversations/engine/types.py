@@ -54,6 +54,10 @@ class Inbound:
     # `text` is the transcript of a voice note (roadmap 12.3); `audio` is where it is stored.
     spoken: bool = False
     audio: str | None = None
+    # A language model's rewrite of `text` for the open question (roadmap 12.7), set by the
+    # service after `Step.unread`. Read with the same rules and always confirmed, never saved
+    # silently.
+    ai_text: str | None = None
 
 
 # --- Out ----------------------------------------------------------------------------------------
@@ -178,3 +182,6 @@ class Step:
     state: ConversationState
     replies: tuple[Outbound, ...] = ()
     effects: tuple[Effect, ...] = ()
+    # Key of the open field whose typed answer the parsers could not read: the service may ask
+    # a language model and run the message again with `Inbound.ai_text`.
+    unread: str | None = None

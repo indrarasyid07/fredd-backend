@@ -406,6 +406,7 @@ async def _photos(db: AsyncSession, report_id: uuid.UUID) -> list[ReportPhotoOut
                 position=photo.position,
                 url=url,
                 expires_at=now_utc() + timedelta(seconds=seconds) if url else None,
+                ai_note=photo.ai_note,
             )
         )
     return out

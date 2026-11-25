@@ -34,6 +34,8 @@ from app.modules.conversations.models import Message
 from app.modules.extension_workers import service as workers
 from app.modules.extension_workers.schemas import ExtensionWorkerOut
 from app.modules.forms import service as forms
+from app.modules.reports import jobs as report_jobs
+from app.modules.reports import photo_checks
 from app.modules.workspaces import service as workspaces
 
 logger = logging.getLogger(__name__)
@@ -184,7 +186,19 @@ async def process_chat(
     ]
     db.add_all(outbound)
     await db.commit()
+    await _after_reports(db.info.pop(reporting.NEW_REPORTS, []))
     return [m.id for m in outbound]
+
+
+async def _after_reports(created: list[tuple[uuid.UUID, uuid.UUID]]) -> None:
+    """Background work on reports this chat just submitted: AI photo notes (roadmap 12.7)."""
+    if not created or not photo_checks.enabled():
+        return
+    for workspace_id, report_id in created:
+        try:
+            await report_jobs.check_photos_job.kiq(str(workspace_id), str(report_id))
+        except Exception:  # the queue being down must not fail a chat that already committed
+            logger.warning("photo check not queued for report %s", report_id, exc_info=True)
 
 
 Owner = tuple[uuid.UUID | None, uuid.UUID | None]
@@ -205,11 +219,15 @@ async def _store_media(
         form = await forms.get_form(db, assignment.workspace_id, assignment.form_id)
         if (form.settings or {}).get("input_mode") == "voice":
             await _transcribe(message, data)
+        elif speech.transcribes_every_voice_note():
+            # Any other topic: the voice note answers the open question like typed text.
+            await _transcribe(message, data, as_answer=True)
 
 
-async def _transcribe(message: Message, audio: bytes) -> None:
-    """A voice-mode topic's voice note as text (Voice Lab, roadmap 12.3). A failing provider
-    leaves the note untranscribed; the bot then asks to resend or type it."""
+async def _transcribe(message: Message, audio: bytes, *, as_answer: bool = False) -> None:
+    """A voice note as text: a voice-mode topic's report sentence (Voice Lab, roadmap 12.3), or
+    (`as_answer`) a spoken answer in any other topic (roadmap 12.7). A failing provider leaves
+    the note untranscribed; the bot then asks to resend or type it."""
     content_type = str(message.payload.get("content_type") or "audio/ogg")
     try:
         transcript = await speech.get_speech_to_text().transcribe(audio, content_type)
@@ -220,6 +238,7 @@ async def _transcribe(message: Message, audio: bytes) -> None:
         **message.payload,
         "transcript": transcript.text,
         "stt_provider": transcript.provider,
+        **({"transcribed_as": "answer"} if as_answer else {}),
     }
 
 

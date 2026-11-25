@@ -90,6 +90,9 @@ class MemoryStorage:
     async def signed_url(self, key: str, seconds: int) -> str | None:
         return None  # like local storage: files are not served
 
+    async def get(self, key: str) -> bytes:
+        return self.objects[key][0]
+
 
 @pytest.fixture(autouse=True)
 def media_store(monkeypatch: pytest.MonkeyPatch) -> MemoryStorage:

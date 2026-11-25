@@ -20,6 +20,7 @@ from app.core.redis import redis
 from app.db.session import engine
 from app.modules.channels import telegram
 from app.modules.conversations import jobs as conversation_jobs
+from app.modules.reports import jobs as report_jobs
 
 HEARTBEAT_KEY = "worker:heartbeat"
 
@@ -44,4 +45,4 @@ async def heartbeat_job() -> None:
 
 scheduler = TaskiqScheduler(broker=broker, sources=[LabelScheduleSource(broker)])
 
-__all__ = ["broker", "conversation_jobs", "core_jobs", "heartbeat_job", "scheduler"]
+__all__ = ["broker", "conversation_jobs", "core_jobs", "heartbeat_job", "report_jobs", "scheduler"]

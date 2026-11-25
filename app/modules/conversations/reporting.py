@@ -12,12 +12,13 @@ reply rows commit together.
 
 import datetime as dt
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
+from app.modules.ai import answers
 from app.modules.audit import service as audit
 from app.modules.conversations import joining, repository
 from app.modules.conversations.engine import copy, machine
@@ -53,6 +54,8 @@ CANCEL_YES, CANCEL_NO = "cancel:yes", "cancel:no"
 RESTART_YES, RESTART_NO = "restart:yes", "restart:no"
 RESUME = "resume"
 TOPIC_PREFIX = "topic:"
+# Session `info` key: (workspace id, report id) of reports created in this transaction.
+NEW_REPORTS = "conversations.new_reports"
 
 _STOP = {"berhenti", "/berhenti", "stop", "/stop", "keluar"}
 _CANCEL = {"batal", "/batal", "batalkan"}
@@ -145,6 +148,15 @@ def to_inbound(message: Message) -> Inbound | None:
         accuracy = p.get("accuracy_m")
         return Inbound(location=Location(lat, lng, float(accuracy) if accuracy else None))
     if message.kind == "voice" and p.get("transcript") is not None:
+        if p.get("transcribed_as") == "answer" and message.media_key:
+            # A spoken answer (roadmap 12.7): the words answer a typed question, the file
+            # answers a voice question; the engine confirms what it heard before saving.
+            return Inbound(
+                text=str(p["transcript"]),
+                spoken=True,
+                audio=message.media_key,
+                media=Media("voice", message.media_key),
+            )
         # A voice note of a voice-mode topic, transcribed (Voice Lab, roadmap 12.3).
         return Inbound(text=str(p["transcript"]), spoken=True, audio=message.media_key)
     if message.kind in ("photo", "video", "voice", "document") and p.get("file_id"):
@@ -295,7 +307,22 @@ async def _engine(
     if closed is not None:
         return [closed]
     ctx = await _context(run)
-    return await _apply(run, machine.handle(current, inbound, ctx), ctx)
+    step = machine.handle(current, inbound, ctx)
+    if step.unread is not None and inbound.text:
+        rewrite = await _ai_reading(ctx, step.unread, inbound.text)
+        if rewrite is not None:
+            step = machine.handle(current, replace(inbound, ai_text=rewrite), ctx)
+    return await _apply(run, step, ctx)
+
+
+async def _ai_reading(ctx: EngineContext, field_key: str, said: str) -> str | None:
+    """A language model's reading of an answer the parsers could not read (roadmap 12.7);
+    None when it is off or could not read it either. The engine asks the worker to confirm."""
+    reader = answers.get_answer_reader()
+    f = ctx.definition.field(field_key) if ctx.definition is not None else None
+    if reader is None or f is None:
+        return None
+    return await reader.read(f, said, today=ctx.today)
 
 
 async def _prepare_definition(run: _Run, state: ConversationState) -> Outbound | None:
@@ -374,6 +401,8 @@ async def _submit(run: _Run, effect: SubmitReport, ctx: EngineContext) -> Outbou
         voice=effect.voice,
     )
     logger.info("report %s created", report.id)
+    # Jobs for the new report start once the chat's transaction commits (`process_chat`).
+    run.db.info.setdefault(NEW_REPORTS, []).append((conversation.workspace_id, report.id))
     return machine.report_saved(report.code, ctx)
 
 

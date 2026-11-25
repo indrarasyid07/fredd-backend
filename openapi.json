@@ -9542,6 +9542,17 @@
               }
             ],
             "title": "Expires At"
+          },
+          "ai_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Note"
           }
         },
         "type": "object",

@@ -1,12 +1,15 @@
-"""Speech to text. The cloud provider (D7: a cloud service, not chosen yet) plugs in behind
-`SpeechToText` in roadmap 12.7; until then `STT_PROVIDER=fake` reads the "audio" as the words
-spoken, so development, the devtools chat and tests run without an API key."""
+"""Speech to text behind `SpeechToText` (roadmap 12.7, D7). `STT_PROVIDER=openai` sends voice
+notes to OpenAI's transcription endpoint; `STT_PROVIDER=fake` (the default) reads the "audio"
+as the words spoken, so development, the devtools chat and tests run without an API key."""
 
 from dataclasses import dataclass
 from typing import Protocol
 
+import openai
+
 from app.core.config import settings
 from app.core.errors import AppError
+from app.modules.ai import openai_client
 
 
 @dataclass(frozen=True)
@@ -56,10 +59,52 @@ class SpeechUnavailable(AppError):
 override: SpeechToText | None = None
 
 
+class OpenAISpeechToText:
+    """OpenAI's transcription endpoint. Telegram voice notes (Ogg/Opus) are sent as they are."""
+
+    name = "openai"
+
+    def __init__(self, client: openai.AsyncOpenAI, model: str) -> None:
+        self._client = client
+        self._model = model
+
+    async def transcribe(self, audio: bytes, content_type: str, language: str = "id") -> Transcript:
+        ext = _EXTENSIONS.get(content_type.split(";")[0].strip(), "ogg")
+        result = await self._client.audio.transcriptions.create(
+            model=self._model,
+            file=(f"voice.{ext}", audio, content_type),
+            language=language,
+            # Field reports: farming words, numbers and units are the likely content.
+            prompt=TRANSCRIPTION_HINT,
+        )
+        return Transcript(result.text.strip(), language, self.name)
+
+
+TRANSCRIPTION_HINT = (
+    "Laporan lapangan penyuluh pertanian: nama petani, luas lahan dalam hektar, "
+    "kondisi tanaman, hama dan penyakit, padi, jagung, cabai, angka dan tanggal."
+)
+_EXTENSIONS = {"audio/ogg": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/wav": "wav"}
+
+
+# Tests set this, so every caller uses the same fake.
+override: SpeechToText | None = None
+
+
 def get_speech_to_text() -> SpeechToText:
     if override is not None:
         return override
     if settings.stt_provider == "fake":
         return FakeSpeechToText()
-    # Cloud providers arrive with roadmap 12.7 (decision D7).
+    client = openai_client.get_client()
+    if settings.stt_provider == "openai" and client is not None:
+        return OpenAISpeechToText(client, settings.stt_model)
     raise SpeechUnavailable()
+
+
+def transcribes_every_voice_note() -> bool:
+    """A real provider is set up: voice notes answer any question, not only in Voice Lab. The
+    fake provider would turn real audio into noise, so it stays limited to voice-mode topics."""
+    return override is not None or (
+        settings.stt_provider == "openai" and openai_client.get_client() is not None
+    )

@@ -57,6 +57,10 @@ class ReportPhotoOut(BaseModel):
     # Signed link, valid until `expires_at`; null while the file is not in Fluctuz storage.
     url: str | None
     expires_at: datetime | None
+    # A vision model's note for reviewers (roadmap 12.7): what the photo shows, and a
+    # "Perlu dicek (…)" prefix when it is blurry, dark, off topic or contradicts the answers.
+    # Advice only; null until checked, or when the check is off or failed.
+    ai_note: str | None = None
 
 
 class ReportLocationOut(BaseModel):
