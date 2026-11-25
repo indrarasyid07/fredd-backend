@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
+from pydantic import ValidationError
 from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +28,7 @@ from app.modules.dashboard.schemas import (
     FieldStatOut,
     FormDashboardOut,
     FormRefOut,
+    HourlyOut,
     KpisOut,
     MonitoredLandOut,
     NumberStatOut,
@@ -86,7 +88,12 @@ async def _cached(workspace_id: uuid.UUID, range_: str) -> DashboardSummaryOut |
         raw = await redis.get(_cache_key(workspace_id, range_))
     except RedisError:
         return None
-    return DashboardSummaryOut.model_validate_json(raw) if raw else None
+    if not raw:
+        return None
+    try:
+        return DashboardSummaryOut.model_validate_json(raw)
+    except ValidationError:  # cached by an older version of the summary: compute it again
+        return None
 
 
 async def _compute(
@@ -109,6 +116,11 @@ async def _compute(
     previous = [DayCountOut(date=d, count=per_day.get(d, 0)) for d in previous_dates]
 
     channels = await repository.count_per_channel(db, workspace_id, week_start, now)
+    per_hour = await repository.count_per_hour(db, workspace_id, tz_name, today - day, now)
+    hourly = HourlyOut(
+        yesterday=[per_hour.get(((today - day).date(), h), 0) for h in range(24)],
+        today=[per_hour.get((today.date(), h), 0) for h in range(24)],
+    )
     whatsapp, telegram = largest_remainder(
         [channels.get("whatsapp", 0), channels.get("telegram", 0)]
     )
@@ -157,6 +169,7 @@ async def _compute(
         daily=daily,
         previous_daily=previous,
         channels=ChannelShareOut(whatsapp=whatsapp, telegram=telegram),
+        hourly=hourly,
         conditions=ConditionsOut(
             range=range_,
             total=sum(counts),

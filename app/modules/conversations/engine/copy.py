@@ -4,6 +4,8 @@ progress "3/5", recorded values in *bold*, errors say what is wrong plus a corre
 import datetime as dt
 from decimal import Decimal
 
+from app.modules.conversations.engine.types import AgentStyle
+
 _MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
 
 JOIN_FIRST = "Halo! Kirim kode dari admin Anda untuk mulai melapor, contoh: K7M2-9QXA."
@@ -36,15 +38,35 @@ KEEP = "Ya, tetap"
 NOT_MINE = "Bukan, ganti"
 ADD_TOPIC = "Tambah topik"
 CANCEL = "Batal"
-AFTER_KEEP = (
-    "Siap. Saya Fluctuz, asisten yang membantu mencatat laporan lapangan. "
-    "Ketik *mulai* untuk melapor."
-)
+_START_TYPED = "Ketik *mulai* untuk melapor."
 # Voice-mode topics (Voice Lab): the first voice note already carries the results.
-AFTER_KEEP_VOICE = (
-    "Siap. Saya Fluctuz, asisten yang mencatat hasil kerja Anda. "
-    "Kirim *pesan suara* berisi hasilnya, atau ketik *mulai*."
-)
+_START_VOICE = "Kirim *pesan suara* berisi hasilnya, atau ketik *mulai*."
+
+
+def default_greeting(name: str, style: AgentStyle, voice_mode: bool = False) -> str:
+    """The greeting when the organization wrote none (Pengaturan agent "Sapaan pembuka")."""
+    work = "mencatat hasil kerja Anda" if voice_mode else "membantu mencatat laporan lapangan"
+    if style == "formal":
+        return f"Terima kasih. Saya {name}, asisten yang {work}."
+    if style == "brief":
+        return f"Siap, saya {name}."
+    return f"Siap. Saya {name}, asisten yang {work}."
+
+
+def after_keep(
+    name: str = "Fluctuz",
+    style: AgentStyle = "friendly",
+    greeting: str | None = None,
+    voice_mode: bool = False,
+) -> str:
+    """Sent once the worker confirmed the topic: the organization's greeting, then how to start."""
+    opening = greeting.strip() if greeting and greeting.strip() else None
+    opening = opening or default_greeting(name, style, voice_mode)
+    return f"{opening} {_START_VOICE if voice_mode else _START_TYPED}"
+
+
+AFTER_KEEP = after_keep()
+AFTER_KEEP_VOICE = after_keep(voice_mode=True)
 AFTER_CHANGE = (
     "Baik, tidak jadi bergabung. Kirim kode yang benar dari admin Anda, contoh: K7M2-9QXA."
 )
@@ -74,7 +96,13 @@ MEDIA_WORD = {
 }
 
 
-def greet(salutation: str, topic: str, first: str) -> str:
+def greet(salutation: str, topic: str, first: str, style: AgentStyle = "friendly") -> str:
+    """The first message of a report, in the agent's style (Pengaturan agent)."""
+    if style == "formal":
+        to = f", {salutation}" if salutation else ""
+        return f"Selamat datang{to}. Berikut laporan *{topic}*.\n\n{first}"
+    if style == "brief":
+        return f"Laporan *{topic}*.\n\n{first}"
     return f"Halo {salutation}! Laporan *{topic}*.\n\n{first}"
 
 
@@ -134,7 +162,12 @@ def summary(lines: list[tuple[str, str]]) -> str:
     return f"Ringkasan laporan:\n{body}\n\nKirim sekarang?"
 
 
-def report_saved(code: str, salutation: str) -> str:
+def report_saved(code: str, salutation: str, style: AgentStyle = "friendly") -> str:
+    if style == "formal":
+        to = f", {salutation}" if salutation else ""
+        return f"Laporan *{code}* telah tersimpan. Terima kasih atas laporan Anda{to}."
+    if style == "brief":
+        return f"Tersimpan: *{code}*."
     return f"Laporan *{code}* tersimpan. Terima kasih, {salutation}."
 
 

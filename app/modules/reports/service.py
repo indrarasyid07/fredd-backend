@@ -254,6 +254,7 @@ async def list_reports(
     until: datetime | None = None,
     after: list[str] | None = None,
     limit: int = 20,
+    q: str | None = None,
 ) -> tuple[list[ReportListItemOut], list[str] | None]:
     """A page of reports (newest first) and the next cursor's values (None on the last page)."""
     rows = await repository.list_reports(
@@ -270,6 +271,7 @@ async def list_reports(
         until=until,
         after=_parse_after(after),
         limit=limit,
+        q=q.strip() if q and q.strip() else None,
     )
     page = rows[:limit]
     more = None

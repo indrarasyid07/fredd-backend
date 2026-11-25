@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.redis import redis
 from app.core.time import now_utc
+from app.modules.agent import service as agent_settings
 from app.modules.ai import speech
 from app.modules.channels import service as channels
 from app.modules.channels.telegram import (
@@ -186,15 +187,18 @@ async def process_chat(
     ]
     db.add_all(outbound)
     await db.commit()
-    await _after_reports(db.info.pop(reporting.NEW_REPORTS, []))
+    await _after_reports(db, db.info.pop(reporting.NEW_REPORTS, []))
     return [m.id for m in outbound]
 
 
-async def _after_reports(created: list[tuple[uuid.UUID, uuid.UUID]]) -> None:
-    """Background work on reports this chat just submitted: AI photo notes (roadmap 12.7)."""
+async def _after_reports(db: AsyncSession, created: list[tuple[uuid.UUID, uuid.UUID]]) -> None:
+    """Background work on reports this chat just submitted: AI photo notes (roadmap 12.7), when
+    the organization lets its agent read photos (Pengaturan agent)."""
     if not created or not photo_checks.enabled():
         return
     for workspace_id, report_id in created:
+        if not (await agent_settings.get_settings(db, workspace_id)).voice_and_photos:
+            continue
         try:
             await report_jobs.check_photos_job.kiq(str(workspace_id), str(report_id))
         except Exception:  # the queue being down must not fail a chat that already committed
@@ -220,8 +224,11 @@ async def _store_media(
         if (form.settings or {}).get("input_mode") == "voice":
             await _transcribe(message, data)
         elif speech.transcribes_every_voice_note():
-            # Any other topic: the voice note answers the open question like typed text.
-            await _transcribe(message, data, as_answer=True)
+            # Any other topic: the voice note answers the open question like typed text, when
+            # the organization lets its agent take voice notes (Pengaturan agent).
+            agent = await agent_settings.get_settings(db, assignment.workspace_id)
+            if agent.voice_and_photos:
+                await _transcribe(message, data, as_answer=True)
 
 
 async def _transcribe(message: Message, audio: bytes, *, as_answer: bool = False) -> None:

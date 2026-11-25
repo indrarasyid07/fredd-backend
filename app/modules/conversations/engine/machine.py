@@ -154,7 +154,7 @@ def start(state: ConversationState, ctx: EngineContext) -> Step:
     if ctx.voice_mode and not s.answers:
         s.step = VOICE_STEP
         prompt = copy.voice_prompt(_voice_example(definition))
-        greeting = copy.greet(ctx.salutation, ctx.topic_label, prompt)
+        greeting = copy.greet(ctx.salutation, ctx.topic_label, prompt, ctx.agent.style)
         return Step(s, replies=(*notes, Outbound(greeting)))
     first = _next_field(s, definition)
     if first is None:
@@ -162,7 +162,9 @@ def start(state: ConversationState, ctx: EngineContext) -> Step:
         return Step(summary.state, replies=(*notes, *summary.replies))
     s.step = first.key
     question = _question(s, definition, first)
-    greeting = replace(question, text=copy.greet(ctx.salutation, ctx.topic_label, question.text))
+    greeting = replace(
+        question, text=copy.greet(ctx.salutation, ctx.topic_label, question.text, ctx.agent.style)
+    )
     return Step(s, replies=(*notes, greeting))
 
 
@@ -282,7 +284,7 @@ def _first_photo_field(definition: FormDefinition) -> FieldDefinition | None:
 
 def report_saved(code: str, ctx: EngineContext) -> Outbound:
     """Sent by the service once the SubmitReport effect created the report."""
-    return Outbound(copy.report_saved(code, ctx.salutation))
+    return Outbound(copy.report_saved(code, ctx.salutation, ctx.agent.style))
 
 
 # --- Topics -------------------------------------------------------------------------------------

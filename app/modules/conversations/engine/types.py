@@ -127,6 +127,20 @@ class Topic:
     label: str
 
 
+AgentStyle = Literal["friendly", "formal", "brief"]
+
+
+@dataclass(frozen=True)
+class AgentVoice:
+    """How the organization's agent speaks (Pengaturan agent): its name, the greeting sent once
+    a worker has joined (None = the default for the style), and the style of the opening and
+    closing lines. The questions themselves always come from the form."""
+
+    name: str = "Fluctuz"
+    style: AgentStyle = "friendly"
+    greeting: str | None = None
+
+
 @dataclass(frozen=True)
 class EngineContext:
     """Everything the engine needs from the database, loaded by the service per message."""
@@ -142,6 +156,7 @@ class EngineContext:
     units: Mapping[str, str] = field(default_factory=dict)
     # The topic's structure is in voice mode (Voice Lab, roadmap 12.3): one message, many fields.
     voice_mode: bool = False
+    agent: AgentVoice = field(default_factory=AgentVoice)
 
 
 @dataclass

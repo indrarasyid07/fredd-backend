@@ -12,12 +12,14 @@ reply rows commit together.
 
 import datetime as dt
 import logging
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
+from app.modules.agent import service as agent_settings
+from app.modules.agent.schemas import AgentSettings
 from app.modules.ai import answers
 from app.modules.audit import service as audit
 from app.modules.conversations import joining, repository
@@ -80,6 +82,8 @@ class _Run:
     definition: FormDefinition | None = None
     # The structure is in voice mode (Voice Lab): one message fills many fields.
     voice_mode: bool = False
+    # The organization's Pengaturan agent (loaded with the context).
+    agent: AgentSettings = field(default_factory=AgentSettings)
 
 
 async def handle(db: AsyncSession, chat: joining.Chat, message: Message) -> list[Outbound]:
@@ -308,7 +312,7 @@ async def _engine(
         return [closed]
     ctx = await _context(run)
     step = machine.handle(current, inbound, ctx)
-    if step.unread is not None and inbound.text:
+    if step.unread is not None and inbound.text and run.agent.read_free_answers:
         rewrite = await _ai_reading(ctx, step.unread, inbound.text)
         if rewrite is not None:
             step = machine.handle(current, replace(inbound, ai_text=rewrite), ctx)
@@ -349,6 +353,7 @@ async def _prepare_definition(run: _Run, state: ConversationState) -> Outbound |
 
 async def _context(run: _Run) -> EngineContext:
     tz = ZoneInfo(await repository.get_timezone_name(run.db, run.conversation.workspace_id))
+    run.agent = await agent_settings.get_settings(run.db, run.conversation.workspace_id)
     organization, form = _label(run, run.assignment)
     return EngineContext(
         salutation=run.worker.name.split()[0] if run.worker.name else "",
@@ -357,6 +362,7 @@ async def _context(run: _Run) -> EngineContext:
         definition=run.definition,
         topic_label=copy.topic_title(organization, form),
         voice_mode=run.voice_mode,
+        agent=agent_settings.voice_of(run.agent),
     )
 
 

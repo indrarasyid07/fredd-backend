@@ -30,6 +30,10 @@ os.environ["APP_BASE_URL"] = "http://localhost:3000"
 os.environ["ALLOWED_ORIGINS"] = ""
 # Never the developer's bucket: tests store media in memory (the `media_store` fixture).
 os.environ["STORAGE_ENABLED"] = "false"
+# Tests never call OpenAI, whatever the developer's .env says: fakes stand in (roadmap 12.7).
+os.environ["LLM_PROVIDER"] = "off"
+os.environ["STT_PROVIDER"] = "fake"
+os.environ["OPENAI_API_KEY"] = ""
 
 import asyncpg  # noqa: E402
 from alembic.config import Config  # noqa: E402

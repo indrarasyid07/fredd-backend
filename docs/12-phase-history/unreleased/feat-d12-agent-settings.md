@@ -1,0 +1,6 @@
+## Pengaturan agent tersambung ke bot
+
+- `GET/PUT /agent/settings` (lihat: semua anggota; simpan: admin): nama agent, gaya bicara (`friendly` Ramah / `formal` Formal / `brief` Singkat), sapaan pembuka (kosong = bawaan gaya), dan dua sakelar: `read_free_answers` (AI membaca jawaban tidak baku) dan `voice_and_photos` (transkripsi pesan suara sebagai jawaban dan catatan AI pada foto). Disimpan di `workspaces.settings["agent"]`, tanpa migrasi; audit `agent.settings_updated`. Respons juga memuat `ai_available` / `voice_available` (apakah server punya OpenAI).
+- Bot membaca pengaturan organisasi di setiap pesan: sapaan setelah bergabung, kalimat pembuka laporan, dan kalimat "laporan tersimpan" mengikuti nama dan gaya. Nilai bawaan menghasilkan kalimat lama persis sama. Pertanyaan tetap dari struktur data; topik mode suara (Voice Lab) tetap ditranskripsi apa pun sakelarnya.
+- `POST /agent/preview`: tiga kalimat yang berubah, untuk pratinjau. `POST /agent/test` (admin): percakapan uji tanpa status di server; dasbor mengirim seluruh percakapan, server memutarnya ulang lewat mesin yang sama dengan pengaturan yang dicoba. Tidak ada percakapan, laporan, atau penyuluh yang disimpan. Bacaan AI dikembalikan (`ai_text`) agar putaran berikutnya tidak memanggil model lagi.
+- Aturan ambil alih (notifikasi ke petugas, antrean) belum tersambung.

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.redis import redis
 from app.core.time import now_utc
+from app.modules.agent import service as agent_settings
 from app.modules.conversations import repository
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.machine import extract_join_code
@@ -246,7 +247,8 @@ async def _confirm(db: AsyncSession, chat: Chat, keep: bool) -> list[Outbound]:
             worker.confirmed_at = now_utc()
         form = await forms.get_form(db, current.workspace_id, current.form_id)
         voice = (form.settings or {}).get("input_mode") == "voice"
-        return [Outbound(copy.AFTER_KEEP_VOICE if voice else copy.AFTER_KEEP)]
+        agent = await agent_settings.get_settings(db, current.workspace_id)
+        return [Outbound(copy.after_keep(agent.name, agent.style, agent.greeting, voice))]
     await workers.leave(db, current, now_utc())
     await workers.set_active(db, chat.channel_id, chat.chat_id, None)
     return [Outbound(copy.AFTER_CHANGE)]

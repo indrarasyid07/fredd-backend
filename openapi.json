@@ -1787,6 +1787,342 @@
         }
       }
     },
+    "/api/v1/agent/settings": {
+      "get": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Get Settings",
+        "description": "How the agent speaks to this organization's extension workers.",
+        "operationId": "get_settings_api_v1_agent_settings_get",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AgentSettingsOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Update Settings",
+        "description": "Save the settings; the bot uses them from the next message. Admin only.",
+        "operationId": "update_settings_api_v1_agent_settings_put",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AgentSettingsOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/agent/preview": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Preview",
+        "description": "The greeting, report opening and closing lines these settings produce. Nothing is saved.",
+        "operationId": "preview_api_v1_agent_preview_post",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AgentPreviewOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/agent/test": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Test Chat",
+        "description": "Replay a test chat with these settings on one data structure. Nothing is stored or sent\nto extension workers; answers the rules cannot read may go to the language model.",
+        "operationId": "test_chat_api_v1_agent_test_post",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentTestIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AgentTestOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/dashboard/summary": {
       "get": {
         "tags": [
@@ -4630,6 +4966,25 @@
             "description": "Diterima sebelum (eksklusif)."
           },
           {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cari kode laporan, nama penyuluh, atau nama wilayah.",
+              "title": "Q"
+            },
+            "description": "Cari kode laporan, nama penyuluh, atau nama wilayah."
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -5111,6 +5466,206 @@
         ],
         "title": "AcceptedInvite"
       },
+      "AgentPreviewOut": {
+        "properties": {
+          "after_join": {
+            "type": "string",
+            "title": "After Join"
+          },
+          "report_start": {
+            "type": "string",
+            "title": "Report Start"
+          },
+          "report_saved": {
+            "type": "string",
+            "title": "Report Saved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "after_join",
+          "report_start",
+          "report_saved"
+        ],
+        "title": "AgentPreviewOut",
+        "description": "The lines the settings change, for the preview next to the form."
+      },
+      "AgentSettings": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name",
+            "default": "Fluctuz"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "friendly",
+              "formal",
+              "brief"
+            ],
+            "title": "Style",
+            "default": "friendly"
+          },
+          "greeting": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Greeting"
+          },
+          "voice_and_photos": {
+            "type": "boolean",
+            "title": "Voice And Photos",
+            "default": true
+          },
+          "read_free_answers": {
+            "type": "boolean",
+            "title": "Read Free Answers",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AgentSettings",
+        "description": "What an admin edits. Stored in `workspaces.settings[\"agent\"]`."
+      },
+      "AgentSettingsOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name",
+            "default": "Fluctuz"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "friendly",
+              "formal",
+              "brief"
+            ],
+            "title": "Style",
+            "default": "friendly"
+          },
+          "greeting": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Greeting"
+          },
+          "voice_and_photos": {
+            "type": "boolean",
+            "title": "Voice And Photos",
+            "default": true
+          },
+          "read_free_answers": {
+            "type": "boolean",
+            "title": "Read Free Answers",
+            "default": true
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "ai_available": {
+            "type": "boolean",
+            "title": "Ai Available",
+            "default": false
+          },
+          "voice_available": {
+            "type": "boolean",
+            "title": "Voice Available",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AgentSettingsOut"
+      },
+      "AgentTestIn": {
+        "properties": {
+          "form_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Form Id"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AgentSettings"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatInput"
+            },
+            "type": "array",
+            "maxItems": 40,
+            "title": "Messages"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "form_id",
+          "settings"
+        ],
+        "title": "AgentTestIn"
+      },
+      "AgentTestOut": {
+        "properties": {
+          "form_name": {
+            "type": "string",
+            "title": "Form Name"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/ChatTurnOut"
+            },
+            "type": "array",
+            "title": "Turns"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "asking",
+              "confirming_summary",
+              "submitted",
+              "needs_help",
+              "other"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "form_name",
+          "turns",
+          "status"
+        ],
+        "title": "AgentTestOut"
+      },
       "ApiErrorResponse": {
         "properties": {
           "success": {
@@ -5201,6 +5756,150 @@
           "meta"
         ],
         "title": "ApiResponse[AcceptedInvite]"
+      },
+      "ApiResponse_AgentPreviewOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentPreviewOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[AgentPreviewOut]"
+      },
+      "ApiResponse_AgentSettingsOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentSettingsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[AgentSettingsOut]"
+      },
+      "ApiResponse_AgentTestOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentTestOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[AgentTestOut]"
       },
       "ApiResponse_DashboardSummaryOut_": {
         "properties": {
@@ -6606,6 +7305,136 @@
         "title": "ChannelShareOut",
         "description": "Share of the 7-day reports by channel, in percent (adds up to 100, or 0 and 0)."
       },
+      "ChatButtonOut": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "ChatButtonOut"
+      },
+      "ChatInput": {
+        "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "button": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Button"
+          },
+          "ai_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ChatInput",
+        "description": "One message of the admin's test chat: typed text or a tapped button's value."
+      },
+      "ChatReplyOut": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "buttons": {
+            "items": {
+              "$ref": "#/components/schemas/ChatButtonOut"
+            },
+            "type": "array",
+            "title": "Buttons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "buttons"
+        ],
+        "title": "ChatReplyOut"
+      },
+      "ChatTurnOut": {
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "replies": {
+            "items": {
+              "$ref": "#/components/schemas/ChatReplyOut"
+            },
+            "type": "array",
+            "title": "Replies"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "ai_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "replies",
+          "events"
+        ],
+        "title": "ChatTurnOut"
+      },
       "ChoiceStatOut": {
         "properties": {
           "value": {
@@ -6849,6 +7678,9 @@
           "channels": {
             "$ref": "#/components/schemas/ChannelShareOut"
           },
+          "hourly": {
+            "$ref": "#/components/schemas/HourlyOut"
+          },
           "conditions": {
             "$ref": "#/components/schemas/ConditionsOut"
           },
@@ -6871,6 +7703,7 @@
           "daily",
           "previous_daily",
           "channels",
+          "hourly",
           "conditions",
           "top_regions",
           "setup"
@@ -8248,6 +9081,31 @@
           "redis"
         ],
         "title": "HealthOut"
+      },
+      "HourlyOut": {
+        "properties": {
+          "yesterday": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Yesterday"
+          },
+          "today": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Today"
+          }
+        },
+        "type": "object",
+        "required": [
+          "yesterday",
+          "today"
+        ],
+        "title": "HourlyOut",
+        "description": "Reports per local hour (24 entries, 0 = midnight) for yesterday and today so far."
       },
       "InviteOut": {
         "properties": {
