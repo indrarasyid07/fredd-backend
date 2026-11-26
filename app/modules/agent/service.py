@@ -122,13 +122,16 @@ async def update_settings(
     return await get_settings_out(db, workspace_id)
 
 
-def preview(data: AgentSettings) -> AgentPreviewOut:
-    """The three lines the settings change, as a worker would read them."""
+def preview(data: AgentSettings, topic: str | None = None) -> AgentPreviewOut:
+    """The three lines the settings change, as a worker would read them. `topic` is the report's
+    title as the bot shows it (the form wizard passes the structure being edited)."""
     voice = voice_of(data)
+    topic = topic or SAMPLE_TOPIC
     first = "1/5 Di mana lahan yang dikunjungi hari ini?"
     return AgentPreviewOut(
         after_join=copy.after_keep(voice.name, voice.style, voice.greeting),
-        report_start=copy.greet(SAMPLE_SALUTATION, SAMPLE_TOPIC, first, voice.style),
+        report_start=copy.greet(SAMPLE_SALUTATION, topic, first, voice.style),
+        report_opening=copy.greet(SAMPLE_SALUTATION, topic, "", voice.style).rstrip(),
         report_saved=copy.report_saved("LP-2611-0148", SAMPLE_SALUTATION, voice.style),
     )
 

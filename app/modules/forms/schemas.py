@@ -331,12 +331,15 @@ class FormSettings(_Strict):
         default_factory=list, max_length=30
     )
     frequency: Literal["daily", "weekly", "event"] = "weekly"
+    # Unused: kept so older drafts still load. The bot's style and voice notes are set once per
+    # organization (Pengaturan agent, workspaces.settings["agent"]); blurry photos are noted by the
+    # AI photo check for the reviewer instead of being asked again.
     agent_style: Literal["ramah", "singkat", "formal"] = "ramah"
     voice_to_text: bool = True
     # "voice" (Voice Lab, roadmap 12): one voice note fills several fields at once; "chat": the
     # bot asks one field at a time.
     input_mode: Literal["chat", "voice"] = "chat"
-    blur_retry: bool = True
+    blur_retry: bool = True  # unused, see agent_style
 
 
 class CreateFormRequest(_Strict):

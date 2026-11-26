@@ -83,3 +83,9 @@ def test_engine_uses_the_agent_style() -> None:
     sim.say("GABUNG K7M2-9QXA")
     # The simulator's context has the default voice: the original greeting.
     assert sim.channel.sent[-1].text.startswith("Halo ")
+
+
+def test_preview_names_the_structure_being_edited() -> None:
+    lines = preview(AgentSettings(style="formal"), topic="Dinas · Survei Hama")
+    assert lines.report_opening == "Selamat datang, Budi. Berikut laporan *Dinas · Survei Hama*."
+    assert lines.report_start.startswith(lines.report_opening + "\n\n")

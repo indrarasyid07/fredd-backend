@@ -1,6 +1,8 @@
 """Pengaturan agent: the organization's agent settings, a preview, and a test chat."""
 
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Query
 
 from app.api.deps import DB, AdminMember, ReviewerMember
 from app.api.responses import ApiErrorResponse, ApiResponse, ok
@@ -43,10 +45,15 @@ async def update_settings(data: AgentSettings, member: AdminMember, db: DB):
     response_model=ApiResponse[AgentPreviewOut],
     responses={401: _ERR, 403: _ERR, 422: _ERR},
 )
-async def preview(data: AgentSettings, member: ReviewerMember):
-    """The greeting, report opening and closing lines these settings produce. Nothing is saved."""
+async def preview(
+    data: AgentSettings,
+    member: ReviewerMember,
+    topic: Annotated[str | None, Query(max_length=160)] = None,
+):
+    """The greeting, report opening and closing lines these settings produce. Nothing is saved.
+    `topic`: the report title to show (default: a sample structure)."""
     del member
-    return ok(service.preview(data))
+    return ok(service.preview(data, topic))
 
 
 @router.post(

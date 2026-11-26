@@ -1945,9 +1945,26 @@
           "agent"
         ],
         "summary": "Preview",
-        "description": "The greeting, report opening and closing lines these settings produce. Nothing is saved.",
+        "description": "The greeting, report opening and closing lines these settings produce. Nothing is saved.\n`topic`: the report title to show (default: a sample structure).",
         "operationId": "preview_api_v1_agent_preview_post",
         "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 160
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Topic"
+            }
+          },
           {
             "name": "x-workspace-id",
             "in": "header",
@@ -3427,6 +3444,228 @@
               }
             },
             "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/forms/{form_id}/draft": {
+      "post": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "Open Draft",
+        "description": "Reopen an active form for changes: a new draft version copied from the active one. The\nactive version stays in use until the draft is published. Returns the open draft if any.",
+        "operationId": "open_draft_api_v1_forms__form_id__draft_post",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FormDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "forms"
+        ],
+        "summary": "Discard Draft",
+        "description": "Throw away unpublished changes to an active form. A form never published keeps its draft.",
+        "operationId": "discard_draft_api_v1_forms__form_id__draft_delete",
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FormDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -5476,6 +5715,10 @@
             "type": "string",
             "title": "Report Start"
           },
+          "report_opening": {
+            "type": "string",
+            "title": "Report Opening"
+          },
           "report_saved": {
             "type": "string",
             "title": "Report Saved"
@@ -5485,6 +5728,7 @@
         "required": [
           "after_join",
           "report_start",
+          "report_opening",
           "report_saved"
         ],
         "title": "AgentPreviewOut",

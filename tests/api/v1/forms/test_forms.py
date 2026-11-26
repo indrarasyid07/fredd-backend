@@ -356,6 +356,54 @@ async def test_publish_makes_the_draft_the_current_version(
     assert again.json()["errors"][0]["code"] == "form_not_editable"
 
 
+async def test_reopen_edit_and_publish_a_new_version(
+    admin: AsyncClient, client: AsyncClient, db: AsyncSession, organization: Workspace
+) -> None:
+    form_id = await _draft(admin, crop_survey())
+    await admin.post(f"{URL}/{form_id}/publish")
+
+    # An editor reopens the active form; the active version stays in use meanwhile.
+    editor = await _as(client, db, organization, "form_editor")
+    opened = await editor.post(f"{URL}/{form_id}/draft")
+    assert opened.status_code == 200
+    data = opened.json()["data"]
+    assert (data["status"], data["current_version"], data["draft_version"]) == ("active", 1, 2)
+    fields = data["draft"]["definition"]["fields"]
+    fields[0]["question"] = "Di desa mana lahan Anda?"
+    saved = await editor.patch(f"{URL}/{form_id}", json={"definition": {"fields": fields}})
+    assert saved.status_code == 200
+
+    admin = await sign_in(client, "dina@contoh.id", organization.id)
+    published = (await admin.post(f"{URL}/{form_id}/publish")).json()["data"]
+    assert (published["current_version"], published["draft_version"]) == (2, None)
+    active = await service.get_version_definition(
+        db, organization.id, uuid.UUID(published["current_version_id"])
+    )
+    assert active.definition.fields[0].question == "Di desa mana lahan Anda?"
+
+
+async def test_discard_changes_keeps_the_active_version(admin: AsyncClient) -> None:
+    form_id = await _draft(admin, crop_survey())
+    # A form never published has nothing to go back to.
+    refused = await admin.delete(f"{URL}/{form_id}/draft")
+    assert refused.json()["errors"][0]["code"] == "draft_is_only_version"
+
+    await admin.post(f"{URL}/{form_id}/publish")
+    await admin.post(f"{URL}/{form_id}/draft")
+    data = (await admin.delete(f"{URL}/{form_id}/draft")).json()["data"]
+    assert (data["status"], data["current_version"], data["draft"]) == ("active", 1, None)
+
+
+async def test_reviewer_cannot_reopen(
+    admin: AsyncClient, client: AsyncClient, db: AsyncSession, organization: Workspace
+) -> None:
+    form_id = await _draft(admin, crop_survey())
+    await admin.post(f"{URL}/{form_id}/publish")
+    reviewer = await _as(client, db, organization, "reviewer")
+    assert (await reviewer.post(f"{URL}/{form_id}/draft")).status_code == 403
+    assert (await reviewer.delete(f"{URL}/{form_id}/draft")).status_code == 403
+
+
 async def test_publish_refuses_a_draft_with_problems(admin: AsyncClient) -> None:
     definition = crop_survey()
     definition["fields"][0]["question"] = ""

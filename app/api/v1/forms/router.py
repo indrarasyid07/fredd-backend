@@ -1,5 +1,5 @@
-"""Forms (Struktur data) of the active workspace: list and read (any member), create and
-autosave the draft (form_editor)."""
+"""Forms (Struktur data) of the active workspace: list and read (any member), create, reopen,
+autosave and discard the draft (form_editor), publish and archive (admin)."""
 
 import uuid
 from typing import Any
@@ -90,6 +90,25 @@ async def validate_form(form_id: uuid.UUID, member: EditorMember, db: DB):
 async def publish_form(form_id: uuid.UUID, member: AdminMember, db: DB):
     form = await service.publish_form(db, member.workspace.id, member.member.user_id, form_id)
     return ok(form, message="Struktur data aktif. Penyuluh bisa mulai melapor.")
+
+
+@router.post(
+    "/{form_id}/draft", response_model=ApiResponse[FormDetailOut], responses={**_GUARDS, 409: _ERR}
+)
+async def open_draft(form_id: uuid.UUID, member: EditorMember, db: DB):
+    """Reopen an active form for changes: a new draft version copied from the active one. The
+    active version stays in use until the draft is published. Returns the open draft if any."""
+    form = await service.open_draft(db, member.workspace.id, member.member.user_id, form_id)
+    return ok(form, message="Struktur data dibuka untuk diubah. Versi aktif tetap dipakai.")
+
+
+@router.delete(
+    "/{form_id}/draft", response_model=ApiResponse[FormDetailOut], responses={**_GUARDS, 409: _ERR}
+)
+async def discard_draft(form_id: uuid.UUID, member: EditorMember, db: DB):
+    """Throw away unpublished changes to an active form. A form never published keeps its draft."""
+    form = await service.discard_draft(db, member.workspace.id, member.member.user_id, form_id)
+    return ok(form, message="Perubahan dibuang. Versi aktif tetap dipakai.")
 
 
 @router.post("/{form_id}/archive", response_model=ApiResponse[FormDetailOut], responses=_GUARDS)

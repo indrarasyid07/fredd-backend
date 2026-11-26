@@ -56,6 +56,8 @@ class AgentPreviewOut(BaseModel):
 
     after_join: str
     report_start: str
+    # The report's opening line alone, without the first question (the wizard adds its own).
+    report_opening: str
     report_saved: str
 
 

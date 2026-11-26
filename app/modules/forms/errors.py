@@ -33,6 +33,17 @@ class FormHasProblems(AppError):
         super().__init__(f"Perbaiki {count} masalah pada struktur data sebelum diaktifkan.")
 
 
+class DraftIsTheOnlyVersion(AppError):
+    """Discarding the draft of a form never published: there would be nothing left."""
+
+    status_code = 409
+    code = "draft_is_only_version"
+    message = (
+        "Struktur ini belum pernah diaktifkan, jadi drafnya tidak bisa dibuang. "
+        "Arsipkan bila tidak dipakai."
+    )
+
+
 class FormArchived(AppError):
     status_code = 409
     code = "form_archived"
