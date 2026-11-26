@@ -71,7 +71,7 @@ Semua di bawah `/api/v1`, `reviewer` ke atas kecuali disebut lain.
 }
 ```
 
-`daily` selalu 7 entri berurutan (hari tanpa laporan bernilai 0), hari ini terakhir. **Dibangun (4.2) dengan tambahan:** `previous_daily` (7 hari sebelum `daily`, garis pembanding di grafik) dan `channels` (`whatsapp`/`telegram` dalam persen untuk 7 hari itu, jumlah 100). Wilayah di `top_regions` dan `top_infected_regions` adalah **kabupaten/kota** (laporan berwilayah kecamatan dihitung ke induknya). `setup` belum berisi `test_run_done` (Langkah 4.5). `completion.blurry_rejected` selalu 0 sampai skor buram (5.1). Cache **tidak** dibuang saat laporan baru (modul laporan berada di bawah dashboard); laporan baru tampil paling lambat 15 detik, pembuangan lewat event `report.created` menyusul bersama SSE (6.1). `setup` mengatur kondisi kosong dan checklist. Cache Redis 15 detik per `(workspace, range)`, dibuang saat ada `report.created`.
+`daily` selalu 7 entri berurutan (hari tanpa laporan bernilai 0), hari ini terakhir. `hourly` = `{yesterday: [24], today: [24]}`, jumlah laporan per jam (jam 0–23 di zona workspace), untuk peta jam sibuk di Laporan masuk; jam yang belum lewat hari ini bernilai 0. Cache lama tanpa `hourly` dianggap tidak ada (dihitung ulang). **Dibangun (4.2) dengan tambahan:** `previous_daily` (7 hari sebelum `daily`, garis pembanding di grafik) dan `channels` (`whatsapp`/`telegram` dalam persen untuk 7 hari itu, jumlah 100). Wilayah di `top_regions` dan `top_infected_regions` adalah **kabupaten/kota** (laporan berwilayah kecamatan dihitung ke induknya). `setup` belum berisi `test_run_done` (Langkah 4.5). `completion.blurry_rejected` selalu 0 sampai skor buram (5.1). Cache **tidak** dibuang saat laporan baru (modul laporan berada di bawah dashboard); laporan baru tampil paling lambat 15 detik, pembuangan lewat event `report.created` menyusul bersama SSE (6.1). `setup` mengatur kondisi kosong dan checklist. Cache Redis 15 detik per `(workspace, range)`, dibuang saat ada `report.created`.
 
 ### `GET /reports/map?range=&form_id=&condition=`
 
@@ -122,6 +122,8 @@ Rincian untuk panel detail:
 ### `GET /reports?limit=5&sort=-received_at`
 
 Daftar ringkas untuk "Laporan terbaru" (juga dipakai tabel laporan nanti): `id`, `code`, `worker` (id, nama), `region`, `commodity`, `condition`, `received_at`.
+
+Tabel **Laporan masuk** (`/app/incoming-reports`) memakai endpoint yang sama dengan `q` (cari kode, nama penyuluh, atau nama wilayah; `ILIKE`, ≤ 100 karakter), filter `condition`, dan halaman berikutnya lewat cursor ("Muat lebih banyak").
 
 ### `GET /reports/count`
 

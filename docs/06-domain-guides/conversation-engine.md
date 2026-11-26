@@ -62,7 +62,7 @@ idle → joining → identifying → choosing_form → asking(step) → confirmi
 - **Konfirmasi tebakan:** angka yang ditulis dengan kata ("Dicatat *1,5 ha*. Benar?") dan pilihan salah ketik ("Maksud Anda *Sehat*?"); jawaban baru di tengah konfirmasi dibaca sebagai jawaban.
 - **Gagal:** alasan + contoh, lalu pertanyaan diulang; kali ke-3 menawarkan "Lewati" (bila tidak wajib) dan "Minta bantuan admin" → `needs_help` (bot diam sampai admin).
 - **Aturan:** dihitung ulang dari semua jawaban setiap kali ada jawaban (mengubah jawaban juga membatalkan efek aturan); `require` membuat isian wajib dan menanyakan ulang yang sempat dilewati; `needs_review` dan `review_above` menjadi alasan tinjauan (`rule:<i>`, `review_above:<key>`).
-- **Media:** foto/video/berkas dikumpulkan sampai `max` atau "selesai" (minimal `min`); suara untuk pertanyaan teks belum dibaca (menunggu STT).
+- **Media:** foto/video/berkas dikumpulkan sampai `max` atau "selesai" (minimal `min`). Pesan suara untuk pertanyaan biasa dibaca dari transkripnya (lihat "Jawaban yang dibaca AI").
 - **Ringkasan:** "Kirim sekarang" → `SubmitReport`; "Ubah jawaban" → pilih isian → tanya ulang → kembali ke ringkasan. "lanjut" mengulang pertanyaan saat ini, "mulai ulang" mengosongkan draf, "mulai" setelah terkirim membuka laporan baru (memilih topik bila lebih dari satu). `taken_over`: bot diam.
 - `engine/simulator.py`: `FakeChannel` + `Simulator` (service tiruan di memori) untuk tes dan simulator chat (3.9).
 
@@ -113,6 +113,33 @@ Tes: tabel kasus + tes properti **hypothesis** (bilangan bulat berpemisah ribuan
 - Penyuluh berhenti di tengah → `next_reminder_at = last_inbound_at + 24 jam`, digeser ke luar `quiet_hours` dalam `workspace.timezone`.
 - Cron mengirim pengingat yang jatuh tempo. Di WhatsApp ini selalu di luar jendela 24 jam, jadi wajib template (lihat [messaging-channels.md](messaging-channels.md)).
 - Balasan "lanjut" melanjutkan dari `step` terakhir; "mulai ulang" mengosongkan draf.
+
+## Jawaban yang dibaca AI (Langkah 12.7)
+
+Parser tetap yang pertama membaca. AI (`LLM_PROVIDER=openai`, `app/modules/ai/answers.py`) hanya dipanggil bila parser **tidak mengerti** jawaban untuk isian angka, pilihan, pilihan ganda, atau tanggal (mis. "kira2 setengah hektar lebih dikit", "daunnya bolong dimakan ulat"). Jawaban yang terbaca tetapi tidak sah (di luar rentang, satuan lain) tidak dikirim ke model.
+
+- Mesin menandai jawaban seperti itu dengan `Step.unread` (kunci isian). Service lalu meminta model menulis ulang jawaban ke bentuk yang dibaca parser ("0,5", "Terserang", "2026-11-24") dengan skema JSON ketat, dan menjalankan mesin sekali lagi dengan `Inbound.ai_text`.
+- Nilai dari AI tetap melewati aturan yang sama (rentang, satuan, opsi) dan **selalu dikonfirmasi** ke penyuluh ("Dicatat *0,5 ha*. Benar?") sebelum disimpan.
+- **Pesan suara** sebagai jawaban (`STT_PROVIDER=openai`, `ai/speech.py`) ditranskripsi, lalu dibaca seperti jawaban ketik; jawaban lisan juga **selalu** dikonfirmasi karena bisa salah dengar. Isian bertipe `voice` tetap menyimpan berkas suaranya.
+- Gagal jaringan, batas waktu (`LLM_TIMEOUT_SECONDS`), penolakan, atau jawaban aneh = perilaku tanpa AI (bertanya ulang dengan contoh).
+- Organisasi bisa mematikan keduanya di Pengaturan agent (`read_free_answers`, `voice_and_photos`); topik Voice Lab selalu ditranskripsi karena tidak bisa jalan tanpanya.
+
+## Pengaturan agent
+
+Satu pengaturan per organisasi di `workspaces.settings["agent"]` (modul `app/modules/agent/`, endpoint di [endpoints.md](../03-api/endpoints.md#pengaturan-agent)), dibaca bot di setiap pesan, jadi perubahan berlaku mulai pesan berikutnya tanpa restart.
+
+| Kolom | Pengaruh |
+|---|---|
+| `name` (bawaan "Fluctuz") | Cara agent memperkenalkan diri setelah penyuluh bergabung |
+| `style`: `friendly` (bawaan) / `formal` / `brief` | Sapaan setelah bergabung, kalimat pembuka laporan, dan kalimat "laporan tersimpan". Contoh pembuka: "Halo Budi! Laporan *S*." / "Selamat datang, Budi. Berikut laporan *S*." / "Laporan *S*." |
+| `greeting` (null = bawaan gaya) | Sapaan sendiri setelah bergabung |
+| `read_free_answers` | AI membaca jawaban tidak baku (di atas) |
+| `voice_and_photos` | Transkripsi pesan suara sebagai jawaban dan catatan AI pada foto |
+
+- Nilai bawaan menghasilkan kalimat lama **persis sama**. Pertanyaan tetap dari struktur data; pengaturan ini hanya mengubah kalimat di sekitarnya (`engine/copy.py`: `greet`, `report_saved`, `after_keep`; `EngineContext.agent` berisi `AgentVoice`).
+- Nilai tersimpan yang tidak sah lagi (versi lama) diabaikan dan diganti nilai bawaan.
+- **Percakapan uji** (`POST /agent/test`): tanpa status di server. Dasbor mengirim seluruh percakapan setiap kali; server memutarnya ulang dengan mesin murni dan efek tiruan (`SubmitReport` → kode `UJI-0001`, tidak ada yang disimpan; `NeedsHelp` dan `ClaimCode` hanya dicatat sebagai kejadian). Bacaan AI dikembalikan (`ai_text`) dan dikirim balik di putaran berikutnya agar model tidak dipanggil ulang.
+- Wizard struktur data (langkah 4, 5, 7) menampilkan pengaturan ini dan memakai `POST /agent/preview?topic=` untuk kalimat pembuka dan penutup yang sebenarnya.
 
 ## Takeover
 

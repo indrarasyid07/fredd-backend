@@ -43,7 +43,14 @@ Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command
 | `STORAGE_KEY_PREFIX` | Awalan kunci objek, bawaan `fluctuz/` (bucket boleh dipakai bersama aplikasi lain) |
 | `STORAGE_PRESIGN_EXPIRY_SECONDS` | Umur URL bertanda tangan (dipakai mulai Langkah 5.1) |
 | `MEDIA_DIR` | Folder media saat `STORAGE_ENABLED=false`, bawaan `var/media` |
-| `LLM_*`, `STT_*` | Menunggu pilihan penyedia |
+| `LLM_PROVIDER` | `off` (bawaan: bot sepenuhnya berbasis aturan) / `openai`: membaca jawaban yang tidak terbaca parser dan memberi catatan pada foto laporan |
+| `OPENAI_API_KEY` | Rahasia; hanya di env server. Dipakai bersama oleh `LLM_PROVIDER` dan `STT_PROVIDER` |
+| `OPENAI_BASE_URL` | Kosong = api.openai.com; isi untuk Azure OpenAI atau endpoint lain yang kompatibel |
+| `LLM_MODEL` | Bawaan `gpt-5.4-mini`; harus menerima gambar (catatan foto) |
+| `LLM_REASONING_EFFORT` | Bawaan `low`; hanya dikirim bila diisi (model penalaran menerimanya, model lain menolak). Kosongkan untuk model non-penalaran |
+| `LLM_TIMEOUT_SECONDS` | Bawaan 15; lewat batas = bot bertanya ulang seperti tanpa AI |
+| `STT_PROVIDER` | `fake` (bawaan: hanya pengembangan, tes, dan topik Voice Lab) / `openai`: mentranskripsi setiap pesan suara di chat |
+| `STT_MODEL` | Bawaan `gpt-4o-mini-transcribe` |
 | `ENVIRONMENT` | `development` / `staging` / `production` |
 
 ## Waktu dan zona waktu

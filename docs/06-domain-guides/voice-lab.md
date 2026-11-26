@@ -12,11 +12,11 @@ Analis atau peneliti lab merekam hasil kerjanya dengan suara lewat bot Telegram/
 | 12.4 | Halaman Voice data asli: `GET /reports?voice=true`, `GET /reports/{id}.voice` | **Ada** |
 | 12.5 | Koreksi nilai (alasan wajib) & verifikasi penyelia, jejak audit | **Ada** |
 | 12.6 | Unduh CSV/Excel | Belum |
-| 12.7 | Penyedia STT/LLM cloud | Menunggu D7 |
+| 12.7 | Penyedia STT/LLM cloud: OpenAI | **Ada** |
 
 ## Mengubah suara jadi teks (`app/modules/ai/speech.py`)
 
-`get_speech_to_text().transcribe(audio, content_type, language="id") -> Transcript(text, language, provider, confidence)`. `STT_PROVIDER=fake` (bawaan) membaca byte audio sebagai teks UTF-8 yang diucapkan, untuk pengembangan, simulator `/devtools`, dan tes. Penyedia lain belum ada → `503 speech_unavailable`. Tes mengganti penyedia lewat `speech.override`.
+`get_speech_to_text().transcribe(audio, content_type, language="id") -> Transcript(text, language, provider, confidence)`. `STT_PROVIDER=fake` (bawaan) membaca byte audio sebagai teks UTF-8 yang diucapkan, untuk pengembangan, simulator `/devtools`, dan tes. `STT_PROVIDER=openai` mentranskripsi dengan `STT_MODEL` (bawaan `gpt-4o-mini-transcribe`) lewat klien OpenAI bersama (`ai/openai_client.py`), dengan petunjuk kosakata laporan lapangan berbahasa Indonesia; transkripsi dipakai untuk **setiap** pesan suara di chat yang punya topik aktif, bukan hanya topik Voice Lab (lihat [conversation-engine.md](conversation-engine.md#jawaban-yang-dibaca-ai-langkah-127)). Penyedia tidak diatur → `503 speech_unavailable`. Tes mengganti penyedia lewat `speech.override`.
 
 ## Mengambil isian (`app/modules/ai/extraction.py`)
 
