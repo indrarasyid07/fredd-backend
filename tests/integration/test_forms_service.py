@@ -98,7 +98,7 @@ async def test_open_draft_copies_the_active_version(
     detail = await service.open_draft(db, organization.id, user.id, form.id)
 
     assert (detail.status, detail.current_version, detail.draft_version) == ("active", 1, 2)
-    assert detail.draft is not None
+    assert detail.draft is not None and form.current_version_id is not None
     active = await service.get_version_definition(db, organization.id, form.current_version_id)
     assert detail.draft.definition.model_dump() == active.definition.model_dump()
     # Opening again returns the same draft instead of a third version.
@@ -111,6 +111,7 @@ async def test_publishing_the_reopened_draft_makes_version_two_active(
 ) -> None:
     form = await _published(db, organization, user)
     first = form.current_version_id
+    assert first is not None
     await service.open_draft(db, organization.id, user.id, form.id)
 
     published = await service.publish_form(db, organization.id, user.id, form.id)
