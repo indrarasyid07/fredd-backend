@@ -125,6 +125,24 @@ def test_describe_fences_the_answers() -> None:
     assert text.endswith("<report_answers>\n- Kondisi tanaman: Terserang\n</report_answers>")
 
 
+def test_describe_fences_the_form_description() -> None:
+    lab = PhotoContext(
+        form_name="Uji Sampel Air (Voice Lab)",
+        field_label="Foto sampel",
+        field_question="Kirim foto sampel atau layar alat ukurnya ya.",
+        answers=("pH: 6,8",),
+        form_description="Lab basah: pH dan suhu sampel air.",
+    )
+    text = describe(lab)
+    assert "<form_description>\nLab basah: pH dan suhu sampel air.\n</form_description>" in text
+    assert "<form_description>" not in describe(CONTEXT)  # none written: nothing sent
+
+
+def test_prompt_is_not_only_for_crops() -> None:
+    prompt = vision.SYSTEM_PROMPT.lower()
+    assert "livestock" in prompt and "laboratory" in prompt and "instrument" in prompt
+
+
 async def test_sends_the_photo_inline_at_low_detail() -> None:
     checker, recorder = _checker(_response({"note": "Daun berlubang.", "issue": "none"}))
     assert await checker.check(JPEG, "image/jpeg", CONTEXT) == "Daun berlubang."

@@ -1,7 +1,8 @@
 """AI notes on a new report's photos (roadmap 12.7, "cek foto").
 
 Runs as a job after the report is committed, never in the chat's path: a vision model looks at
-each stored photo, with the form's question and the report's choice answers for comparison, and
+each stored photo, with the form's question and the report's choice and number answers for
+comparison (free text is left out: it can hold people's names), and
 its note lands in `report_photos.ai_note` for reviewers. Photos still kept as a Telegram
 reference, files that are not images, and photos already noted are skipped. A failure leaves
 the note empty; the report itself is never touched.
@@ -23,7 +24,8 @@ from app.modules.reports.service import display
 
 logger = logging.getLogger(__name__)
 
-_CHOICE_TYPES = ("single_choice", "multi_choice")
+# What a photo can confirm or contradict: a condition, a species, a value on a display.
+_COMPARABLE_TYPES = ("single_choice", "multi_choice", "number")
 
 
 def enabled() -> bool:
@@ -53,7 +55,7 @@ async def check_report_photos(
     except FormNotFound, FormVersionNotFound:
         return 0
     definition = version.definition
-    answers = _choice_answers(definition, report.answers or {})
+    answers = _comparable_answers(definition, report.answers or {})
     written = 0
     for photo in photos:
         field = definition.field(photo.field_key)
@@ -70,6 +72,7 @@ async def check_report_photos(
             field_label=field.label if field else photo.field_key,
             field_question=field.question if field else "",
             answers=answers,
+            form_description=form.description,
         )
         note = await checker.check(data, content_type, context)
         if note:
@@ -79,11 +82,11 @@ async def check_report_photos(
     return written
 
 
-def _choice_answers(definition: FormDefinition, answers: dict[str, object]) -> list[str]:
-    """ "Kondisi tanaman: Terserang" for each answered choice field: what a photo can confirm."""
+def _comparable_answers(definition: FormDefinition, answers: dict[str, object]) -> list[str]:
+    """ "Kondisi tanaman: Terserang", "pH: 6,8" for each answered choice or number field."""
     shown = []
     for f in definition.fields:
         value = answers.get(f.key)
-        if f.type in _CHOICE_TYPES and value not in (None, [], ""):
+        if f.type in _COMPARABLE_TYPES and value not in (None, [], ""):
             shown.append(f"{f.label}: {display(f, value)}")
     return shown
