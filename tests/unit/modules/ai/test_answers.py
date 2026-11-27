@@ -12,7 +12,7 @@ import pytest
 
 from app.modules.ai import answers
 from app.modules.ai.answers import OpenAIAnswerReader, answer_schema, as_text, describe
-from app.modules.forms.schemas import FieldDefinition
+from app.modules.forms.schemas import FieldDefinition, FormDefinition
 
 TODAY = dt.date(2026, 11, 25)
 
@@ -168,3 +168,82 @@ def test_off_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(answers.settings, "llm_provider", "openai")
     monkeypatch.setattr(answers.settings, "openai_api_key", "")
     assert answers.get_answer_reader() is None
+
+
+# --- Voice Lab sentences ------------------------------------------------------------------------
+
+LAB = FormDefinition.model_validate(
+    {
+        "fields": [
+            {"key": "sample", "type": "short_text", "label": "Nomor sampel", "question": "?"},
+            {"key": "ph", "type": "number", "label": "pH", "question": "?"},
+            {"key": "temp", "type": "number", "label": "Suhu", "question": "?", "unit": "°C"},
+            {"key": "photo", "type": "photo", "label": "Foto", "question": "?"},
+        ]
+    }
+)
+SAID = "sampel S-7, pH-nya kira-kira enam koma delapan, suhunya dua puluh lima"
+
+
+def _sentence_response(values: dict[str, Any]) -> SimpleNamespace:
+    message = SimpleNamespace(content=json.dumps(values), refusal=None)
+    return SimpleNamespace(choices=[SimpleNamespace(finish_reason="stop", message=message)])
+
+
+async def test_reads_the_missed_fields_of_a_voice_note() -> None:
+    reader, completions = _reader(_sentence_response({"ph": 6.8, "temp": None}))
+    assert await reader.read_sentence(LAB, ["ph", "temp"], SAID, today=TODAY) == {"ph": "6,8"}
+    sent = completions.calls[0]
+    schema = sent["response_format"]["json_schema"]["schema"]
+    assert schema["required"] == ["ph", "temp"]  # only the fields the rules missed
+    assert sent["response_format"]["json_schema"]["strict"] is True
+    user = sent["messages"][1]["content"]
+    assert "key: temp | label: Suhu | question: ? | type: number | unit: °C" in user
+    assert user.endswith(f"<transcript>\n{SAID}\n</transcript>")
+
+
+async def test_text_values_come_back_trimmed() -> None:
+    reader, _ = _reader(_sentence_response({"sample": "  S-7 "}))
+    assert await reader.read_sentence(LAB, ["sample"], SAID, today=TODAY) == {"sample": "S-7"}
+
+
+async def test_media_fields_and_failures_read_nothing() -> None:
+    reader, completions = _reader(_sentence_response({}))
+    assert await reader.read_sentence(LAB, ["photo"], SAID, today=TODAY) == {}
+    assert completions.calls == []  # nothing a sentence can fill: no call
+    broken, _ = _reader(_sentence_response({"ph": "not a number", "temp": 25}))
+    assert await broken.read_sentence(LAB, ["ph", "temp"], SAID, today=TODAY) == {"temp": "25"}
+    failing, _ = _reader(
+        openai.APIConnectionError(request=httpx2.Request("POST", "https://api.openai.com"))
+    )
+    assert await failing.read_sentence(LAB, ["ph"], SAID, today=TODAY) == {}
+
+
+# --- Receipt and document photos ----------------------------------------------------------------
+
+JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 16
+
+
+async def test_reads_a_photo_at_high_detail_for_the_missing_fields() -> None:
+    reader, completions = _reader(_sentence_response({"ph": 6.8, "temp": None}))
+    got = await reader.read_photo(
+        LAB, ["ph", "temp", "photo"], JPEG, "image/jpeg", context="Form: Lab", today=TODAY
+    )
+    assert got == {"ph": "6,8"}
+    sent = completions.calls[0]
+    assert sent["response_format"]["json_schema"]["schema"]["required"] == ["ph", "temp"]
+    text, image = sent["messages"][1]["content"]
+    assert text["text"].startswith("Form: Lab\nToday's date: 2026-11-25\nFields to read:")
+    assert image["image_url"]["detail"] == "high"
+    assert image["image_url"]["url"].startswith("data:image/jpeg;base64,")
+
+
+async def test_photo_reading_failure_is_none_and_nothing_to_read_is_empty() -> None:
+    failing, _ = _reader(
+        openai.APIConnectionError(request=httpx2.Request("POST", "https://api.openai.com"))
+    )
+    jpeg = {"image": JPEG, "content_type": "image/jpeg", "context": "", "today": TODAY}
+    assert await failing.read_photo(LAB, ["ph"], **jpeg) is None  # type: ignore[arg-type]
+    reader, completions = _reader(_sentence_response({}))
+    assert await reader.read_photo(LAB, ["photo"], **jpeg) == {}  # type: ignore[arg-type]
+    assert completions.calls == []

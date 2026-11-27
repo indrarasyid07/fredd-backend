@@ -23,6 +23,7 @@ from app.modules.forms.constants import (
     MAX_FIELDS,
     MAX_OPTIONS,
     MAX_RULES,
+    READABLE_MEDIA_TYPES,
     SPOKEN_TYPES,
     UNIQUE_ROLES,
     AnswerMode,
@@ -75,6 +76,9 @@ class FieldDefinition(_Strict):
     # and, for numbers, words said for its unit ("derajat", "celcius").
     voice_cues: list[VoiceWord] = Field(default_factory=list, max_length=10)
     unit_aliases: list[VoiceWord] = Field(default_factory=list, max_length=10)
+    # photo/document only ("Baca struk dan foto"): the photo sent here is read by AI for the
+    # answers not given yet (a receipt's price and weight, say); each is confirmed in chat.
+    read_values: bool = False
 
 
 class RuleCondition(_Strict):
@@ -151,6 +155,7 @@ MESSAGES: dict[str, LiteralString] = {
     "unit_aliases_not_allowed": "Sebutan satuan hanya untuk isian angka.",
     "voice_cues_not_allowed": "Contoh sebutan hanya untuk isian yang bisa diucapkan.",
     "measure_not_number": "Isian ukuran harus berupa angka.",
+    "read_values_not_allowed": "Baca isi foto hanya untuk isian foto atau dokumen.",
     "unknown_field": "Aturan merujuk isian yang tidak ada.",
     "unknown_option": "Nilai ini tidak ada di pilihan isian.",
     "empty_rule_action": "Aturan butuh tindakan MAKA.",
@@ -240,6 +245,8 @@ def _check_fields(fields: list[FieldDefinition], p: _Problems) -> None:
             p.add((*at, "unit_aliases"), "unit_aliases_not_allowed", f.type)
         if f.voice_cues and f.type not in SPOKEN_TYPES:
             p.add((*at, "voice_cues"), "voice_cues_not_allowed", f.type)
+        if f.read_values and f.type not in READABLE_MEDIA_TYPES:
+            p.add((*at, "read_values"), "read_values_not_allowed", f.type)
         if f.role == "condition":
             if f.type != "single_choice":
                 p.add((*at, "type"), "condition_not_single_choice", f.type)

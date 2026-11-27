@@ -161,6 +161,7 @@ async def process_chat(
             else:
                 await _store_media(db, client, chat, message)
                 answer = await reporting.handle(db, chat, message)
+        db.info.pop(joining.BACK_TO_TOPIC, None)  # never carried over to the next message
         # After routing, so the message that joined a topic belongs to it too.
         owner = await _owner(db, chat)
         message.workspace_id, message.conversation_id = owner

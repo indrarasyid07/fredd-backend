@@ -29,6 +29,8 @@ from app.modules.forms.schemas import DraftFormDefinition, FieldDefinition, Form
 
 # At or above: kept as heard. Below: the analyst is asked to confirm or repeat.
 CONFIDENT = 0.7
+# More words than this in a short text answer, or a comma, and it is doubtful.
+SHORT_TEXT_WORDS = 6
 
 # Units said in labs, on top of the chat's (ha, kg, °C, rupiah...). Alias → unit code.
 LAB_UNITS: dict[str, str] = {
@@ -60,6 +62,14 @@ UNITS = {**DEFAULT_UNITS, **LAB_UNITS}
 # Words between a cue and its value that carry nothing ("pH-nya adalah 6,8").
 _FILLER = re.compile(r"^(?:(?:nya|adalah|yaitu|ialah|sebesar|=|:)(?:\s+|$|(?=\d)))+", re.IGNORECASE)
 _TRIM = " ,.;:-–—\t"
+# A minus sign is a dash right before a digit ("suhu -20 derajat"); it is kept by `_trim`.
+_NEGATIVE = re.compile(r"^[-−]\d")
+
+
+def _trim(words: str) -> str:
+    """The words without separators around them, keeping a leading minus sign."""
+    trimmed = words.strip(_TRIM)
+    return "-" + trimmed if _NEGATIVE.match(words.strip()) else trimmed
 
 
 @dataclass(frozen=True)
@@ -112,7 +122,7 @@ def extract(
     out = Extraction()
     for i, (_start, end, f) in enumerate(found):
         stop = found[i + 1][0] if i + 1 < len(found) else len(said)
-        words = _FILLER.sub("", said[end:stop].strip(_TRIM)).strip(_TRIM)
+        words = _trim(_FILLER.sub("", _trim(said[end:stop])))
         value = _read(f, words, today or dt.date.today())
         if value is not None:
             out.values.append(value)
@@ -152,7 +162,7 @@ def read_value(
 ) -> ExtractedValue | None:
     """One field's value from words already known to be its answer (a supervisor's correction,
     roadmap 12.5), read with the same rules as a spoken sentence."""
-    return _read(f, words.strip(_TRIM), today or dt.date.today())
+    return _read(f, _trim(words), today or dt.date.today())
 
 
 def _read(f: FieldDefinition, words: str, today: dt.date) -> ExtractedValue | None:
@@ -167,6 +177,10 @@ def _read(f: FieldDefinition, words: str, today: dt.date) -> ExtractedValue | No
         if day is None:
             return ExtractedValue(f.key, None, words, 0.0, words, "Tanggal tidak terbaca")
         return ExtractedValue(f.key, day.isoformat(), day.strftime("%d/%m/%Y"), 0.9, words)
+    if f.type == "short_text" and ("," in words or len(words.split()) > SHORT_TEXT_WORDS):
+        # A short answer (a sample number, a name) that ran on: it likely swallowed the next
+        # values because their names were not recognised ("S-9 asamnya netral tujuh, ...").
+        return ExtractedValue(f.key, words, words, 0.5, words, "Sepertinya ikut terbawa kata lain")
     # Free text is kept as said; it is never wrong, only possibly misheard.
     return ExtractedValue(f.key, words, words, 0.75, words)
 

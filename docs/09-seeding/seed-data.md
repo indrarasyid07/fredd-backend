@@ -7,6 +7,7 @@ Perintah: `uv run python -m scripts.seed <set>`, membaca data dari `fixtures/`. 
 | `reference` | Wilayah **seluruh Indonesia**: 38 provinsi, 514 kab/kota, 7.285 kecamatan dengan kode Kemendagri, centroid, dan batas (MultiPolygon); 25 komoditas dengan alias lokal ("pari" → padi, "sampeu" → ubi kayu); 11 satuan (ha, kg, kuintal, ...). Berkas: `fixtures/reference/` | semua |
 | `templates` | Katalog template wizard: 8 sektor (pertanian, peternakan, perikanan, kehutanan, infrastruktur, kesehatan, keuangan, riset) dengan pilihan cepat per sektor, 25 template. Berkas: `fixtures/templates/form_templates.json`; `python -m scripts.seed templates` | semua |
 | `demo` | Workspace "Fluctuz Indonesia", 4 anggota (satu per peran), 12 penyuluh di 6 kabupaten, ~150 laporan 14 hari terakhir dengan foto contoh | development, staging |
+| `structures` | Hanya dua struktur siap pakai untuk bot di "Fluctuz Indonesia" (lihat di bawah), tanpa menyentuh akun atau data lapangan. Butuh `demo` lebih dulu | development |
 
 Sumber data wilayah: [cahyadsn/wilayah_boundaries](https://github.com/cahyadsn/wilayah_boundaries) (MIT, sesuai Kepmendagri No 300.2.2-2430 Tahun 2025), diubah ke `fixtures/reference/regions.geojson.gz` (GeoJSON `[lng, lat]`, 5 desimal, ±3 MB); atribusi dan lisensi di `fixtures/reference/LICENSE-regions.txt`. Kode resmi disimpan di `reference_data.code` agar bisa dicocokkan dengan data instansi. Desa/kelurahan (±84 ribu, ±341 MB mentah) belum termasuk; menyusul lewat skrip impor terpisah.
 
@@ -41,3 +42,13 @@ Setelah masuk, pindah ke "Fluctuz Indonesia" dari menu akun (bawaannya workspace
 Butuh set `reference` lebih dulu (tanpa wilayah, data lapangan dilewati dengan pesan). Acak tetapi dapat diulang (seed tetap); tanggal relatif terhadap hari ini. Dijalankan ulang: struktur dan penyuluh dipakai lagi, laporan **tidak** ditambah bila penyuluh demo sudah punya laporan.
 
 Data demo tidak boleh berisi nomor HP sungguhan; pakai rentang `+62 811-0000-xxxx`.
+
+**Struktur siap pakai untuk bot (`scripts/demo_structures.py`, fixture `fixtures/demo/structures.json`).** Set `demo` juga menerbitkan dua struktur ini; `uv run python -m scripts.seed structures` menjalankan bagian ini saja (sekarang tiga struktur):
+
+| Struktur | Mode | Isian |
+|---|---|---|
+| **Laporan Kesehatan Ternak** (sektor peternakan) | `chat`, satu pertanyaan per pesan | lokasi kandang (bagikan dari peta/live atau tulis nama desa, akurasi ≤ 100 m), nama peternak, jenis ternak (`status`), jumlah ternak dalam ekor (`measure`), kondisi kesehatan (`condition`: Sehat / Perlu perhatian / Sakit), gejala (pilihan ganda), 1–3 foto ternak/kandang, catatan. Jika **Sakit**: gejala wajib dan laporan masuk antrean tinjau. |
+| **Uji Sampel Air (Voice Lab)** (sektor riset, lab basah) | `voice`, satu pesan suara mengisi banyak isian | nomor sampel, pH, suhu (°C, "derajat"), volume (mL, opsional) dari satu pesan suara, lalu bot meminta 1–3 foto sampel atau layar alat ukur. |
+| **Catatan Penjualan Hasil Panen** (sektor pertanian) | `chat`, "Baca struk dan foto" | foto nota pertama (`read_values`): AI membaca tanggal jual, pembeli, komoditas, berat (kg), harga per kg, dan total (Rp) dari nota, lalu bot memastikan satu per satu; yang tidak terbaca ditanyakan biasa. Lalu catatan. |
+
+Dicocokkan lewat nama struktur aktif. Belum ada: dibuat dan diterbitkan. Ada tetapi definisi, deskripsi, atau pengaturan berbeda dari fixture: diterbitkan sebagai **versi baru** (kode gabung sama, penyuluh yang sudah bergabung tetap terhubung). Sudah sama: dibiarkan. Kode gabung dan tautan Telegram dicetak di akhir.

@@ -1,6 +1,10 @@
 """A language model's reading of an unreadable answer (roadmap 12.7): only for answers the
 parsers did not understand, checked with the same rules, and always confirmed."""
 
+import json
+from dataclasses import replace
+from pathlib import Path
+
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.machine import handle
 from app.modules.conversations.engine.simulator import SimTopic, Simulator
@@ -124,3 +128,97 @@ def test_spoken_skip_command_works() -> None:
     assert sim.state.step == "photos"
     step = _send(sim, _voice("Lewati."))
     assert "photos" in step.state.answers and step.state.answers["photos"] is None
+
+
+# --- Voice Lab sentences (roadmap 12.7) ---------------------------------------------------------
+
+_LAB_FIXTURE = json.loads(
+    (Path(__file__).parents[4] / "fixtures" / "demo" / "structures.json").read_text("utf-8")
+)
+LAB = FormDefinition.model_validate(
+    next(s for s in _LAB_FIXTURE["structures"] if s["settings"]["input_mode"] == "voice")[
+        "definition"
+    ]
+)
+LOOSE = "sampel S-7, pH-nya kira-kira enam koma delapan, suhunya dua puluh lima"
+
+
+def _lab() -> Simulator:
+    sim = Simulator(topics=[SimTopic("lab", "Lab · Uji Sampel Air", LAB, "K7M29QXA", True)])
+    sim.say("GABUNG K7M2-9QXA")
+    assert sim.state.step == "__voice__"
+    return sim
+
+
+def _speak(sim: Simulator, text: str, **extra: object) -> Step:
+    return _send(sim, Inbound(text=text, spoken=True, audio="media/v.ogg", **extra))  # type: ignore[arg-type]
+
+
+def test_missed_lab_values_are_marked_for_the_language_model() -> None:
+    step = _speak(_lab(), LOOSE)
+    assert step.unread_voice == ("ph", "suhu", "volume")  # the sample was read by the rules
+    assert step.state.answers == {"nomor_sampel": "S-7"}  # the reply if no model is configured
+
+
+def test_a_clear_sentence_needs_no_model() -> None:
+    step = _speak(_lab(), "sampel S-2041, pH 6,8, suhu 25 derajat")
+    assert step.unread_voice == ()  # only the optional volume was not said
+
+
+def test_model_values_are_confirmed_one_by_one() -> None:
+    sim = _lab()
+    step = _speak(sim, LOOSE, ai_values={"ph": "6,8", "suhu": "25"})
+    assert step.unread_voice == ()  # no second round trip
+    heard, confirm = step.replies
+    assert heard.text.startswith("Tercatat: Nomor sampel *S-7*.")
+    assert "Sepertinya juga: pH *6,8* · Suhu *25 °C*" in heard.text
+    assert "Perlu dipastikan" not in heard.text  # the doubtful pH has the model's reading now
+    assert confirm.text == copy.confirm_value("6,8")
+    assert "ph" not in step.state.answers  # never kept before "Ya"
+
+    sim.state = step.state
+    (suhu,) = sim.tap("yes")
+    assert suhu.text == copy.confirm_value("25 °C")
+    (volume,) = sim.tap("yes")
+    assert "Berapa volume?" in volume.text  # optional and not said: asked as usual
+    assert sim.state.answers == {"nomor_sampel": "S-7", "ph": "6.8", "suhu": "25"}
+    assert sim.state.voice is not None
+    assert sim.state.voice["ai_read"] == {"ph": "6,8", "suhu": "25"}
+
+
+def test_rejected_model_value_is_asked_normally() -> None:
+    sim = _lab()
+    sim.state = _speak(sim, LOOSE, ai_values={"ph": "6,8", "suhu": "25"}).state
+    (question,) = sim.tap("no")
+    assert "Berapa pH?" in question.text
+    sim.say("7,1")
+    assert sim.state.answers["ph"] == "7.1"
+
+
+def test_model_values_break_the_same_rules_and_are_dropped() -> None:
+    step = _speak(_lab(), LOOSE, ai_values={"ph": "enam-ish", "suhu": "25", "nomor_sampel": "X"})
+    heard = step.replies[0].text
+    assert "Sepertinya juga: Suhu *25 °C*." in heard  # the unreadable pH reading is dropped
+    assert 'Perlu dipastikan: pH ("kira-kira' in heard  # and the pH is asked as before
+    assert step.state.ai_suggested == {"suhu": {"value": "25", "display": "25 °C"}}
+    assert step.state.answers["nomor_sampel"] == "S-7"  # what the rules read is never replaced
+
+
+def test_sentence_the_rules_cannot_read_at_all() -> None:
+    sim = _lab()
+    said = "enam koma delapan, dua puluh lima derajat"
+    step = _speak(sim, said)
+    assert step.unread_voice == ("nomor_sampel", "ph", "suhu", "volume")
+    assert step.replies[0].text == copy.voice_nothing("Nomor sampel …, pH …, Suhu … °C")
+    step = _speak(sim, said, ai_values={"ph": "6,8", "suhu": "25"})
+    assert "Sepertinya juga: pH *6,8* · Suhu *25 °C*" in step.replies[0].text
+    assert "Nomor sampel?" in step.replies[1].text  # not said: asked first, as usual
+
+
+def test_voice_note_before_mulai_goes_to_the_model_too() -> None:
+    sim = _lab()
+    sim.state = replace(sim.state, status="idle", step=None)  # a report just sent, say
+    step = _speak(sim, "enam koma delapan, dua puluh lima derajat")
+    assert step.unread_voice == ("nomor_sampel", "ph", "suhu", "volume")
+    step = _speak(sim, "enam koma delapan, dua puluh lima derajat", ai_values={"suhu": "25"})
+    assert step.state.ai_suggested == {"suhu": {"value": "25", "display": "25 °C"}}

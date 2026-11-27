@@ -8176,6 +8176,11 @@
             "type": "array",
             "maxItems": 10,
             "title": "Unit Aliases"
+          },
+          "read_values": {
+            "type": "boolean",
+            "title": "Read Values",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -11925,6 +11930,11 @@
             "maxItems": 10,
             "title": "Unit Aliases",
             "type": "array"
+          },
+          "read_values": {
+            "default": false,
+            "title": "Read Values",
+            "type": "boolean"
           }
         },
         "required": [

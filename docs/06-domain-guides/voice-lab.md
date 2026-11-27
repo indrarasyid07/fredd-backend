@@ -32,6 +32,7 @@ Analis atau peneliti lab merekam hasil kerjanya dengan suara lewat bot Telegram/
 | Angka tanpa satuan | 0,85 | – |
 | Pilihan/tanggal terbaca pasti | 0,9 | – |
 | Teks | 0,75 | – |
+| Teks singkat yang kebablasan (ada koma atau > 6 kata, mis. "S-9 asamnya netral tujuh, …") | 0,5 | "Sepertinya ikut terbawa kata lain" |
 | Pilihan mirip ("Mirip pilihan lain") | 0,5 | ya |
 | Angka di luar `min`/`max` | 0,5 | "Di luar batas isian" |
 | Satuan terdengar berbeda | 0,4 | "Satuan yang terdengar bukan …" |
@@ -47,7 +48,18 @@ Berlaku untuk topik yang strukturnya `settings.input_mode = "voice"`; topik `cha
 2. **Pesan suara** (atau kalimat yang diketik) saat belum ada laporan langsung memulai laporan: worker menyimpan audio ke penyimpanan (jalur foto 3.8), lalu `speech.get_speech_to_text().transcribe` mengisi `messages.payload.transcript`; mesin membaca transkrip dengan `extract`. `mulai` → bot meminta satu kalimat dengan contoh dari isian (`step = "__voice__"`).
 3. Nilai **yakin** langsung menjadi jawaban; balasan "Tercatat: … · …" dan, bila ada, "Perlu dipastikan: Suhu (\"25 ml\")".
 4. Isian wajib yang tidak disebut dan nilai yang ragu ditanyakan **satu per satu** dengan alur chat biasa (urutan isian); jawabannya boleh suara lagi. Isian opsional ditawarkan dengan "Lewati". Lalu ringkasan → Kirim.
-5. Laporan menyimpan `reports.voice` = `{transcript, audio, heard{isian: kata}, confidence{isian: 0–1}}`; `report_values` tetap terisi untuk dashboard.
+5. Laporan menyimpan `reports.voice` = `{transcript, audio, heard{isian: kata}, confidence{isian: 0–1}}`, ditambah `ai_read{isian: teks}` bila AI ikut membaca (di bawah); `report_values` tetap terisi untuk dashboard.
+
+### Kalimat yang dibaca AI (Langkah 12.7)
+
+Aturan `extract` tetap yang pertama membaca. Bila ada isian **wajib** yang tidak terbaca pasti, atau ada nilai yang ragu, mesin menandai `Step.unread_voice` (kunci isian lisan yang belum pasti). Service meminta model (`answers.get_sentence_reader().read_sentence`, skema JSON ketat per isian) menulis ulang nilai yang diucapkan ke bentuk parser, lalu menjalankan mesin sekali lagi dengan `Inbound.ai_values`.
+
+- Nilai yang sudah terbaca pasti oleh aturan **tidak pernah** diganti model.
+- Nilai dari model dibaca ulang dengan aturan yang sama (`read_value`: rentang, satuan, opsi); yang tidak lolos dibuang dan isiannya ditanyakan seperti biasa.
+- Yang lolos disimpan di `ConversationState.ai_suggested` dan **dikonfirmasi satu per satu**: balasan "Sepertinya juga: pH *6,8* · Suhu *25 °C*. Saya pastikan satu per satu ya.", lalu saat bot sampai di isian itu ia bertanya "Dicatat *6,8*. Benar?" [Ya] [Ubah] alih-alih pertanyaan biasa. "Ubah" → pertanyaan biasa.
+- Kalimat yang jelas ("sampel S-2041, pH 6,8, suhu 25 derajat") tidak memanggil model. Isian opsional yang memang tidak disebut tidak memicu panggilan.
+- Hanya bila `LLM_PROVIDER=openai` dan Pengaturan agent `read_free_answers` menyala (bawaan). Gagal/mati = perilaku tanpa AI.
+- Contoh uji nyata (gpt-5.4-mini): "sampel S-7, pH-nya kira-kira enam koma delapan, suhunya dua puluh lima" → aturan: sampel; model: pH 6,8, suhu 25. "pH tujuh, suhu tiga puluh fahrenheit" → model tidak mengonversi satuan, suhu ditanyakan.
 
 Pengubah suara gagal (penyedia mati) → pesan tidak hilang; bot menjawab "Pesan suara belum bisa saya dengar. Coba kirim ulang, atau ketik hasilnya." Kalimat tanpa isian yang dikenali di langkah suara → contoh kalimat + hitungan gagal (3x → bantuan admin seperti alur chat).
 

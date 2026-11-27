@@ -74,6 +74,7 @@ Kode: `app/modules/forms/` (`schemas.py` = `FormDefinition`, `service.py` = anta
 | `max_accuracy_m` | `location` | Titik dengan akurasi lebih buruk diminta ulang |
 | `voice_cues` | jenis yang bisa diucapkan (teks, angka, pilihan, tanggal) | Voice Lab (12.2): sebutan lain isian saat diucapkan ("sampel", "kode sampel"); maks. 10 × 60 karakter; jenis lain → `voice_cues_not_allowed` |
 | `unit_aliases` | `number` | Voice Lab (12.2): kata yang diucapkan untuk satuannya ("derajat" untuk °C); jenis lain → `unit_aliases_not_allowed` |
+| `read_values` | `photo`, `document` | "Baca struk dan foto": foto yang dikirim ke isian ini dibaca AI untuk isian berikutnya yang belum terjawab (lihat [conversation-engine.md](conversation-engine.md#jawaban-yang-dibaca-ai-langkah-127)); jenis lain → `read_values_not_allowed`. Di wizard: "Baca isi foto otomatis" |
 | `role` | lihat bawah | Arti isian bagi dashboard |
 
 ### Peran isian (`role`)

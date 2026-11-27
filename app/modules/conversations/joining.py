@@ -2,8 +2,9 @@
 
 A code from a chat with no topic joins it, then asks "Ya, tetap / Bukan, ganti" with the data
 consent sentence. A code from a chat that already has a topic offers "Pindah / Tambah / Batal";
-that pending choice lives in Redis for a day. Wrong codes are rate limited per chat identity:
-after five in an hour the bot stays silent for that chat.
+that pending choice lives in Redis for a day. The code (or QR) of a topic the chat already has
+switches back to it like `topik`, keeping its unfinished report. Wrong codes are rate limited per
+chat identity: after five in an hour the bot stays silent for that chat.
 """
 
 import json
@@ -37,6 +38,10 @@ PENDING_CHOICE_SECONDS = 86400
 
 KEEP, CHANGE = "join:keep", "join:change"
 SWITCH, ADD, CANCEL = "join:switch", "join:add", "join:cancel"
+# Session `info` key: the form id of a topic this chat already has whose code was just sent. The
+# report flow switches to it (as `topik` does) instead of joining again, which would wipe its
+# unfinished report and take another use of the code.
+BACK_TO_TOPIC = "joining.back_to_topic"
 
 
 @dataclass(frozen=True)
@@ -119,7 +124,9 @@ async def claim(
     message: Message,
     code: str,
     current: FormAssignment | None,
-) -> list[Outbound]:
+) -> list[Outbound] | None:
+    """Replies to a join code; None when it is for another topic this chat already has (the
+    report flow switches to it, see BACK_TO_TOPIC)."""
     found = await join_codes.find_claimable(db, code)
     if found == "unknown":
         count = await _count_wrong_code(chat)
@@ -138,6 +145,10 @@ async def claim(
     if current is not None:
         if current.form_id == found.form_id:
             return [Outbound(copy.already_joined(found.organization, found.form_name))]
+        topics = await repository.list_chat_topics(db, who.user_id)
+        if any(assignment.form_id == found.form_id for assignment, _, _ in topics):
+            db.info[BACK_TO_TOPIC] = str(found.form_id)
+            return None  # the report flow switches back to it
         await redis.set(
             f"join-choice:{chat.key}",
             json.dumps({"code": code}),
