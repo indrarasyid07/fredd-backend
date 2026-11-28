@@ -17,6 +17,7 @@ from app.modules.reports.schemas import (
     CorrectValueRequest,
     ReportDetailOut,
     ReportListItemOut,
+    VoiceSummaryOut,
 )
 
 router = APIRouter()
@@ -71,6 +72,20 @@ async def list_reports(
         items,
         pagination=Pagination(next_cursor=next_cursor, limit=limit, has_more=more is not None),
     )
+
+
+@router.get("/voice-summary", response_model=ApiResponse[VoiceSummaryOut], responses=_GUARDS)
+async def voice_summary(
+    member: ReviewerMember,
+    db: DB,
+    extension_worker_id: Annotated[
+        uuid.UUID | None, Query(description="Hanya Voice dari satu analis (profil analis).")
+    ] = None,
+):
+    """Counts for the Voice page (roadmap 12.4): today by channel, waiting for verification,
+    this and last month, mean speech confidence over 7 days and the most corrected field over
+    30 days. Days follow the workspace time zone."""
+    return ok(await service.voice_summary(db, member.workspace_id, extension_worker_id))
 
 
 _FILE = {"schema": {"type": "string", "format": "binary"}}

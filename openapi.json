@@ -6820,6 +6820,117 @@
         }
       }
     },
+    "/api/v1/reports/voice-summary": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Voice Summary",
+        "description": "Counts for the Voice page (roadmap 12.4): today by channel, waiting for verification,\nthis and last month, mean speech confidence over 7 days and the most corrected field over\n30 days. Days follow the workspace time zone.",
+        "operationId": "voice_summary_api_v1_reports_voice_summary_get",
+        "parameters": [
+          {
+            "name": "extension_worker_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Hanya Voice dari satu analis (profil analis).",
+              "title": "Extension Worker Id"
+            },
+            "description": "Hanya Voice dari satu analis (profil analis)."
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_VoiceSummaryOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/voice-export": {
       "get": {
         "tags": [
@@ -8889,6 +9000,54 @@
           "meta"
         ],
         "title": "ApiResponse[ReportDetailOut]"
+      },
+      "ApiResponse_VoiceSummaryOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VoiceSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[VoiceSummaryOut]"
       },
       "ApiResponse_VoiceTestOut_": {
         "properties": {
@@ -14351,6 +14510,96 @@
           "confident"
         ],
         "title": "VoiceFieldOut"
+      },
+      "VoiceSummaryOut": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "verified": {
+            "type": "integer",
+            "title": "Verified"
+          },
+          "today": {
+            "type": "integer",
+            "title": "Today"
+          },
+          "yesterday": {
+            "type": "integer",
+            "title": "Yesterday"
+          },
+          "today_telegram": {
+            "type": "integer",
+            "title": "Today Telegram"
+          },
+          "today_whatsapp": {
+            "type": "integer",
+            "title": "Today Whatsapp"
+          },
+          "this_month": {
+            "type": "integer",
+            "title": "This Month"
+          },
+          "last_month": {
+            "type": "integer",
+            "title": "Last Month"
+          },
+          "confidence_7d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence 7D"
+          },
+          "corrected_share_30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected Share 30D"
+          },
+          "most_corrected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Most Corrected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "pending",
+          "verified",
+          "today",
+          "yesterday",
+          "today_telegram",
+          "today_whatsapp",
+          "this_month",
+          "last_month",
+          "confidence_7d",
+          "corrected_share_30d",
+          "most_corrected"
+        ],
+        "title": "VoiceSummaryOut",
+        "description": "Counts behind the Voice page and an analyst's profile (roadmap 12.4). Days and months\nfollow the workspace time zone; the client only formats these numbers (B-044)."
       },
       "VoiceTestOut": {
         "properties": {

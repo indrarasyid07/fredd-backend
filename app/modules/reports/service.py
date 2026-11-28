@@ -52,6 +52,7 @@ from app.modules.reports.schemas import (
     ReportVerificationOut,
     ReportVoiceOut,
     VoiceFieldOut,
+    VoiceSummaryOut,
 )
 
 # "Titik lahan": a point rounded to a 50 m grid, per worker and structure (dashboard.md).
@@ -612,6 +613,57 @@ async def _corrections(
             )
         )
     return out
+
+
+# --- Voice Lab summary (roadmap 12.4) -----------------------------------------------------------
+
+
+async def voice_summary(
+    db: AsyncSession, workspace_id: uuid.UUID, extension_worker_id: uuid.UUID | None = None
+) -> VoiceSummaryOut:
+    """The Voice page's numbers, or one analyst's when `extension_worker_id` is given."""
+    tz = await repository.get_timezone(db, workspace_id)
+    now = now_utc().astimezone(tz)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month = today.replace(day=1)
+    last_month = (month - timedelta(days=1)).replace(day=1)
+    counts = await repository.voice_counts(
+        db,
+        workspace_id,
+        extension_worker_id,
+        today=today,
+        yesterday=today - timedelta(days=1),
+        month=month,
+        last_month=last_month,
+    )
+    confidence = await repository.voice_confidence(
+        db, workspace_id, extension_worker_id, now - timedelta(days=7)
+    )
+    fixes = await repository.voice_corrections(
+        db, workspace_id, extension_worker_id, now - timedelta(days=30)
+    )
+    most_corrected = None
+    if fixes.top is not None:
+        version_id, key = fixes.top
+        version = await forms.get_version_definition(
+            db, workspace_id, version_id, published_only=False
+        )
+        f = version.definition.field(key)
+        most_corrected = f.label if f else key
+    return VoiceSummaryOut(
+        total=counts.total,
+        pending=counts.pending,
+        verified=counts.total - counts.pending,
+        today=counts.today,
+        yesterday=counts.yesterday,
+        today_telegram=counts.today_telegram,
+        today_whatsapp=counts.today - counts.today_telegram,
+        this_month=counts.this_month,
+        last_month=counts.last_month,
+        confidence_7d=confidence,
+        corrected_share_30d=fixes.corrected / fixes.reports if fixes.reports else None,
+        most_corrected=most_corrected,
+    )
 
 
 # --- Voice Lab export (roadmap 12.6) ------------------------------------------------------------

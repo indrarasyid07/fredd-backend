@@ -140,3 +140,25 @@ class ReportDetailOut(BaseModel):
     voice: ReportVoiceOut | None = None
     verification: ReportVerificationOut
     corrections: list[ReportCorrectionOut]
+
+
+class VoiceSummaryOut(BaseModel):
+    """Counts behind the Voice page and an analyst's profile (roadmap 12.4). Days and months
+    follow the workspace time zone; the client only formats these numbers (B-044)."""
+
+    # Every voice report, and how many still wait for a supervisor.
+    total: int
+    pending: int
+    verified: int
+    today: int
+    yesterday: int
+    today_telegram: int
+    today_whatsapp: int
+    this_month: int
+    last_month: int
+    # Mean confidence (0–1) of every value read from speech in the last 7 days; null if none.
+    confidence_7d: float | None
+    # Last 30 days: share (0–1) of voice reports with at least one correction; null if none.
+    corrected_share_30d: float | None
+    # Label of the field corrected most often in the last 30 days; null if none.
+    most_corrected: str | None
