@@ -1,0 +1,67 @@
+name: deploy-development
+
+# After `ci` passes on a push to development: build the api image, push it to GHCR, and roll it
+# out on the development server with /opt/fluctuz/deploy.sh (set up by fredd-infra, see its
+# docs/07-operations/deployment.md).
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [development]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-development
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment: development
+    env:
+      IMAGE: ghcr.io/indrarasyid07/fredd-api
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:development
+            ${{ env.IMAGE }}:${{ env.SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Deploy to the server
+        # Only the image changes here; the compose file and Caddyfile on the server belong to
+        # fredd-infra and are copied by its own deploy workflow.
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # Own docker config dir, so other projects' registry logins on this host stay untouched.
+          printf '%s' "$GHCR_TOKEN" | ssh "$DEPLOY_USER@$DEPLOY_HOST" "export DOCKER_CONFIG=/opt/fluctuz/.docker
+            docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin || exit 1
+            bash /opt/fluctuz/deploy.sh api; rc=\$?
+            docker logout ghcr.io; exit \$rc"
