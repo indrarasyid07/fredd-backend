@@ -8,7 +8,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, UUIDPrimaryKey, WorkspaceOwned
 
-ACTIVITY_TYPES = ("report_received", "needs_help", "taken_over", "released", "auto_released")
+ACTIVITY_TYPES = (
+    "report_received",
+    "needs_help",
+    "taken_over",
+    "released",
+    "auto_released",
+    "reminder_sent",
+    "draft_archived",
+)
 ACTIVITY_STATUSES = ("done", "needs_review", "needs_help")
 
 
@@ -42,5 +50,6 @@ class ActivityEvent(UUIDPrimaryKey, WorkspaceOwned, Base):
     type: Mapped[str] = mapped_column(String(32))
     status: Mapped[str] = mapped_column(String(16))
     # By type: report_received {report_id, code, form_name}; needs_help {reason, field, form_name};
-    # taken_over / released / auto_released {admin_name, form_name} (roadmap 6.4).
+    # taken_over / released / auto_released {admin_name, form_name} (roadmap 6.4);
+    # reminder_sent {reminder, form_name}; draft_archived {answered, form_name} (roadmap 7.1).
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
