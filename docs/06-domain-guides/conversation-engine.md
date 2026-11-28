@@ -166,6 +166,19 @@ Satu pengaturan per organisasi di `workspaces.settings["agent"]` (modul `app/mod
   - `service.deliver` membaca ulang status sebelum mengirim balasan bot; balasan yang terlanjur ditulis saat takeover dimulai ditandai `failed` dan tidak dikirim.
   - Kejadian `taken_over`, `released`, `auto_released` di `activity_events`, plus audit `conversation.taken_over` / `conversation.released`.
 
+## Aturan ambil alih (Langkah 6.7)
+
+Admin mengatur aturan JIKA/MAKA di Pengaturan agent › Aturan ambil alih (`GET/PUT /agent/rules`, disimpan di `workspaces.settings["agent_rules"]`; `app/modules/agent/rules.py`). Pencocokan deterministik, tanpa model bahasa. Bila belum pernah disimpan, empat aturan contoh dari desain tampil dalam keadaan **mati** (B-XXX).
+
+| Pemicu | Dicek di | Tindakan |
+|---|---|---|
+| `keyword`: pesan penyuluh memuat kata/frasa (utuh, tanpa beda huruf besar/kecil, tanda baca diabaikan) | `reporting._handle`, setelah kata perintah dan sebelum mesin; tidak saat `needs_help`/`taken_over` | `handover`: percakapan `needs_help` + balasan `HELP_SENT`; `notify`: `rule_alert`, bot lanjut seperti biasa |
+| `condition`: laporan terkirim dengan kondisi `attention`/`infected` | `reporting._submit` | hanya `notify` (`rule_alert` dengan kode laporan) |
+| `no_reply`: tidak membalas N jam setelah pengingat kedua (7.1) | cron pengingat; `next_reminder_at` dimajukan ke waktu itu | `handover` atau `notify`, sekali per draf (`state.rule_escalated`; dibuka lagi bila penyuluh membalas) |
+| `blurry_photo` | belum (butuh skor buram, 5.1) | disimpan, tidak dievaluasi; layar menampilkan "Segera hadir" |
+
+`handover` dari aturan dicatat sebagai `needs_help` dengan `details.reason = "rule"`, `rule_id`, `rule_name`, `priority`; antrean "Perlu ambil alih" membaca `help.rule_name` dan `help.priority` (`urgent` → Mendesak). Penugasan ke peran "Koordinator wilayah/Petugas jaga" dan notifikasi WA/Email belum ada: semua admin melihat antrean dan log yang sama.
+
 ## Pesan keluar tanpa dobel (Langkah 3.0, ada sejak 3.5/3.9a)
 
 Setiap balasan dicatat dulu sebagai baris `messages` keluar `pending` (dalam transaksi yang sama dengan pemrosesan pesan masuk), baru dikirim ke kanal. Hasil kirim: `sent` + `external_id`; timeout → `uncertain` dan **tidak** dikirim ulang otomatis (pesan mungkin sudah sampai); galat lain → `failed`; `403` (bot diblokir) → penyuluh `unreachable`. `deliver` mengunci baris (`FOR UPDATE SKIP LOCKED`) dan hanya mengirim baris yang masih `pending`, sehingga dua worker tidak mengirim pesan yang sama. Pesan yang dibuat di luar pemrosesan chat (mis. persetujuan admin, 4.6) memakai job `conversations.deliver` dengan aturan yang sama. Kirim ulang manual untuk `failed`/`uncertain` ada di Langkah 7.2.

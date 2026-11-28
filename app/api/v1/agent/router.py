@@ -6,7 +6,8 @@ from fastapi import APIRouter, Query
 
 from app.api.deps import DB, AdminMember, ReviewerMember
 from app.api.responses import ApiErrorResponse, ApiResponse, ok
-from app.modules.agent import service
+from app.modules.agent import rules, service
+from app.modules.agent.rules_schemas import EscalationRules, EscalationRulesOut
 from app.modules.agent.schemas import (
     AgentPreviewOut,
     AgentSettings,
@@ -65,3 +66,23 @@ async def test_chat(data: AgentTestIn, member: AdminMember, db: DB):
     """Replay a test chat with these settings on one data structure. Nothing is stored or sent
     to extension workers; answers the rules cannot read may go to the language model."""
     return ok(await service.run_test(db, member.workspace_id, data))
+
+
+@router.get(
+    "/rules",
+    response_model=ApiResponse[EscalationRulesOut],
+    responses={401: _ERR, 403: _ERR},
+)
+async def get_rules(member: ReviewerMember, db: DB):
+    """Aturan ambil alih (roadmap 6.7). Never saved → the four suggested rules, all off."""
+    return ok(await rules.get_rules_out(db, member.workspace_id))
+
+
+@router.put(
+    "/rules",
+    response_model=ApiResponse[EscalationRulesOut],
+    responses={401: _ERR, 403: _ERR, 422: _ERR},
+)
+async def save_rules(data: EscalationRules, member: AdminMember, db: DB):
+    """Replace the organization's rules; the bot uses them from the next message. Admin only."""
+    return ok(await rules.save_rules(db, member, data), message="Aturan ambil alih disimpan.")

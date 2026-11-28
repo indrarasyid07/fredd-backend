@@ -20,12 +20,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.storage import get_storage
 from app.core.time import now_utc
 from app.modules.activity import service as activity
+from app.modules.agent import rules as agent_rules
 from app.modules.agent import service as agent_settings
+from app.modules.agent.rules_schemas import EscalationRule
 from app.modules.agent.schemas import AgentSettings
 from app.modules.ai import answers, vision
 from app.modules.audit import service as audit
 from app.modules.channels.models import Channel
-from app.modules.conversations import joining, reminders, repository
+from app.modules.conversations import escalation, joining, reminders, repository
 from app.modules.conversations.engine import copy, machine
 from app.modules.conversations.engine.parsers import normalize
 from app.modules.conversations.engine.types import (
@@ -124,7 +126,45 @@ async def _handle(run: _Run, message: Message, back_to: str | None) -> list[Outb
     command = await _command(run, inbound)
     if command is not None:
         return command
+    matched = await _keyword_rule(run, inbound)
+    if matched is not None and matched.action == "handover":
+        return [Outbound(copy.HELP_SENT)]
     return await _engine(run, inbound)
+
+
+async def _keyword_rule(run: _Run, inbound: Inbound) -> EscalationRule | None:
+    """Aturan ambil alih with a keyword (roadmap 6.7): hand the chat to an admin, or only alert
+    them. Not while an admin is already asked or answering."""
+    if run.conversation.status in ("needs_help", "taken_over"):
+        return None
+    rule = agent_rules.keyword_rule(
+        await agent_rules.get_rules(run.db, run.conversation.workspace_id), inbound.text
+    )
+    if rule is None:
+        return None
+    if rule.action == "handover":
+        step = run.conversation.step
+        field = None
+        if step and await _definition_for(run) and run.definition is not None:
+            found = run.definition.field(step)
+            field = found.label if found else None
+        await escalation.hand_over(run.db, run.conversation, rule, field=step, field_label=field)
+    else:
+        await escalation.alert(run.db, run.conversation, rule, trigger="keyword")
+    return rule
+
+
+async def _definition_for(run: _Run) -> bool:
+    """Load the structure the open draft follows, for the field's label."""
+    if run.definition is None and run.conversation.form_version_id is not None:
+        try:
+            version = await forms.get_version_definition(
+                run.db, run.conversation.workspace_id, run.conversation.form_version_id
+            )
+        except FormVersionNotFound:
+            return False
+        run.definition = version.definition
+    return run.definition is not None
 
 
 async def _load(db: AsyncSession, chat: joining.Chat, message: Message) -> _Run | None:
@@ -480,6 +520,12 @@ async def _submit(run: _Run, effect: SubmitReport, ctx: EngineContext) -> Outbou
         voice=effect.voice,
     )
     logger.info("report %s created", report.id)
+    rules = await agent_rules.get_rules(run.db, conversation.workspace_id)
+    for rule in agent_rules.condition_rules(rules, report.condition):
+        await escalation.alert(
+            run.db, conversation, rule, trigger="condition", code=report.code,
+            condition=report.condition, report_id=str(report.id),
+        )  # fmt: skip
     await _event(
         run,
         "report_received",
