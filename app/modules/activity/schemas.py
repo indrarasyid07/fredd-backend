@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-ActivityType = Literal["report_received", "needs_help"]
+ActivityType = Literal["report_received", "needs_help", "taken_over", "released", "auto_released"]
 ActivityStatus = Literal["done", "needs_review", "needs_help"]
 
 
@@ -22,5 +22,6 @@ class ActivityEventOut(BaseModel):
     # null for system events, or when the worker was removed.
     extension_worker: ActivityWorkerOut | None
     conversation_id: uuid.UUID | None
-    # report_received: {report_id, code, form_name}; needs_help: {reason, field, form_name}.
+    # report_received: {report_id, code, form_name}; needs_help: {reason, field, form_name};
+    # taken_over, released, auto_released: {admin_name, form_name}.
     details: dict[str, Any]

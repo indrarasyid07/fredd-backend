@@ -2157,7 +2157,10 @@
                 {
                   "enum": [
                     "report_received",
-                    "needs_help"
+                    "needs_help",
+                    "taken_over",
+                    "released",
+                    "auto_released"
                   ],
                   "type": "string"
                 },
@@ -2523,6 +2526,352 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/takeover": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Take Over Conversation",
+        "description": "Answer instead of Fluctuz. 409 `conversation_taken_over` when another admin was first.",
+        "operationId": "take_over_conversation_api_v1_conversations__conversation_id__takeover_post",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ConversationDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/messages": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Send Conversation Message",
+        "description": "Only the admin who took the conversation over; sent through the worker's channel.",
+        "operationId": "send_conversation_message_api_v1_conversations__conversation_id__messages_post",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendConversationMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ConversationMessageOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/release": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Release Conversation",
+        "description": "Hand back to Fluctuz, which carries on from the open question.",
+        "operationId": "release_conversation_api_v1_conversations__conversation_id__release_post",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ConversationDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
           }
         }
       }
@@ -6271,7 +6620,10 @@
             "type": "string",
             "enum": [
               "report_received",
-              "needs_help"
+              "needs_help",
+              "taken_over",
+              "released",
+              "auto_released"
             ],
             "title": "Type"
           },
@@ -6846,6 +7198,54 @@
           "meta"
         ],
         "title": "ApiResponse[ConversationDetailOut]"
+      },
+      "ApiResponse_ConversationMessageOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationMessageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[ConversationMessageOut]"
       },
       "ApiResponse_DashboardSummaryOut_": {
         "properties": {
@@ -8610,6 +9010,25 @@
         ],
         "title": "ConditionsOut"
       },
+      "ConversationAdminOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ConversationAdminOut"
+      },
       "ConversationDetailOut": {
         "properties": {
           "id": {
@@ -8673,6 +9092,40 @@
               }
             ]
           },
+          "taken_over_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationAdminOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taken_over_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taken Over At"
+          },
+          "whatsapp_window_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatsapp Window Expires At"
+          },
           "messages": {
             "items": {
               "$ref": "#/components/schemas/ConversationMessageOut"
@@ -8692,6 +9145,9 @@
           "last_inbound_at",
           "updated_at",
           "help",
+          "taken_over_by",
+          "taken_over_at",
+          "whatsapp_window_expires_at",
           "messages"
         ],
         "title": "ConversationDetailOut"
@@ -8804,6 +9260,17 @@
             ],
             "title": "Delivery Status"
           },
+          "admin_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Name"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -8817,6 +9284,7 @@
           "kind",
           "body",
           "delivery_status",
+          "admin_name",
           "created_at"
         ],
         "title": "ConversationMessageOut"
@@ -8883,6 +9351,40 @@
                 "type": "null"
               }
             ]
+          },
+          "taken_over_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationAdminOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taken_over_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taken Over At"
+          },
+          "whatsapp_window_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatsapp Window Expires At"
           }
         },
         "type": "object",
@@ -8895,7 +9397,10 @@
           "step",
           "last_inbound_at",
           "updated_at",
-          "help"
+          "help",
+          "taken_over_by",
+          "taken_over_at",
+          "whatsapp_window_expires_at"
         ],
         "title": "ConversationOut"
       },
@@ -12007,6 +12512,21 @@
           "equals"
         ],
         "title": "RuleCondition"
+      },
+      "SendConversationMessageRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "SendConversationMessageRequest"
       },
       "SetupOut": {
         "properties": {

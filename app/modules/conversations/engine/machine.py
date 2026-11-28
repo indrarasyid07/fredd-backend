@@ -817,6 +817,22 @@ def _display(f: FieldDefinition, value: Any) -> str:
     return str(value)
 
 
+def resume(state: ConversationState, definition: FormDefinition | None) -> Step:
+    """An admin handed the chat back (roadmap 6.4): carry on from the open question, the summary,
+    or a fresh start. A chat that was waiting for help gets its three attempts back."""
+    s = replace(state, answers=dict(state.answers), failed_attempts=0, pending=None)
+    current = definition.field(s.step) if definition is not None and s.step else None
+    if s.status in ("asking", "needs_help", "taken_over") and current is not None:
+        s.status = "asking"
+        assert definition is not None
+        return Step(s, replies=(Outbound(copy.BACK_FROM_ADMIN), _question(s, definition, current)))
+    if s.status == "confirming_summary":
+        return Step(s, replies=(Outbound(copy.BACK_FROM_ADMIN), Outbound(copy.BACK_TO_SUMMARY)))
+    if s.status in ("needs_help", "taken_over", "asking"):
+        s.status = "idle"
+    return Step(s, replies=(Outbound(copy.BACK_FROM_ADMIN_IDLE),))
+
+
 def _needs_help(s: ConversationState, reason: Any) -> Step:
     s.status = "needs_help"
     return Step(s, replies=(Outbound(copy.HELP_SENT),), effects=(NeedsHelp(reason, s.step),))

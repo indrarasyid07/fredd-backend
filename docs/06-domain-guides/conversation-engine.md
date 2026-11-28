@@ -151,6 +151,13 @@ Satu pengaturan per organisasi di `workspaces.settings["agent"]` (modul `app/mod
 - Admin mengambil alih (`taken_over_by` diisi lewat UPDATE bersyarat). Selama itu pesan penyuluh tetap disimpan dan ditampilkan ke admin, tetapi Fluctuz tidak membalas.
 - Worker membaca ulang status takeover tepat sebelum mengirim, agar balasan Fluctuz tidak menyela admin.
 - "Kembalikan ke Fluctuz" melanjutkan dari `step` saat ini.
+- **Ada (6.4)** di `app/modules/conversations/takeover.py`:
+  - `POST /conversations/{id}/takeover` (admin): `status = taken_over`; `state.status` tetap menyimpan posisi mesin. Admin lain → `409 conversation_taken_over` ("Percakapan ini sudah ditangani <nama>"); mengulang oleh admin yang sama tidak apa-apa.
+  - `POST /conversations/{id}/messages` (hanya admin yang mengambil alih, selain itu `403 not_taken_over_by_you`): pesan keluar dengan `payload.admin_user_id/admin_name`, dikirim lewat worker. WhatsApp di luar jendela 24 jam → `409 whatsapp_window_closed` (templat menyusul di 8.3).
+  - `POST /conversations/{id}/release` (admin mana pun; tanpa takeover → `409 conversation_not_taken_over`): `machine.resume` menanyakan lagi isian yang terbuka dengan pengantar `BACK_FROM_ADMIN`, jatah percobaan diatur ulang; ringkasan → minta *lanjut*; selain itu `idle`.
+  - Kembali otomatis setelah **4 jam** tanpa balasan admin (B-XXX), cron tiap 10 menit, dicatat sebagai `auto_released` di log Aktivitas.
+  - `service.deliver` membaca ulang status sebelum mengirim balasan bot; balasan yang terlanjur ditulis saat takeover dimulai ditandai `failed` dan tidak dikirim.
+  - Kejadian `taken_over`, `released`, `auto_released` di `activity_events`, plus audit `conversation.taken_over` / `conversation.released`.
 
 ## Pesan keluar tanpa dobel (Langkah 3.0, ada sejak 3.5/3.9a)
 

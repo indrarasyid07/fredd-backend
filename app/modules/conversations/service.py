@@ -31,7 +31,7 @@ from app.modules.channels.telegram import (
 from app.modules.conversations import joining, media, reporting, repository
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.types import Button, ConversationState, Outbound
-from app.modules.conversations.models import Message
+from app.modules.conversations.models import Conversation, Message
 from app.modules.extension_workers import service as workers
 from app.modules.extension_workers.schemas import ExtensionWorkerOut
 from app.modules.forms import service as forms
@@ -169,7 +169,15 @@ async def process_chat(
         # After routing, so the message that joined a topic belongs to it too.
         owner = await _owner(db, chat)
         message.workspace_id, message.conversation_id = owner
-        await workers.touch(db, channel_id, chat_id, message.channel_sent_at or now_utc())
+        at = message.channel_sent_at or now_utc()
+        await workers.touch(db, channel_id, chat_id, at)
+        if owner[1] is not None:
+            # WhatsApp's 24-hour window and the dashboard's "pesan terakhir" (roadmap 6.4).
+            conversation = await db.get(Conversation, owner[1])
+            if conversation is not None and (
+                conversation.last_inbound_at is None or conversation.last_inbound_at < at
+            ):
+                conversation.last_inbound_at = at
         group = message.payload.get("media_group_id")
         if group is not None and group == album:
             # The next photo of the same album: its count replaces the previous one (3.5b).
@@ -293,6 +301,13 @@ async def deliver(db: AsyncSession, client: BotApi, message_id: uuid.UUID) -> No
     )
     if message is None or message.delivery_status != "pending":
         return
+    if await _silenced(db, message):
+        # An admin took the chat over after this reply was written: Fluctuz must not speak over
+        # them (conversation-engine.md "Takeover").
+        message.delivery_status = "failed"
+        message.error = "not sent: an admin took the conversation over"
+        await db.commit()
+        return
     message.attempts += 1
     try:
         external_id = await client.send(message.chat_id, _outbound(message))
@@ -313,6 +328,14 @@ async def album_wait(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> f
     sends each photo of an album as its own update, a moment apart."""
     age = await repository.album_age(db, channel_id, chat_id)
     return 0.0 if age is None else max(0.0, ALBUM_QUIET_SECONDS - age)
+
+
+async def _silenced(db: AsyncSession, message: Message) -> bool:
+    """Read the takeover state again right before sending a bot reply."""
+    if message.conversation_id is None or "admin_user_id" in message.payload:
+        return False
+    conversation = await db.get(Conversation, message.conversation_id, populate_existing=True)
+    return conversation is not None and conversation.status == "taken_over"
 
 
 async def has_unprocessed(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> bool:

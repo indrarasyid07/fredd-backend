@@ -2,7 +2,7 @@
 one conversation's latest messages. Reviewer and up; always scoped to the member's workspace."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from app.modules.activity.schemas import ActivityWorkerOut
 from app.modules.conversations import repository
 from app.modules.conversations.errors import ConversationNotFound
 from app.modules.conversations.schemas import (
+    ConversationAdminOut,
     ConversationDetailOut,
     ConversationFormOut,
     ConversationHelpOut,
@@ -23,6 +24,14 @@ from app.modules.workspaces.service import ActiveMember
 
 Key = tuple[datetime, uuid.UUID]
 MESSAGES_SHOWN = 50
+# WhatsApp's customer-service window: free replies until 24 hours after the worker's last message.
+WHATSAPP_WINDOW = timedelta(hours=24)
+
+
+def whatsapp_window_expires_at(channel: str, last_inbound_at: datetime | None) -> datetime | None:
+    if channel != "whatsapp":
+        return None
+    return last_inbound_at + WHATSAPP_WINDOW if last_inbound_at is not None else None
 
 
 def _key(after: list[str] | None) -> Key | None:
@@ -46,7 +55,11 @@ def _help(event: ActivityEvent | None) -> ConversationHelpOut | None:
 
 
 def _out(row: repository.ConversationRow, help: ActivityEvent | None) -> ConversationOut:
-    conversation, worker_name, form_name, channel = row
+    conversation, worker_name, form_name, channel, admin_name = row
+    admin_id = conversation.taken_over_by_user_id
+    helping = conversation.status == "needs_help" or (
+        conversation.status == "taken_over" and conversation.state.get("status") == "needs_help"
+    )
     return ConversationOut(
         id=conversation.id,
         status=conversation.status,
@@ -56,7 +69,16 @@ def _out(row: repository.ConversationRow, help: ActivityEvent | None) -> Convers
         step=conversation.step,
         last_inbound_at=conversation.last_inbound_at,
         updated_at=conversation.updated_at,
-        help=_help(help) if conversation.status == "needs_help" else None,
+        help=_help(help) if helping else None,
+        taken_over_by=(
+            ConversationAdminOut(id=admin_id, name=admin_name or "Admin")
+            if admin_id is not None
+            else None
+        ),
+        taken_over_at=conversation.taken_over_at,
+        whatsapp_window_expires_at=whatsapp_window_expires_at(
+            channel, conversation.last_inbound_at
+        ),
     )
 
 
@@ -74,7 +96,7 @@ async def list_conversations(
     page = rows[:limit]
     more = (page[-1][0].updated_at, page[-1][0].id) if len(rows) > limit else None
     helps = await activity.latest_help(
-        db, member.workspace_id, [r[0].id for r in page if r[0].status == "needs_help"]
+        db, member.workspace_id, [r[0].id for r in page if r[0].status != "submitted"]
     )
     return [_out(r, helps.get(r[0].id)) for r in page], more
 
@@ -98,6 +120,7 @@ async def get_conversation(
                 kind=m.kind,
                 body=m.body,
                 delivery_status=m.delivery_status,
+                admin_name=m.payload.get("admin_name"),
                 created_at=m.created_at,
             )
             for m in messages
