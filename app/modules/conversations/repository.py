@@ -276,3 +276,84 @@ async def list_stale_takeovers(db: AsyncSession, before: datetime) -> list[Conve
         .with_for_update(skip_locked=True)
     )
     return list(rows)
+
+
+async def list_due_retries(db: AsyncSession, now: datetime, limit: int) -> list[Message]:
+    """Failed sends whose retry time has come (every workspace: a cron job)."""
+    rows = await db.scalars(
+        select(Message)
+        .where(
+            Message.retry_at.is_not(None),
+            Message.retry_at <= now,
+            Message.direction == "out",
+            Message.delivery_status == "failed",
+        )
+        .order_by(Message.retry_at)
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+    return list(rows)
+
+
+LogRow = tuple[Message, str, str | None, uuid.UUID | None, str | None]  # + channel, worker
+
+
+def _log_rows(workspace_id: uuid.UUID):  # noqa: ANN202 - a Select with five columns
+    return (
+        select(
+            Message,
+            Channel.type,
+            ExtensionWorker.name,
+            ExtensionWorker.id,
+            ExtensionWorker.phone_e164,
+        )  # fmt: skip
+        .join(Channel, Channel.id == Message.channel_id)
+        .outerjoin(Conversation, Conversation.id == Message.conversation_id)
+        .outerjoin(ExtensionWorker, ExtensionWorker.id == Conversation.extension_worker_id)
+        .where(Message.workspace_id == workspace_id)
+    )
+
+
+async def get_channel_log(
+    db: AsyncSession, workspace_id: uuid.UUID, message_id: uuid.UUID
+) -> LogRow | None:
+    row = (await db.execute(_log_rows(workspace_id).where(Message.id == message_id))).first()
+    return (row[0], row[1], row[2], row[3], row[4]) if row else None
+
+
+async def list_channel_logs(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    *,
+    failed_only: bool,
+    after: tuple[datetime, uuid.UUID] | None,
+    limit: int,
+) -> list[LogRow]:
+    """Newest first. `failed_only`: outgoing sends Fluctuz gave up on ("Susul yang gagal")."""
+    stmt = _log_rows(workspace_id)
+    if failed_only:
+        stmt = stmt.where(
+            Message.direction == "out",
+            Message.delivery_status.in_(("failed", "uncertain")),
+            Message.retry_at.is_(None),
+        )
+    if after is not None:
+        created, last_id = after
+        stmt = stmt.where(
+            (Message.created_at < created)
+            | ((Message.created_at == created) & (Message.id < last_id))
+        )
+    rows = await db.execute(
+        stmt.order_by(Message.created_at.desc(), Message.id.desc()).limit(limit + 1)
+    )
+    return [(r[0], r[1], r[2], r[3], r[4]) for r in rows.all()]
+
+
+async def lock_workspace_message(
+    db: AsyncSession, workspace_id: uuid.UUID, message_id: uuid.UUID
+) -> Message | None:
+    return await db.scalar(
+        select(Message)
+        .where(Message.id == message_id, Message.workspace_id == workspace_id)
+        .with_for_update()
+    )

@@ -136,7 +136,8 @@ Satu pengaturan per organisasi, dipakai bot untuk semua struktur data. Lihat [co
 | Method | Path | Peran |
 |---|---|---|
 | GET | `/bots` | semua anggota. **Ada (3.10)**: daftar `{type, name, handle, url, available}` untuk WhatsApp dan Telegram dari env `WHATSAPP_PUBLIC_NUMBER` / `TELEGRAM_BOT_USERNAME`; `available: false` bila belum diatur di lingkungan itu |
-| GET | `/channels/logs` | admin (aktivitas pesan organisasi di bot bersama) |
+| GET | `/channels/logs` | admin (aktivitas pesan organisasi di bot bersama). **Ada (7.2)**: terbaru di atas, cursor (`created_at`, `id`); `status=failed` = "Susul yang gagal" (pesan keluar `failed`/`uncertain` yang tidak dicoba ulang lagi). Tanpa isi pesan; kontak disamarkan (`+62 811-****-1234`, `•••6789`); `failure` = `blocked`, `network`, `rejected`, `taken_over`, `timeout`, `other`; `retrying` |
+| POST | `/channels/logs/{message_id}/resend` | admin. **Ada (7.2)**: kirim ulang pesan keluar `failed` (audit `message.resent`); selain itu 409 `message_not_resendable`; workspace lain 404 `channel_message_not_found` |
 | ~~POST, DELETE~~ | ~~`/channels/telegram`, `/channels/whatsapp`, `/channels/{id}/test`, `/channels/{id}`~~ | dihapus (B-048): organisasi tidak menghubungkan kanal |
 
 ## Analitik

@@ -9,6 +9,7 @@ replies as `pending` outbound rows in the same transaction; `deliver` sends each
 import logging
 import uuid
 from dataclasses import dataclass, field
+from datetime import timedelta
 
 from redis.exceptions import RedisError
 from sqlalchemy import select
@@ -51,6 +52,11 @@ class Received:
     # Outbound rows made at receive time (the rate-limit notice), to deliver.
     deliver: list[uuid.UUID] = field(default_factory=list)
 
+
+# Waits before trying a failed send again (roadmap 7.2): three retries, then it stays failed
+# and shows in "Susul yang gagal".
+RETRY_BACKOFF = (timedelta(minutes=1), timedelta(minutes=5), timedelta(minutes=15))
+RETRY_BATCH = 100
 
 # How long an album must be quiet before its photos are processed together (3.5b).
 ALBUM_QUIET_SECONDS = 1.5
@@ -309,6 +315,7 @@ async def deliver(db: AsyncSession, client: BotApi, message_id: uuid.UUID) -> No
         await db.commit()
         return
     message.attempts += 1
+    message.retry_at = None
     try:
         external_id = await client.send(message.chat_id, _outbound(message))
     except TelegramError as exc:
@@ -316,6 +323,8 @@ async def deliver(db: AsyncSession, client: BotApi, message_id: uuid.UUID) -> No
         message.error = f"{exc.status}: {exc.description}"[:300]
         if exc.status == 403:  # blocked by the user
             await repository.mark_unreachable(db, message.chat_id, now_utc())
+        if _retryable(exc) and message.attempts <= len(RETRY_BACKOFF):
+            message.retry_at = now_utc() + RETRY_BACKOFF[message.attempts - 1]
     else:
         message.delivery_status = "sent"
         # Telegram message ids are unique per chat, not per bot.
@@ -328,6 +337,24 @@ async def album_wait(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> f
     sends each photo of an album as its own update, a moment apart."""
     age = await repository.album_age(db, channel_id, chat_id)
     return 0.0 if age is None else max(0.0, ALBUM_QUIET_SECONDS - age)
+
+
+def _retryable(exc: TelegramError) -> bool:
+    """Only a send that surely failed and may work later: no answer at all, too many requests,
+    or a Telegram server error. Never a timeout (`uncertain`: it may have arrived, 3.9a), a
+    blocked bot (403) or a rejected message (other 4xx)."""
+    if exc.timed_out:
+        return False
+    return exc.status is None or exc.status == 429 or exc.status >= 500
+
+
+async def retry_due(db: AsyncSession) -> list[uuid.UUID]:
+    """Cron: failed sends whose wait is over go back to `pending`; returns them to deliver."""
+    messages = await repository.list_due_retries(db, now_utc(), RETRY_BATCH)
+    for message in messages:
+        message.delivery_status, message.retry_at = "pending", None
+    await db.commit()
+    return [m.id for m in messages]
 
 
 async def _silenced(db: AsyncSession, message: Message) -> bool:

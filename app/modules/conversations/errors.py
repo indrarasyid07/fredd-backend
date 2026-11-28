@@ -27,3 +27,13 @@ class WhatsAppWindowClosed(Conflict):
         "Sudah lewat 24 jam sejak pesan terakhir penyuluh. WhatsApp hanya mengizinkan pesan "
         "templat sampai penyuluh membalas."
     )
+
+
+class ChannelMessageNotFound(NotFound):
+    code = "channel_message_not_found"
+    message = "Pesan tidak ditemukan."
+
+
+class MessageNotResendable(Conflict):
+    code = "message_not_resendable"
+    message = "Hanya pesan keluar yang gagal terkirim yang bisa dikirim ulang."

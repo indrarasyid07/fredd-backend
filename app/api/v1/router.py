@@ -8,6 +8,7 @@ from app.api.v1 import (
     audit_logs,
     auth,
     bots,
+    channels,
     conversations,
     dashboard,
     extension_workers,
@@ -30,6 +31,7 @@ router.include_router(members.router, prefix="/members", tags=["members"])
 router.include_router(invites.router, prefix="/invites", tags=["invites"])
 router.include_router(audit_logs.router, prefix="/audit-logs", tags=["audit-logs"])
 router.include_router(bots.router, prefix="/bots", tags=["bots"])
+router.include_router(channels.router, prefix="/channels", tags=["channels"])
 router.include_router(agent.router, prefix="/agent", tags=["agent"])
 router.include_router(activity.router, prefix="/activity", tags=["activity"])
 router.include_router(conversations.router, prefix="/conversations", tags=["conversations"])
