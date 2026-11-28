@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
 from app.modules.activity import service as activity
+from app.modules.channels import send_limits
 from app.modules.channels.models import Channel
 from app.modules.conversations import repository
 from app.modules.conversations.engine import copy
@@ -35,6 +36,8 @@ ARCHIVE_AFTER = dt.timedelta(days=7)
 DRAFT_STATUSES = ("asking", "confirming_summary")
 RESUME, RESTART = "resume", "restart:yes"  # the draft buttons of reporting.py
 BATCH = 200
+# A reminder over its organization's per-minute budget waits this long (roadmap 7.3).
+BUDGET_RETRY = dt.timedelta(minutes=1)
 
 
 def _clock(value: str) -> dt.time:
@@ -107,6 +110,11 @@ async def send_due(db: AsyncSession) -> list[uuid.UUID]:
         ):
             # Done reminding (or another topic is open in the chat): only the archive is left.
             conversation.next_reminder_at = last + ARCHIVE_AFTER
+            continue
+        if not await send_limits.take_budget(conversation.workspace_id):
+            # This organization used its reminders for this minute (7.3): try again next minute.
+            timezone, quiet = await repository.get_reminder_settings(db, conversation.workspace_id)
+            conversation.next_reminder_at = outside_quiet_hours(now + BUDGET_RETRY, timezone, quiet)
             continue
         to_send.append(await _remind(db, conversation, state, worker))
         state.reminders_sent += 1

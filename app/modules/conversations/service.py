@@ -20,7 +20,9 @@ from app.core.redis import redis
 from app.core.time import now_utc
 from app.modules.agent import service as agent_settings
 from app.modules.ai import speech
+from app.modules.channels import send_limits
 from app.modules.channels import service as channels
+from app.modules.channels.models import Channel
 from app.modules.channels.telegram import (
     BotApi,
     BotBlocked,
@@ -314,6 +316,10 @@ async def deliver(db: AsyncSession, client: BotApi, message_id: uuid.UUID) -> No
         message.error = "not sent: an admin took the conversation over"
         await db.commit()
         return
+    channel = await db.get(Channel, message.channel_id)
+    await send_limits.wait_for_slot(
+        channel.type if channel else "telegram", message.chat_id, proactive=is_proactive(message)
+    )
     message.attempts += 1
     message.retry_at = None
     try:
@@ -337,6 +343,11 @@ async def album_wait(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> f
     sends each photo of an album as its own update, a moment apart."""
     age = await repository.album_age(db, channel_id, chat_id)
     return 0.0 if age is None else max(0.0, ALBUM_QUIET_SECONDS - age)
+
+
+def is_proactive(message: Message) -> bool:
+    """Sent on Fluctuz's own initiative (a reminder), not in answer to the worker (7.3)."""
+    return bool(message.payload.get("reminder") or message.payload.get("proactive"))
 
 
 def _retryable(exc: TelegramError) -> bool:
