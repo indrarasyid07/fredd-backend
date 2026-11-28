@@ -708,3 +708,24 @@ async def export_voice(
         content=content,
         row_count=len(rows),
     )
+
+
+async def expire_photos(
+    db: AsyncSession, workspace_id: uuid.UUID, before: datetime, limit: int
+) -> int:
+    """Retention (roadmap 7.4): photos of reports received before `before` lose their file and
+    row; the report itself stays. Returns how many went. The caller commits."""
+    rows = await repository.list_photos_received_before(db, workspace_id, before, limit)
+    if not rows:
+        return 0
+    storage = get_storage()
+    for _, key in rows:
+        if not key.startswith("telegram:"):  # a Telegram reference has no stored file
+            await storage.delete(key)
+    await repository.delete_photos(db, [photo_id for photo_id, _ in rows])
+    return len(rows)
+
+
+async def photo_keys_in_use(db: AsyncSession, keys: list[str]) -> set[str]:
+    """Which of these stored files are report photos (retention keeps them, 7.4)."""
+    return await repository.photo_keys_in_use(db, keys) if keys else set()

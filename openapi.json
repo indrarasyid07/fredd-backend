@@ -6021,6 +6021,128 @@
         }
       }
     },
+    "/api/v1/extension-workers/{worker_id}/move-identity": {
+      "post": {
+        "tags": [
+          "extension-workers"
+        ],
+        "summary": "Move Extension Worker Identity",
+        "description": "The worker changed phone or Telegram account (roadmap 7.5): this record takes the new\nidentity from the record their new account made; topics, drafts and reports come along.",
+        "operationId": "move_extension_worker_identity_api_v1_extension_workers__worker_id__move_identity_post",
+        "parameters": [
+          {
+            "name": "worker_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Worker Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveIdentityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ExtensionWorkerDetailOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/reports": {
       "get": {
         "tags": [
@@ -11902,6 +12024,21 @@
           "regencies"
         ],
         "title": "MonitoredLandOut"
+      },
+      "MoveIdentityRequest": {
+        "properties": {
+          "from_extension_worker_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "From Extension Worker Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_extension_worker_id"
+        ],
+        "title": "MoveIdentityRequest",
+        "description": "The record made when the worker joined again from their new phone or Telegram account."
       },
       "NamedRef": {
         "properties": {

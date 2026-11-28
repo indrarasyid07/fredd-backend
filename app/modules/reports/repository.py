@@ -204,3 +204,24 @@ async def user_names(db: AsyncSession, user_ids: set[uuid.UUID]) -> dict[uuid.UU
         return {}
     rows = await db.execute(select(User.id, User.name).where(User.id.in_(user_ids)))
     return {uid: name for uid, name in rows.all()}
+
+
+async def list_photos_received_before(
+    db: AsyncSession, workspace_id: uuid.UUID, before: datetime, limit: int
+) -> list[tuple[uuid.UUID, str]]:
+    rows = await db.execute(
+        select(ReportPhoto.id, ReportPhoto.object_key)
+        .join(Report, Report.id == ReportPhoto.report_id)
+        .where(Report.workspace_id == workspace_id, Report.received_at < before)
+        .limit(limit)
+    )
+    return [(r[0], r[1]) for r in rows.all()]
+
+
+async def delete_photos(db: AsyncSession, photo_ids: list[uuid.UUID]) -> None:
+    await db.execute(delete(ReportPhoto).where(ReportPhoto.id.in_(photo_ids)))
+
+
+async def photo_keys_in_use(db: AsyncSession, keys: list[str]) -> set[str]:
+    rows = await db.scalars(select(ReportPhoto.object_key).where(ReportPhoto.object_key.in_(keys)))
+    return set(rows)

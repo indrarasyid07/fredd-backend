@@ -21,6 +21,7 @@ class Storage(Protocol):
     async def put(self, key: str, data: bytes, content_type: str) -> None: ...
     async def signed_url(self, key: str, seconds: int) -> str | None: ...
     async def get(self, key: str) -> bytes: ...
+    async def delete(self, key: str) -> None: ...
 
 
 class S3Storage:
@@ -65,6 +66,12 @@ class S3Storage:
         )
         return await asyncio.to_thread(response["Body"].read)
 
+    async def delete(self, key: str) -> None:
+        """Remove a file past its retention (roadmap 7.4); a missing key is not an error."""
+        await asyncio.to_thread(
+            self._client.delete_object, Bucket=self._bucket, Key=settings.storage_key_prefix + key
+        )
+
 
 class LocalStorage:
     def __init__(self, root: Path) -> None:
@@ -78,6 +85,9 @@ class LocalStorage:
 
     async def get(self, key: str) -> bytes:
         return await asyncio.to_thread(self._path(key).read_bytes)
+
+    async def delete(self, key: str) -> None:
+        await asyncio.to_thread(self._path(key).unlink, missing_ok=True)
 
     def _path(self, key: str) -> Path:
         path = (self._root / settings.storage_key_prefix / key).resolve()

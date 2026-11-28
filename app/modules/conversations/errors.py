@@ -1,4 +1,4 @@
-from app.core.errors import Conflict, Forbidden, NotFound
+from app.core.errors import AppError, Conflict, Forbidden, NotFound
 
 
 class ConversationNotFound(NotFound):
@@ -37,3 +37,9 @@ class ChannelMessageNotFound(NotFound):
 class MessageNotResendable(Conflict):
     code = "message_not_resendable"
     message = "Hanya pesan keluar yang gagal terkirim yang bisa dikirim ulang."
+
+
+class CannotMoveToItself(AppError):
+    status_code = 422
+    code = "cannot_move_to_itself"
+    message = "Pilih penyuluh lain: akun baru harus berasal dari data penyuluh yang berbeda."

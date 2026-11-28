@@ -1,15 +1,19 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Any
 
 from sqlalchemy import BigInteger, func, select, update
+from sqlalchemy import delete as sa_delete
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.activity.models import ActivityEvent
 from app.modules.auth.models import User
 from app.modules.channels.models import Channel
 from app.modules.conversations.models import Conversation, Message
-from app.modules.extension_workers.models import ExtensionWorker, FormAssignment
+from app.modules.extension_workers.models import ChatContext, ExtensionWorker, FormAssignment
 from app.modules.forms.models import Form
+from app.modules.reports.models import Report
 from app.modules.workspaces.models import Workspace
 
 
@@ -356,4 +360,121 @@ async def lock_workspace_message(
         select(Message)
         .where(Message.id == message_id, Message.workspace_id == workspace_id)
         .with_for_update()
+    )
+
+
+async def list_expired_messages(
+    db: AsyncSession, workspace_id: uuid.UUID | None, before: datetime, limit: int
+) -> list[tuple[uuid.UUID, str | None]]:
+    """Messages past retention (7.4); `workspace_id` None = chats bound to no organization."""
+    owner = (
+        Message.workspace_id.is_(None)
+        if workspace_id is None
+        else Message.workspace_id == workspace_id
+    )
+    rows = await db.execute(
+        select(Message.id, Message.media_key).where(owner, Message.created_at < before).limit(limit)
+    )
+    return [(r[0], r[1]) for r in rows.all()]
+
+
+async def delete_messages(db: AsyncSession, message_ids: list[uuid.UUID]) -> None:
+    await db.execute(sa_delete(Message).where(Message.id.in_(message_ids)))
+
+
+async def list_workspace_settings(db: AsyncSession) -> list[tuple[uuid.UUID, dict[str, Any]]]:
+    rows = await db.execute(select(Workspace.id, Workspace.settings))
+    return [(r[0], r[1] or {}) for r in rows.all()]
+
+
+async def outgoing_stats(db: AsyncSession, now: datetime) -> dict[str, Any]:
+    """Outgoing sends for the health check (7.4): what is waiting, failing, retrying."""
+    out = Message.direction == "out"
+    oldest = await db.scalar(
+        select(func.min(Message.created_at)).where(out, Message.delivery_status == "pending")
+    )
+    pending = await db.scalar(select(func.count()).where(out, Message.delivery_status == "pending"))
+    failed = await db.scalar(
+        select(func.count()).where(
+            out,
+            Message.delivery_status == "failed",
+            Message.retry_at.is_(None),
+            Message.created_at >= now - timedelta(hours=1),
+        )
+    )
+    retrying = await db.scalar(select(func.count()).where(Message.retry_at.is_not(None)))
+    return {
+        "pending": pending or 0,
+        "oldest_pending_seconds": (now - oldest).total_seconds() if oldest else None,
+        "failed_last_hour": failed or 0,
+        "retrying": retrying or 0,
+    }
+
+
+# --- Moving an extension worker to a new identity (roadmap 7.5) ---------------------------------
+
+
+async def lock_worker(
+    db: AsyncSession, workspace_id: uuid.UUID, worker_id: uuid.UUID
+) -> ExtensionWorker | None:
+    return await db.scalar(
+        select(ExtensionWorker)
+        .where(ExtensionWorker.id == worker_id, ExtensionWorker.workspace_id == workspace_id)
+        .with_for_update()
+    )
+
+
+async def worker_assignments(db: AsyncSession, worker_id: uuid.UUID) -> list[FormAssignment]:
+    rows = await db.scalars(
+        select(FormAssignment).where(FormAssignment.extension_worker_id == worker_id)
+    )
+    return list(rows)
+
+
+async def repoint_chat_contexts(
+    db: AsyncSession, from_assignment: uuid.UUID, to_assignment: uuid.UUID
+) -> None:
+    await db.execute(
+        update(ChatContext)
+        .where(ChatContext.active_assignment_id == from_assignment)
+        .values(active_assignment_id=to_assignment)
+    )
+
+
+async def clear_chat_contexts(db: AsyncSession, chat_id: str, worker_id: uuid.UUID) -> None:
+    """The old account's chat stops pointing at this worker's topics."""
+    mine = select(FormAssignment.id).where(FormAssignment.extension_worker_id == worker_id)
+    await db.execute(
+        update(ChatContext)
+        .where(ChatContext.chat_id == chat_id, ChatContext.active_assignment_id.in_(mine))
+        .values(active_assignment_id=None)
+    )
+
+
+async def move_conversation_rows(
+    db: AsyncSession, from_conversation: uuid.UUID, to_conversation: uuid.UUID
+) -> None:
+    for model in (Message, Report, ActivityEvent):
+        await db.execute(
+            update(model)
+            .where(model.conversation_id == from_conversation)
+            .values(conversation_id=to_conversation)
+        )
+
+
+async def move_worker_rows(db: AsyncSession, from_worker: uuid.UUID, to_worker: uuid.UUID) -> None:
+    for model in (Report, ActivityEvent, Conversation, FormAssignment):
+        await db.execute(
+            update(model)
+            .where(model.extension_worker_id == from_worker)
+            .values(extension_worker_id=to_worker)
+        )
+
+
+async def point_conversations_to(db: AsyncSession, worker_id: uuid.UUID, chat_id: str) -> None:
+    """Every conversation of the worker is now with the new account's chat."""
+    await db.execute(
+        update(Conversation)
+        .where(Conversation.extension_worker_id == worker_id)
+        .values(chat_id=chat_id)
     )

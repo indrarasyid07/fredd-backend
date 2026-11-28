@@ -10,6 +10,7 @@ from fastapi import APIRouter, Query
 from app.api.deps import DB, AdminMember, ReviewerMember
 from app.api.pagination import Cursor, Limit, decode_cursor, encode_cursor
 from app.api.responses import ApiErrorResponse, ApiResponse, Pagination, ok
+from app.modules.conversations import identity_move
 from app.modules.conversations import jobs as chat_jobs
 from app.modules.conversations import service as conversations
 from app.modules.extension_workers import service
@@ -18,6 +19,7 @@ from app.modules.extension_workers.schemas import (
     ExtensionWorkerOut,
     ExtensionWorkerStatus,
     ExtensionWorkerSummaryOut,
+    MoveIdentityRequest,
     UpdateExtensionWorkerRequest,
     WorkerSort,
 )
@@ -116,3 +118,18 @@ async def unblock_extension_worker(worker_id: uuid.UUID, member: AdminMember, db
         await service.describe(db, worker),
         message="Blokir dibuka. Penyuluh bisa bergabung lagi dengan mengirim kode.",
     )
+
+
+@router.post(
+    "/{worker_id}/move-identity",
+    response_model=ApiResponse[ExtensionWorkerDetailOut],
+    responses={**_ACTION, 422: _ERR},
+)
+async def move_extension_worker_identity(
+    worker_id: uuid.UUID, body: MoveIdentityRequest, member: AdminMember, db: DB
+):
+    """The worker changed phone or Telegram account (roadmap 7.5): this record takes the new
+    identity from the record their new account made; topics, drafts and reports come along."""
+    await identity_move.move_identity(db, member, worker_id, body.from_extension_worker_id)
+    detail = await service.get_detail(db, member.workspace_id, worker_id)
+    return ok(detail, message="Penyuluh dipindahkan ke akun barunya. Riwayatnya tetap utuh.")

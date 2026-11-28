@@ -36,6 +36,8 @@ Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command
 | `ALLOWED_ORIGINS` | Origin tambahan yang lolos cek CSRF, dipisah koma; development: `http://localhost:3000,http://localhost:8080` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | |
 | `ENCRYPTION_KEYS` | Daftar kunci Fernet dipisah koma, terbaru di depan |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` | Bot Telegram lingkungan ini; tanpa secret webhook menjawab 404 |
+| `TELEGRAM_WEBHOOK_SECRET_PREVIOUS` | Secret lama yang masih diterima selama rotasi (7.4); kosongkan setelah selesai ([runbook-bot.md](runbook-bot.md#rotasi-secret-webhook)) |
 | `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | WhatsApp Cloud API |
 | `STORAGE_ENABLED` | `true` = foto chat ke penyimpanan objek S3-compatible (MinIO/R2/S3); `false` = disk lokal `MEDIA_DIR` (hanya tes & uji cepat) |
 | `STORAGE_ENDPOINT_URL`, `STORAGE_BUCKET`, `STORAGE_REGION` | Bucket **privat**; MinIO/R2 memakai endpoint sendiri |
