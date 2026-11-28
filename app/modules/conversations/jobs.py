@@ -93,3 +93,12 @@ async def send_draft_reminders_job() -> None:
         to_send = await reminders.send_due(db)
     for message_id in to_send:
         await deliver_message_job.kiq(str(message_id))
+
+
+@broker.task(task_name="conversations.retry_failed_messages", schedule=[{"cron": "* * * * *"}])
+async def retry_failed_messages_job() -> None:
+    """Every minute: failed sends whose wait is over are tried again (roadmap 7.2)."""
+    async with db_session.open_session() as db:
+        to_send = await service.retry_due(db)
+    for message_id in to_send:
+        await deliver_message_job.kiq(str(message_id))

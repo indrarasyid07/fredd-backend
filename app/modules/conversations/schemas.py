@@ -66,3 +66,31 @@ class ConversationDetailOut(ConversationOut):
 
 class SendConversationMessageRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+
+
+class ChannelLogWorkerOut(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class ChannelLogOut(BaseModel):
+    """One message in the organization's channel log (roadmap 7.2). No message text: logs show
+    what happened, not what was said."""
+
+    id: uuid.UUID
+    created_at: datetime
+    direction: Literal["in", "out"]
+    channel: Literal["telegram", "whatsapp"]
+    kind: str
+    # Outgoing only: pending, sent, uncertain (may have arrived), failed, delivered, read.
+    delivery_status: str | None
+    attempts: int
+    # Why it failed: blocked (the worker blocked the bot), network, rejected (the channel refused
+    # it), taken_over (held back while an admin answered), other. Null unless failed/uncertain.
+    failure: Literal["blocked", "network", "rejected", "taken_over", "timeout", "other"] | None
+    # Fluctuz will try again on its own (roadmap 7.2: three retries with backoff).
+    retrying: bool
+    extension_worker: ChannelLogWorkerOut | None
+    # "+62 811-****-1234" or "•••6789" (Telegram chat id).
+    contact: str
+    conversation_id: uuid.UUID | None

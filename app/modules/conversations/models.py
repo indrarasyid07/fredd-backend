@@ -98,6 +98,8 @@ class Message(UUIDPrimaryKey, Base):
         ),
         # Webhooks repeat; the same update is stored once.
         UniqueConstraint("channel_id", "direction", "external_id"),
+        # Failed sends waiting to be tried again (roadmap 7.2).
+        Index("messages_retry_idx", "retry_at", postgresql_where=text("retry_at is not null")),
         # Unprocessed inbound messages per chat, oldest first (worker and the sweep job).
         Index(
             "messages_unprocessed_idx",
@@ -133,6 +135,8 @@ class Message(UUIDPrimaryKey, Base):
     delivery_status: Mapped[str | None] = mapped_column(String(16))
     attempts: Mapped[int] = mapped_column(Integer, server_default="0")
     error: Mapped[str | None] = mapped_column(String(300))
+    # A failed send that may be tried again, and when (roadmap 7.2); null = not retried.
+    retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")
     )

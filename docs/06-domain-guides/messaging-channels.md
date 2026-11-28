@@ -57,3 +57,5 @@ Konsekuensi:
 ## Pesan gagal
 
 Pesan keluar yang gagal dicoba ulang maks 3 kali dengan backoff. Setelah itu muncul di Integrasi Kanal › Aktivitas koneksi dan di daftar "Susul yang gagal".
+
+**Ada (7.2).** `service.deliver` mengisi `messages.retry_at` hanya untuk kegagalan yang mungkin berhasil nanti: tanpa jawaban (jaringan), 429, atau 5xx. Jeda 1, 5, lalu 15 menit (`RETRY_BACKOFF`), cron `conversations.retry_failed_messages` tiap menit; setelah 3 kali coba ulang `retry_at` kosong dan pesan tampil di `GET /channels/logs?status=failed`. **Tidak** dicoba ulang: `uncertain` (timeout, mungkin sudah sampai, 3.9a), 403 (bot diblokir → penyuluh `unreachable`), 4xx lain (ditolak), dan balasan bot yang ditahan karena takeover. Admin bisa mengirim ulang manual lewat `POST /channels/logs/{id}/resend`. Kontak di log disamarkan dengan `app/modules/channels/masking.py`.
