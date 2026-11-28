@@ -47,7 +47,10 @@ def new(client: AsyncClient, bot: FakeTelegram) -> NewAccount:
 
 
 async def _workers(db: AsyncSession) -> list[ExtensionWorker]:
-    return list(await db.scalars(select(ExtensionWorker).order_by(ExtensionWorker.created_at)))
+    """Old account first. Not by `created_at`: both rows are made in the test's one transaction,
+    so they share now() and their order would be random."""
+    rows = list(await db.scalars(select(ExtensionWorker)))
+    return sorted(rows, key=lambda w: w.telegram_user_id == str(NEW_ID))
 
 
 async def test_move_keeps_history_and_switches_the_account(
