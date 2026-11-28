@@ -53,6 +53,8 @@ Satu image dipakai untuk `api` dan `migrate` (dan `worker` nanti) dengan command
 | `STT_MODEL` | Bawaan `gpt-4o-mini-transcribe` |
 | `ENVIRONMENT` | `development` / `staging` / `production` |
 
+**Env var baru:** tambahkan ke tabel ini dan ke `.env.example`. Untuk server development, tambahkan juga ke `/opt/fluctuz/.env` di server **sebelum** PR di-merge. Compose server membaca seluruh file itu (`env_file`), jadi tidak perlu PR ke fredd-infra. Cara deploy otomatis cabang `development` (workflow `deploy-development.yml`, image GHCR `fredd-api`) dijelaskan di [fredd-infra deployment](https://github.com/indrarasyid07/fredd-infra/blob/development/docs/07-operations/deployment.md#server-development).
+
 ## Waktu dan zona waktu
 
 - Server dan database berjalan di UTC; semua kolom `timestamptz`.
