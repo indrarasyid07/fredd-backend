@@ -39,7 +39,7 @@ PostgreSQL. Nama tabel dan kolom dalam Bahasa Inggris, `snake_case`, tabel jamak
 | `report_photos` | report_id, field_key, position, object_key, size_bytes, blur_score, ai_note | Satu baris per file dari isian `photo`; `object_key` = rujukan dari chat sampai penyimpanan final (5.1). **Ada (4.0)** |
 | `report_code_counters` | workspace_id, period (`YYMM`), last_value | Penghitung kode laporan per workspace dan bulan; diambil dengan satu upsert atomik. **Ada (4.0)** |
 | `report_follow_ups` | report_id, assignee_member_id, priority, status, note | |
-| `activity_events` | workspace_id, occurred_at, extension_worker_id, channel, type, details JSONB, status | Log Aktivitas Agent |
+| `activity_events` | workspace_id, occurred_at, extension_worker_id, conversation_id, channel, type, details JSONB, status | Log Aktivitas Agent (6.2). Ditulis dalam transaksi chat yang sama. `type`: `report_received`, `needs_help` (jenis lain menyusul); `status`: `done`, `needs_review`, `needs_help`. Indeks (workspace_id, occurred_at, id) dan conversation_id |
 | `member_invites` | workspace_id, email (huruf kecil), role, token_hash, invited_by_user_id, sent_at, expires_at, accepted_at, revoked_at | Undangan anggota (B-055). Unik (workspace_id, email) selama terbuka (`accepted_at` dan `revoked_at` kosong) |
 | `audit_logs` | workspace_id (null untuk aksi platform, mis. artikel), actor_user_id, action, target, metadata JSONB | Ekspor, ubah peran, publikasi, takeover, hapus |
 | `leads` | name, email, organization, message, source | Dari form landing page dan "Hubungi kami" Enterprise |
