@@ -3,10 +3,13 @@ columns (copied once at creation), never the answers JSON. Days are counted in t
 time zone; the caller passes the instants that bound them."""
 
 import uuid
+from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import String, TextClause, bindparam, text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # A report's region may be a district; dashboard areas are regencies (its parent).
@@ -243,3 +246,172 @@ async def number_stats(
         {"ws": workspace_id, "form": form_id, "start": start, "end": end},
     )
     return {key: (int(n), total, avg, low, high) for key, n, total, avg, low, high in rows.all()}
+
+
+# --- One structure's headline numbers (roadmap 11.3a) -------------------------------------------
+
+
+async def form_kpis(
+    db: AsyncSession, workspace_id: uuid.UUID, form_id: uuid.UUID, start: datetime, end: datetime
+) -> tuple[int, int, int, int]:
+    """(reports, complete, needing review, distinct workers) of one structure in the window."""
+    row = await db.execute(
+        text(
+            "select count(*), count(*) filter (where complete), "
+            "count(*) filter (where needs_review), count(distinct extension_worker_id) "
+            "from reports where workspace_id = :ws and form_id = :form "
+            "and received_at >= :start and received_at < :end"
+        ),
+        {"ws": workspace_id, "form": form_id, "start": start, "end": end},
+    )
+    total, complete, review, workers = row.one()
+    return int(total), int(complete), int(review), int(workers)
+
+
+# --- Map (roadmap 5.2) ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class MapScope:
+    """Which reports the map draws, and the single choice field (or condition) colouring them."""
+
+    workspace_id: uuid.UUID
+    start: datetime
+    end: datetime
+    form_id: uuid.UUID | None
+    # None: `reports.condition`; else a single choice field key read from report_values.
+    field_key: str | None
+    # Only these values ("unknown" = no answer); empty = all.
+    values: tuple[str, ...] = ()
+
+
+def _map_base(scope: MapScope) -> tuple[str, dict[str, Any]]:
+    value = "rv.choice" if scope.field_key else "x.condition"
+    join = (
+        "left join report_values rv on rv.report_id = x.id and rv.field_key = :key "
+        if scope.field_key
+        else ""
+    )
+    sql = (
+        "with base as ("
+        f" select x.id, x.received_at, x.latitude, x.longitude, x.accuracy_m, {value} as value,"
+        f" {_REGENCY_ID} as regency_id"
+        " from reports x " + join + " left join reference_data r on r.id = x.region_id"
+        " left join reference_data p on p.id = r.parent_id"
+        " where x.workspace_id = :ws and x.received_at >= :start and x.received_at < :end"
+        " and (cast(:form as uuid) is null or x.form_id = :form)"
+        ") , scoped as (select * from base"
+        " where cardinality(:values) = 0 or coalesce(value, 'unknown') = any(:values)) "
+    )
+    params: dict[str, Any] = {
+        "ws": scope.workspace_id,
+        "start": scope.start,
+        "end": scope.end,
+        "form": scope.form_id,
+        "key": scope.field_key,
+        "values": list(scope.values),
+    }
+    return sql, params
+
+
+def _bind(sql: str) -> TextClause:
+    return text(sql).bindparams(bindparam("values", type_=ARRAY(String)))
+
+
+async def map_totals(db: AsyncSession, scope: MapScope) -> dict[str | None, tuple[int, int]]:
+    """Per value: (reports, reports with coordinates), over the whole range (no value filter on
+    the legend, so every value keeps its count)."""
+    base, params = _map_base(scope)
+    rows = await db.execute(
+        _bind(
+            base + "select value, count(*), count(*) filter (where latitude is not null) "
+            "from base group by value"
+        ),
+        params,
+    )
+    return {v: (int(n), int(located)) for v, n, located in rows.all()}
+
+
+async def map_regions(db: AsyncSession, scope: MapScope) -> list[tuple[uuid.UUID, str | None, int]]:
+    """(regency, value, reports) of the filtered reports."""
+    base, params = _map_base(scope)
+    rows = await db.execute(
+        _bind(
+            base + "select regency_id, value, count(*) from scoped "
+            "where regency_id is not null group by 1, 2"
+        ),
+        params,
+    )
+    return [(rid, v, int(n)) for rid, v, n in rows.all()]
+
+
+async def map_latest_per_region(db: AsyncSession, scope: MapScope) -> dict[uuid.UUID, uuid.UUID]:
+    base, params = _map_base(scope)
+    rows = await db.execute(
+        _bind(
+            base + "select distinct on (regency_id) regency_id, id from scoped "
+            "where regency_id is not null order by regency_id, received_at desc"
+        ),
+        params,
+    )
+    return {rid: report_id for rid, report_id in rows.all()}
+
+
+async def map_points(
+    db: AsyncSession, scope: MapScope, limit: int
+) -> list[tuple[uuid.UUID, float, float, float | None, str | None]]:
+    """Newest located reports first, `limit` + 1 rows so the caller can tell there were more."""
+    base, params = _map_base(scope)
+    rows = await db.execute(
+        _bind(
+            base + "select id, latitude, longitude, accuracy_m, value from scoped "
+            "where latitude is not null and longitude is not null "
+            "order by received_at desc, id desc limit :limit"
+        ),
+        {**params, "limit": limit + 1},
+    )
+    return [(i, float(lat), float(lng), acc, v) for i, lat, lng, acc, v in rows.all()]
+
+
+async def regions_by_id(
+    db: AsyncSession, ids: list[uuid.UUID]
+) -> dict[uuid.UUID, tuple[str, float | None, float | None]]:
+    """(name, centroid lng, centroid lat) of platform regions."""
+    if not ids:
+        return {}
+    rows = await db.execute(
+        text(
+            "select id, value, ST_X(centroid), ST_Y(centroid) from reference_data "
+            "where id = any(:ids) and type = 'region'"
+        ),
+        {"ids": ids},
+    )
+    return {rid: (name, lng, lat) for rid, name, lng, lat in rows.all()}
+
+
+async def boundaries(
+    db: AsyncSession, ids: list[uuid.UUID], tolerance: float
+) -> list[tuple[uuid.UUID, str, str]]:
+    """(id, name, simplified GeoJSON) of region outlines; ~100 m tolerance keeps Jawa Barat's
+    27 regencies small enough for one request."""
+    rows = await db.execute(
+        text(
+            "select id, value, ST_AsGeoJSON(ST_SimplifyPreserveTopology(boundary, :tol), 5) "
+            "from reference_data where id = any(:ids) and type = 'region' "
+            "and boundary is not null"
+        ),
+        {"ids": ids, "tol": tolerance},
+    )
+    return [(rid, name, geojson) for rid, name, geojson in rows.all()]
+
+
+async def map_alert_threshold(db: AsyncSession, workspace_id: uuid.UUID) -> float:
+    value = await db.scalar(
+        text("select settings ->> 'map_alert_threshold' from workspaces where id = :ws"),
+        {"ws": workspace_id},
+    )
+    try:
+        threshold = float(value) if value is not None else 0.25
+    except ValueError:
+        return 0.25
+    return threshold if 0 < threshold <= 1 else 0.25

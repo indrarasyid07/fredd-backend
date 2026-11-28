@@ -27,6 +27,7 @@ from app.modules.dashboard.schemas import (
     DayCountOut,
     FieldStatOut,
     FormDashboardOut,
+    FormKpisOut,
     FormRefOut,
     HourlyOut,
     KpisOut,
@@ -231,10 +232,13 @@ async def form_dashboard(
     version_id = form.current_version_id
     fields: list[FieldDefinition] = []
     version_number = 0
+    has_location = False
     if version_id is not None:
         version = await forms.get_version_definition(db, workspace_id, version_id)
         fields = [f for f in version.definition.fields if f.type in _WIDGET_TYPES]
+        has_location = any(f.type == "location" for f in version.definition.fields)
         version_number = version.version
+    settings = form.settings or {}
 
     now = now or now_utc()
     tz_name = await workspaces.get_timezone_name(db, workspace_id)
@@ -253,6 +257,10 @@ async def form_dashboard(
     top = await repository.top_regencies(
         db, workspace_id, start, now, condition=None, limit=3, form_id=form_id
     )
+    # The same span just before, up to the same time of day.
+    span = timedelta(days=RANGE_DAYS[range_])
+    previous = await repository.count_between(db, workspace_id, start - span, now - span, form_id)
+    _, complete, review, workers = await repository.form_kpis(db, workspace_id, form_id, start, now)
 
     out: list[FieldStatOut] = []
     for f in fields:
@@ -293,7 +301,14 @@ async def form_dashboard(
         as_of=local_now,
         timezone=tz_name,
         range=range_,
-        form=FormRefOut(id=form.id, name=form.name, version=version_number),
+        form=FormRefOut(
+            id=form.id,
+            name=form.name,
+            version=version_number,
+            sector_code=settings.get("sector_code"),
+            template_code=settings.get("template_code"),
+            has_location=has_location,
+        ),
         total=total,
         daily=[
             DayCountOut(date=d, count=per_day.get(d, 0))
@@ -301,6 +316,13 @@ async def form_dashboard(
         ],
         fields=out,
         top_regions=[_region(r) for r in top],
+        kpis=FormKpisOut(
+            previous_total=previous,
+            delta_pct=_delta(total, previous),
+            workers_reporting=workers,
+            complete_percent=round(complete * 100 / total) if total else None,
+            needs_review=review,
+        ),
     )
 
 

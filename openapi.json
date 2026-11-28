@@ -3693,6 +3693,247 @@
         }
       }
     },
+    "/api/v1/dashboard/map": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Dashboard Map",
+        "description": "Regencies and the newest located reports for the map (roadmap 5.2). Without `form_id`\nthe crop condition colours it; with one, its condition, `color_by`, its `status` field or\nits first single choice. Health structures send regions only (≥ 5 reports).",
+        "operationId": "dashboard_map_api_v1_dashboard_map_get",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "today",
+                "7d",
+                "30d"
+              ],
+              "type": "string",
+              "default": "today",
+              "title": "Range"
+            }
+          },
+          {
+            "name": "form_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "color_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Kunci isian pilihan tunggal yang mewarnai peta.",
+              "title": "Color By"
+            },
+            "description": "Kunci isian pilihan tunggal yang mewarnai peta."
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Hanya nilai ini (boleh berulang; `unknown` = tanpa jawaban).",
+              "title": "Value"
+            },
+            "description": "Hanya nilai ini (boleh berulang; `unknown` = tanpa jawaban)."
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ReportMapOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/boundaries": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Region Boundaries",
+        "description": "Simplified outlines of regions for the map's region layer; platform data, cached a day.",
+        "operationId": "region_boundaries_api_v1_dashboard_boundaries_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "Wilayah (maks. 100).",
+              "title": "Id"
+            },
+            "description": "Wilayah (maks. 100)."
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_BoundariesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/reference-data": {
       "get": {
         "tags": [
@@ -8652,6 +8893,54 @@
         ],
         "title": "ApiResponse[AgentTestOut]"
       },
+      "ApiResponse_BoundariesOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BoundariesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[BoundariesOut]"
+      },
       "ApiResponse_ChannelLogOut_": {
         "properties": {
           "success": {
@@ -9654,6 +9943,54 @@
         ],
         "title": "ApiResponse[ReportExportOut]"
       },
+      "ApiResponse_ReportMapOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportMapOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[ReportMapOut]"
+      },
       "ApiResponse_VoiceSummaryOut_": {
         "properties": {
           "success": {
@@ -10549,6 +10886,63 @@
         ],
         "title": "BotOut",
         "description": "One of the platform's shared bots (B-048), as shown to admins on Kanal and Bagikan kode."
+      },
+      "BoundariesOut": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "FeatureCollection",
+            "title": "Type",
+            "default": "FeatureCollection"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/BoundaryFeatureOut"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "features"
+        ],
+        "title": "BoundariesOut",
+        "description": "Simplified regency outlines as a GeoJSON FeatureCollection, for the map's region layer."
+      },
+      "BoundaryFeatureOut": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Feature",
+            "title": "Type",
+            "default": "Feature"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "properties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Properties"
+          },
+          "geometry": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Geometry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "properties",
+          "geometry"
+        ],
+        "title": "BoundaryFeatureOut"
       },
       "ChannelLogOut": {
         "properties": {
@@ -12636,6 +13030,16 @@
             },
             "type": "array",
             "title": "Top Regions"
+          },
+          "kpis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormKpisOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -12805,6 +13209,54 @@
         ],
         "title": "FormDraftOut"
       },
+      "FormKpisOut": {
+        "properties": {
+          "previous_total": {
+            "type": "integer",
+            "title": "Previous Total"
+          },
+          "delta_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Pct"
+          },
+          "workers_reporting": {
+            "type": "integer",
+            "title": "Workers Reporting"
+          },
+          "complete_percent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Complete Percent"
+          },
+          "needs_review": {
+            "type": "integer",
+            "title": "Needs Review"
+          }
+        },
+        "type": "object",
+        "required": [
+          "previous_total",
+          "delta_pct",
+          "workers_reporting",
+          "complete_percent",
+          "needs_review"
+        ],
+        "title": "FormKpisOut",
+        "description": "The structure's headline numbers over the range (roadmap 11.3a)."
+      },
       "FormOut": {
         "properties": {
           "id": {
@@ -12959,6 +13411,33 @@
           "version": {
             "type": "integer",
             "title": "Version"
+          },
+          "sector_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Code"
+          },
+          "template_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Code"
+          },
+          "has_location": {
+            "type": "boolean",
+            "title": "Has Location",
+            "default": false
           }
         },
         "type": "object",
@@ -13513,6 +13992,171 @@
           "password"
         ],
         "title": "LoginRequest"
+      },
+      "MapColorFieldOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "condition",
+              "choice"
+            ],
+            "title": "Kind"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/MapValueOut"
+            },
+            "type": "array",
+            "title": "Values"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "key",
+          "label",
+          "values"
+        ],
+        "title": "MapColorFieldOut"
+      },
+      "MapPointOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "approximate": {
+            "type": "boolean",
+            "title": "Approximate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "lat",
+          "lng",
+          "value",
+          "approximate"
+        ],
+        "title": "MapPointOut"
+      },
+      "MapRegionOut": {
+        "properties": {
+          "region_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Region Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "centroid": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Centroid"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "by_value": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Value"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "latest_report_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Report Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "region_id",
+          "name",
+          "centroid",
+          "count",
+          "by_value",
+          "color",
+          "latest_report_id"
+        ],
+        "title": "MapRegionOut"
+      },
+      "MapValueOut": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "count"
+        ],
+        "title": "MapValueOut",
+        "description": "One value of the field that colours the map, with its count in the range."
       },
       "MeResponse": {
         "properties": {
@@ -14644,6 +15288,80 @@
           "accuracy_m"
         ],
         "title": "ReportLocationOut"
+      },
+      "ReportMapOut": {
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "today",
+              "7d",
+              "30d"
+            ],
+            "title": "Range"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "located": {
+            "type": "integer",
+            "title": "Located"
+          },
+          "color_field": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MapColorFieldOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/MapRegionOut"
+            },
+            "type": "array",
+            "title": "Regions"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/MapPointOut"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated"
+          },
+          "privacy": {
+            "type": "string",
+            "enum": [
+              "full",
+              "regions_only"
+            ],
+            "title": "Privacy"
+          },
+          "hidden_regions": {
+            "type": "integer",
+            "title": "Hidden Regions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "range",
+          "total",
+          "located",
+          "color_field",
+          "regions",
+          "points",
+          "truncated",
+          "privacy",
+          "hidden_regions"
+        ],
+        "title": "ReportMapOut"
       },
       "ReportPhotoOut": {
         "properties": {
