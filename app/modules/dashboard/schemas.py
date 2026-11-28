@@ -141,6 +141,23 @@ class FormRefOut(BaseModel):
     id: uuid.UUID
     name: str
     version: int
+    # From the wizard's template (form settings): picks the sector layout (roadmap 11.3a).
+    sector_code: str | None = None
+    template_code: str | None = None
+    # The current version has a location field: the dashboard may show a map.
+    has_location: bool = False
+
+
+class FormKpisOut(BaseModel):
+    """The structure's headline numbers over the range (roadmap 11.3a)."""
+
+    # Reports in the same span just before, up to the same time of day.
+    previous_total: int
+    delta_pct: float | None
+    # Workers with at least one report of this structure in the range.
+    workers_reporting: int
+    complete_percent: int | None
+    needs_review: int
 
 
 class FormDashboardOut(BaseModel):
@@ -155,3 +172,70 @@ class FormDashboardOut(BaseModel):
     daily: list[DayCountOut]  # last 7 days, today last (ignores `range`)
     fields: list[FieldStatOut]
     top_regions: list[RegionCountOut]
+    kpis: FormKpisOut | None = None
+
+
+# --- Map (roadmap 5.2) ---------------------------------------------------------------------------
+
+
+class MapValueOut(BaseModel):
+    """One value of the field that colours the map, with its count in the range."""
+
+    value: str  # option value, or "unknown" (no answer)
+    label: str
+    count: int
+
+
+class MapColorFieldOut(BaseModel):
+    # "condition" for the crop condition (alert threshold), "choice" for any other single choice.
+    kind: Literal["condition", "choice"]
+    key: str
+    label: str
+    values: list[MapValueOut]
+
+
+class MapRegionOut(BaseModel):
+    region_id: uuid.UUID  # a regency
+    name: str
+    centroid: list[float] | None  # [lng, lat]
+    count: int
+    by_value: dict[str, int]
+    # The value the region is drawn with: the alert colour for conditions, else the most common.
+    color: str
+    latest_report_id: uuid.UUID | None
+
+
+class MapPointOut(BaseModel):
+    id: uuid.UUID
+    lat: float
+    lng: float
+    value: str | None
+    # GPS accuracy unknown or worse than 50 m: drawn hollow, "akurasi tidak pasti".
+    approximate: bool
+
+
+class ReportMapOut(BaseModel):
+    range: DashboardRange
+    total: int  # reports in the range (after filters)
+    located: int  # of which with coordinates
+    color_field: MapColorFieldOut | None
+    regions: list[MapRegionOut]
+    points: list[MapPointOut]  # newest first, at most 2.000
+    truncated: bool
+    # "regions_only": a health structure; no points, regions under 5 reports left out.
+    privacy: Literal["full", "regions_only"]
+    hidden_regions: int
+
+
+class BoundaryFeatureOut(BaseModel):
+    type: Literal["Feature"] = "Feature"
+    id: uuid.UUID
+    properties: dict[str, str]
+    geometry: dict[str, object]
+
+
+class BoundariesOut(BaseModel):
+    """Simplified regency outlines as a GeoJSON FeatureCollection, for the map's region layer."""
+
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    features: list[BoundaryFeatureOut]

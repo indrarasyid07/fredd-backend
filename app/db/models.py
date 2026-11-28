@@ -15,6 +15,7 @@ from app.modules.reports.models import (
     Report,
     ReportCodeCounter,
     ReportCorrection,
+    ReportExport,
     ReportPhoto,
     ReportValue,
 )
@@ -42,6 +43,7 @@ __all__ = [
     "Report",
     "ReportCodeCounter",
     "ReportCorrection",
+    "ReportExport",
     "ReportPhoto",
     "ReportValue",
     "Session",

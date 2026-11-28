@@ -73,7 +73,9 @@ Semua di bawah `/api/v1`, `reviewer` ke atas kecuali disebut lain.
 
 `daily` selalu 7 entri berurutan (hari tanpa laporan bernilai 0), hari ini terakhir. `hourly` = `{yesterday: [24], today: [24]}`, jumlah laporan per jam (jam 0–23 di zona workspace), untuk peta jam sibuk di Laporan masuk; jam yang belum lewat hari ini bernilai 0. Cache lama tanpa `hourly` dianggap tidak ada (dihitung ulang). **Dibangun (4.2) dengan tambahan:** `previous_daily` (7 hari sebelum `daily`, garis pembanding di grafik) dan `channels` (`whatsapp`/`telegram` dalam persen untuk 7 hari itu, jumlah 100). Wilayah di `top_regions` dan `top_infected_regions` adalah **kabupaten/kota** (laporan berwilayah kecamatan dihitung ke induknya). `setup` belum berisi `test_run_done` (Langkah 4.5). `completion.blurry_rejected` selalu 0 sampai skor buram (5.1). Cache **tidak** dibuang saat laporan baru (modul laporan berada di bawah dashboard); laporan baru tampil paling lambat 15 detik, pembuangan lewat event `report.created` menyusul bersama SSE (6.1). `setup` mengatur kondisi kosong dan checklist. Cache Redis 15 detik per `(workspace, range)`, dibuang saat ada `report.created`.
 
-### `GET /reports/map?range=&form_id=&condition=`
+### `GET /dashboard/map?range=&form_id=&color_by=&value=`
+
+**Status implementasi (28 November 2026, Langkah 5.2):** ada di `/dashboard/map` (bukan `/reports/map`, B-XXX), dengan `color_field` umum untuk sektor lain, `privacy` untuk sektor kesehatan, dan batas wilayah lewat `GET /dashboard/boundaries`. Rincian di [endpoints.md](../03-api/endpoints.md). Bentuk di bawah adalah rancangan awal.
 
 ```json
 {
@@ -133,8 +135,11 @@ Tabel **Laporan masuk** (`/app/incoming-reports`) memakai endpoint yang sama den
 
 | Method | Path | Peran | Catatan |
 |---|---|---|---|
-| POST | `/reports/exports` | form_editor | Membuat pekerjaan; `202` + `{ id, status }`; `429` bila ≥ 3 ekspor berjalan untuk workspace |
-| GET | `/reports/exports/{id}` | pembuat atau admin | `{ status, row_count, download_url?, expires_at?, error? }` |
+| POST | `/reports/exports` | form_editor | Membuat pekerjaan; `200` + `{ id, status, … }` (aturan proyek: tanpa 202); `429` bila ≥ 3 ekspor berjalan untuk workspace |
+| GET | `/reports/exports/{id}` | pembuat atau admin | `{ status, row_count, filename, expires_at, error }` |
+| GET | `/reports/exports/{id}/download` | pembuat atau admin | Berkas langsung lewat API, bukan `download_url` bertanda tangan (B-XXX): tiap unduhan bisa diaudit dan penyimpanan lokal di dev ikut bekerja |
+
+**Status implementasi (28 November 2026, Langkah 5.4):** Excel dan CSV ada; PDF (11.2), `include.map`, `anonymize_farmers` (butuh peran isian nama orang dari Domain 2), email/notifikasi > 50.000 baris, dan SSE `export.ready` (6.1) belum. Batas 50.000 baris per berkas; di atasnya ekspor gagal dengan alasan. `include.photos` di Excel = kolom "Jumlah foto". Filter wilayah kabupaten mencakup laporan yang tercatat di kecamatannya.
 
 ```json
 {

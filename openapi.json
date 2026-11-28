@@ -3693,6 +3693,247 @@
         }
       }
     },
+    "/api/v1/dashboard/map": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Dashboard Map",
+        "description": "Regencies and the newest located reports for the map (roadmap 5.2). Without `form_id`\nthe crop condition colours it; with one, its condition, `color_by`, its `status` field or\nits first single choice. Health structures send regions only (≥ 5 reports).",
+        "operationId": "dashboard_map_api_v1_dashboard_map_get",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "today",
+                "7d",
+                "30d"
+              ],
+              "type": "string",
+              "default": "today",
+              "title": "Range"
+            }
+          },
+          {
+            "name": "form_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "color_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Kunci isian pilihan tunggal yang mewarnai peta.",
+              "title": "Color By"
+            },
+            "description": "Kunci isian pilihan tunggal yang mewarnai peta."
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Hanya nilai ini (boleh berulang; `unknown` = tanpa jawaban).",
+              "title": "Value"
+            },
+            "description": "Hanya nilai ini (boleh berulang; `unknown` = tanpa jawaban)."
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ReportMapOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/boundaries": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Region Boundaries",
+        "description": "Simplified outlines of regions for the map's region layer; platform data, cached a day.",
+        "operationId": "region_boundaries_api_v1_dashboard_boundaries_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "Wilayah (maks. 100).",
+              "title": "Id"
+            },
+            "description": "Wilayah (maks. 100)."
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_BoundariesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/reference-data": {
       "get": {
         "tags": [
@@ -7094,6 +7335,563 @@
         }
       }
     },
+    "/api/v1/reports/count": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Count Reports",
+        "description": "How many reports a download would hold (the download dialog, roadmap 5.4); days follow\nthe workspace time zone.",
+        "operationId": "count_reports_api_v1_reports_count_get",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "custom"
+              ],
+              "type": "string",
+              "description": "`today`, `7d`, `30d` (termasuk hari ini), atau `custom`.",
+              "default": "7d",
+              "title": "Range"
+            },
+            "description": "`today`, `7d`, `30d` (termasuk hari ini), atau `custom`."
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tanggal lokal awal untuk `custom`.",
+              "title": "From"
+            },
+            "description": "Tanggal lokal awal untuk `custom`."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tanggal lokal akhir untuk `custom`.",
+              "title": "To"
+            },
+            "description": "Tanggal lokal akhir untuk `custom`."
+          },
+          {
+            "name": "form_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "region_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Boleh berulang.",
+              "title": "Region Id"
+            },
+            "description": "Boleh berulang."
+          },
+          {
+            "name": "condition",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "healthy",
+                      "attention",
+                      "infected",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Boleh berulang; `unknown` = tanpa kondisi.",
+              "title": "Condition"
+            },
+            "description": "Boleh berulang; `unknown` = tanpa kondisi."
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ReportCountOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/v1/reports/exports": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Create Export",
+        "description": "Start a download (Excel or CSV; PDF later). The file is written in the background: poll\n`GET /reports/exports/{id}` until `done` or `failed`. At most 3 running per workspace.",
+        "operationId": "create_export_api_v1_reports_exports_post",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ReportExportOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/api/v1/reports/exports/{export_id}": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Export",
+        "description": "Status of a download; only the person who asked, or an admin.",
+        "operationId": "get_export_api_v1_reports_exports__export_id__get",
+        "parameters": [
+          {
+            "name": "export_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Export Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ReportExportOut_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/exports/{export_id}/download": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Download Export",
+        "description": "The finished file (7 days after it was written); every download goes in the audit\ntrail. Errors before the file use the standard JSON format.",
+        "operationId": "download_export_api_v1_reports_exports__export_id__download_get",
+        "parameters": [
+          {
+            "name": "export_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Export Id"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berkas CSV atau Excel.",
+            "content": {
+              "text/csv; charset=utf-8": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/{report_id}": {
       "get": {
         "tags": [
@@ -8095,6 +8893,54 @@
         ],
         "title": "ApiResponse[AgentTestOut]"
       },
+      "ApiResponse_BoundariesOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BoundariesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[BoundariesOut]"
+      },
       "ApiResponse_ChannelLogOut_": {
         "properties": {
           "success": {
@@ -8953,6 +9799,54 @@
         ],
         "title": "ApiResponse[RegionPathOut]"
       },
+      "ApiResponse_ReportCountOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportCountOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[ReportCountOut]"
+      },
       "ApiResponse_ReportDetailOut_": {
         "properties": {
           "success": {
@@ -9000,6 +9894,102 @@
           "meta"
         ],
         "title": "ApiResponse[ReportDetailOut]"
+      },
+      "ApiResponse_ReportExportOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportExportOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[ReportExportOut]"
+      },
+      "ApiResponse_ReportMapOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportMapOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[ReportMapOut]"
       },
       "ApiResponse_VoiceSummaryOut_": {
         "properties": {
@@ -9897,6 +10887,63 @@
         "title": "BotOut",
         "description": "One of the platform's shared bots (B-048), as shown to admins on Kanal and Bagikan kode."
       },
+      "BoundariesOut": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "FeatureCollection",
+            "title": "Type",
+            "default": "FeatureCollection"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/BoundaryFeatureOut"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "features"
+        ],
+        "title": "BoundariesOut",
+        "description": "Simplified regency outlines as a GeoJSON FeatureCollection, for the map's region layer."
+      },
+      "BoundaryFeatureOut": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Feature",
+            "title": "Type",
+            "default": "Feature"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "properties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Properties"
+          },
+          "geometry": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Geometry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "properties",
+          "geometry"
+        ],
+        "title": "BoundaryFeatureOut"
+      },
       "ChannelLogOut": {
         "properties": {
           "id": {
@@ -10772,6 +11819,71 @@
         ],
         "title": "CorrectValueRequest"
       },
+      "CreateExportRequest": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "xlsx",
+              "csv"
+            ],
+            "title": "Format"
+          },
+          "range": {
+            "$ref": "#/components/schemas/ExportRange"
+          },
+          "form_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Id"
+          },
+          "region_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Region Ids"
+          },
+          "conditions": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "healthy",
+                "attention",
+                "infected",
+                "unknown"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "title": "Conditions"
+          },
+          "include": {
+            "$ref": "#/components/schemas/ExportInclude"
+          },
+          "anonymize_farmers": {
+            "type": "boolean",
+            "title": "Anonymize Farmers",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "format",
+          "range"
+        ],
+        "title": "CreateExportRequest"
+      },
       "CreateFormRequest": {
         "properties": {
           "name": {
@@ -11329,6 +12441,71 @@
         ],
         "title": "EscalationRulesOut"
       },
+      "ExportInclude": {
+        "properties": {
+          "map": {
+            "type": "boolean",
+            "title": "Map",
+            "default": false
+          },
+          "photos": {
+            "type": "boolean",
+            "title": "Photos",
+            "default": false
+          },
+          "gps": {
+            "type": "boolean",
+            "title": "Gps",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "ExportInclude"
+      },
+      "ExportRange": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "today",
+              "7d",
+              "30d",
+              "custom"
+            ],
+            "title": "Type"
+          },
+          "from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "ExportRange",
+        "description": "`today`, the last 7 or 30 days including today, or `custom` from/to (local dates in the\nworkspace time zone, both inclusive, at most 366 days)."
+      },
       "ExtensionWorkerDetailOut": {
         "properties": {
           "id": {
@@ -11853,6 +13030,16 @@
             },
             "type": "array",
             "title": "Top Regions"
+          },
+          "kpis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormKpisOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -12022,6 +13209,54 @@
         ],
         "title": "FormDraftOut"
       },
+      "FormKpisOut": {
+        "properties": {
+          "previous_total": {
+            "type": "integer",
+            "title": "Previous Total"
+          },
+          "delta_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Pct"
+          },
+          "workers_reporting": {
+            "type": "integer",
+            "title": "Workers Reporting"
+          },
+          "complete_percent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Complete Percent"
+          },
+          "needs_review": {
+            "type": "integer",
+            "title": "Needs Review"
+          }
+        },
+        "type": "object",
+        "required": [
+          "previous_total",
+          "delta_pct",
+          "workers_reporting",
+          "complete_percent",
+          "needs_review"
+        ],
+        "title": "FormKpisOut",
+        "description": "The structure's headline numbers over the range (roadmap 11.3a)."
+      },
       "FormOut": {
         "properties": {
           "id": {
@@ -12176,6 +13411,33 @@
           "version": {
             "type": "integer",
             "title": "Version"
+          },
+          "sector_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Code"
+          },
+          "template_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Code"
+          },
+          "has_location": {
+            "type": "boolean",
+            "title": "Has Location",
+            "default": false
           }
         },
         "type": "object",
@@ -12730,6 +13992,171 @@
           "password"
         ],
         "title": "LoginRequest"
+      },
+      "MapColorFieldOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "condition",
+              "choice"
+            ],
+            "title": "Kind"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/MapValueOut"
+            },
+            "type": "array",
+            "title": "Values"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "key",
+          "label",
+          "values"
+        ],
+        "title": "MapColorFieldOut"
+      },
+      "MapPointOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "approximate": {
+            "type": "boolean",
+            "title": "Approximate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "lat",
+          "lng",
+          "value",
+          "approximate"
+        ],
+        "title": "MapPointOut"
+      },
+      "MapRegionOut": {
+        "properties": {
+          "region_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Region Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "centroid": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Centroid"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "by_value": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Value"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "latest_report_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Report Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "region_id",
+          "name",
+          "centroid",
+          "count",
+          "by_value",
+          "color",
+          "latest_report_id"
+        ],
+        "title": "MapRegionOut"
+      },
+      "MapValueOut": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "count"
+        ],
+        "title": "MapValueOut",
+        "description": "One value of the field that colours the map, with its count in the range."
       },
       "MeResponse": {
         "properties": {
@@ -13393,6 +14820,19 @@
         ],
         "title": "ReportCorrectionOut"
       },
+      "ReportCountOut": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count"
+        ],
+        "title": "ReportCountOut"
+      },
       "ReportDetailOut": {
         "properties": {
           "id": {
@@ -13532,6 +14972,110 @@
           "corrections"
         ],
         "title": "ReportDetailOut"
+      },
+      "ReportExportOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "xlsx",
+              "csv"
+            ],
+            "title": "Format"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "format",
+          "row_count",
+          "filename",
+          "error",
+          "created_at",
+          "finished_at",
+          "expires_at"
+        ],
+        "title": "ReportExportOut"
       },
       "ReportFieldOut": {
         "properties": {
@@ -13744,6 +15288,80 @@
           "accuracy_m"
         ],
         "title": "ReportLocationOut"
+      },
+      "ReportMapOut": {
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "today",
+              "7d",
+              "30d"
+            ],
+            "title": "Range"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "located": {
+            "type": "integer",
+            "title": "Located"
+          },
+          "color_field": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MapColorFieldOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/MapRegionOut"
+            },
+            "type": "array",
+            "title": "Regions"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/MapPointOut"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated"
+          },
+          "privacy": {
+            "type": "string",
+            "enum": [
+              "full",
+              "regions_only"
+            ],
+            "title": "Privacy"
+          },
+          "hidden_regions": {
+            "type": "integer",
+            "title": "Hidden Regions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "range",
+          "total",
+          "located",
+          "color_field",
+          "regions",
+          "points",
+          "truncated",
+          "privacy",
+          "hidden_regions"
+        ],
+        "title": "ReportMapOut"
       },
       "ReportPhotoOut": {
         "properties": {

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -162,3 +162,59 @@ class VoiceSummaryOut(BaseModel):
     corrected_share_30d: float | None
     # Label of the field corrected most often in the last 30 days; null if none.
     most_corrected: str | None
+
+
+# --- Report downloads (roadmap 5.4) -------------------------------------------------------------
+
+ExportSpan = Literal["today", "7d", "30d", "custom"]
+ReportExportFormat = Literal["pdf", "xlsx", "csv"]
+ReportExportStatus = Literal["queued", "running", "done", "failed", "expired"]
+
+
+class ExportRange(BaseModel):
+    """`today`, the last 7 or 30 days including today, or `custom` from/to (local dates in the
+    workspace time zone, both inclusive, at most 366 days)."""
+
+    model_config = {"populate_by_name": True}
+
+    type: ExportSpan
+    from_: date | None = Field(default=None, alias="from")
+    to: date | None = None
+
+
+class ExportInclude(BaseModel):
+    # Map: PDF only. Photos: Excel adds a photo count column; CSV refuses both.
+    map: bool = False
+    photos: bool = False
+    # Coordinates, GPS accuracy and location answers.
+    gps: bool = True
+
+
+class CreateExportRequest(BaseModel):
+    format: ReportExportFormat
+    range: ExportRange
+    # Required for CSV (one structure, one set of columns); Excel writes one sheet per structure.
+    form_id: uuid.UUID | None = None
+    region_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+    conditions: list[ConditionFilter] = Field(default_factory=list, max_length=4)
+    include: ExportInclude = Field(default_factory=ExportInclude)
+    # Needs a field role marking people's names (Domain 2); refused until then.
+    anonymize_farmers: bool = False
+
+
+class ReportExportOut(BaseModel):
+    id: uuid.UUID
+    status: ReportExportStatus
+    format: ReportExportFormat
+    row_count: int | None
+    filename: str | None
+    # Why it failed, in Indonesian; null otherwise.
+    error: str | None
+    created_at: datetime
+    finished_at: datetime | None
+    # The file is deleted then (7 days after it was written).
+    expires_at: datetime | None
+
+
+class ReportCountOut(BaseModel):
+    count: int

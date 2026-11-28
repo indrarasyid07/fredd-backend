@@ -30,6 +30,7 @@ from app.modules.reports.models import (
     Report,
     ReportCodeCounter,
     ReportCorrection,
+    ReportExport,
     ReportPhoto,
     ReportValue,
 )
@@ -348,3 +349,94 @@ async def voice_corrections(
         )
     ).one_or_none()
     return VoiceCorrections(int(reports), int(with_fix), (top[0], top[1]) if top else None)
+
+
+# --- Report downloads (roadmap 5.4) -------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReportFilter:
+    """What a download (and its count) covers; `until` is exclusive."""
+
+    since: datetime
+    until: datetime
+    form_id: uuid.UUID | None = None
+    region_ids: tuple[uuid.UUID, ...] = ()
+    conditions: tuple[str, ...] = ()
+
+
+def _filter_clauses(workspace_id: uuid.UUID, f: ReportFilter) -> list[ColumnElement[bool]]:
+    clauses = [
+        Report.workspace_id == workspace_id,
+        Report.received_at >= f.since,
+        Report.received_at < f.until,
+    ]
+    if f.form_id is not None:
+        clauses.append(Report.form_id == f.form_id)
+    if f.region_ids:
+        # A report keeps its most specific region: a regency also covers its districts.
+        children = select(ReferenceData.id).where(ReferenceData.parent_id.in_(f.region_ids))
+        clauses.append(or_(Report.region_id.in_(f.region_ids), Report.region_id.in_(children)))
+    if f.conditions:
+        known = [c for c in f.conditions if c != "unknown"]
+        either = [Report.condition.in_(known)] if known else []
+        if "unknown" in f.conditions:
+            either.append(Report.condition.is_(None))
+        clauses.append(or_(*either))
+    return clauses
+
+
+async def count_reports(db: AsyncSession, workspace_id: uuid.UUID, f: ReportFilter) -> int:
+    stmt = select(func.count()).select_from(Report).where(*_filter_clauses(workspace_id, f))
+    return int(await db.scalar(stmt) or 0)
+
+
+async def export_rows(
+    db: AsyncSession, workspace_id: uuid.UUID, f: ReportFilter, limit: int
+) -> list[ReportRow]:
+    """Oldest first, at most `limit` + 1 rows so the caller can tell there were more."""
+    stmt = (
+        _rows_query()
+        .where(*_filter_clauses(workspace_id, f))
+        .order_by(Report.received_at, Report.id)
+        .limit(limit + 1)
+    )
+    return [_row(r) for r in (await db.execute(stmt)).all()]
+
+
+async def count_open_exports(db: AsyncSession, workspace_id: uuid.UUID) -> int:
+    stmt = select(func.count()).where(
+        ReportExport.workspace_id == workspace_id,
+        ReportExport.status.in_(("queued", "running")),
+    )
+    return int(await db.scalar(stmt) or 0)
+
+
+async def get_export(
+    db: AsyncSession, workspace_id: uuid.UUID, export_id: uuid.UUID
+) -> ReportExport | None:
+    return await db.scalar(
+        select(ReportExport)
+        .where(ReportExport.workspace_id == workspace_id, ReportExport.id == export_id)
+        # A job may have changed it in another session since this one loaded it.
+        .execution_options(populate_existing=True)
+    )
+
+
+async def claim_export(db: AsyncSession, export_id: uuid.UUID) -> ReportExport | None:
+    """The queued export, locked; None once another run took it (a retried job does nothing)."""
+    return await db.scalar(
+        select(ReportExport)
+        .where(ReportExport.id == export_id, ReportExport.status == "queued")
+        .with_for_update(skip_locked=True)
+    )
+
+
+async def list_expired_exports(db: AsyncSession, now: datetime, limit: int) -> list[ReportExport]:
+    rows = await db.scalars(
+        select(ReportExport)
+        .where(ReportExport.status == "done", ReportExport.expires_at < now)
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+    return list(rows)
