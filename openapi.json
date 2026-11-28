@@ -2393,6 +2393,158 @@
         }
       }
     },
+    "/api/v1/agent/rules": {
+      "get": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Get Rules",
+        "description": "Aturan ambil alih (roadmap 6.7). Never saved → the four suggested rules, all off.",
+        "operationId": "get_rules_api_v1_agent_rules_get",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EscalationRulesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Save Rules",
+        "description": "Replace the organization's rules; the bot uses them from the next message. Admin only.",
+        "operationId": "save_rules_api_v1_agent_rules_put",
+        "parameters": [
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EscalationRules"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EscalationRulesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/activity": {
       "get": {
         "tags": [
@@ -2415,7 +2567,8 @@
                     "released",
                     "auto_released",
                     "reminder_sent",
-                    "draft_archived"
+                    "draft_archived",
+                    "rule_alert"
                   ],
                   "type": "string"
                 },
@@ -7002,7 +7155,8 @@
               "released",
               "auto_released",
               "reminder_sent",
-              "draft_archived"
+              "draft_archived",
+              "rule_alert"
             ],
             "title": "Type"
           },
@@ -7721,6 +7875,54 @@
           "meta"
         ],
         "title": "ApiResponse[DashboardSummaryOut]"
+      },
+      "ApiResponse_EscalationRulesOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EscalationRulesOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[EscalationRulesOut]"
       },
       "ApiResponse_ExtensionWorkerDetailOut_": {
         "properties": {
@@ -9163,6 +9365,27 @@
         ],
         "title": "AuditLogOut"
       },
+      "BlurryPhotoTrigger": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "blurry_photo",
+            "title": "Type",
+            "default": "blurry_photo"
+          },
+          "times": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 2.0,
+            "title": "Times",
+            "default": 3
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "BlurryPhotoTrigger",
+        "description": "Blurry photos in a row. Needs blur scores (roadmap 5.1): stored, not yet evaluated."
+      },
       "BotOut": {
         "properties": {
           "type": {
@@ -9579,6 +9802,29 @@
         ],
         "title": "ConditionCountOut"
       },
+      "ConditionTrigger": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "condition",
+            "title": "Type",
+            "default": "condition"
+          },
+          "equals": {
+            "type": "string",
+            "enum": [
+              "attention",
+              "infected"
+            ],
+            "title": "Equals",
+            "default": "infected"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConditionTrigger",
+        "description": "A report is submitted with this condition."
+      },
       "ConditionsOut": {
         "properties": {
           "range": {
@@ -9790,7 +10036,8 @@
             "type": "string",
             "enum": [
               "failed_attempts",
-              "asked_for_help"
+              "asked_for_help",
+              "rule"
             ],
             "title": "Reason"
           },
@@ -9815,6 +10062,26 @@
               }
             ],
             "title": "Field Label"
+          },
+          "rule_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Name"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "urgent"
+            ],
+            "title": "Priority",
+            "default": "normal"
           },
           "at": {
             "type": "string",
@@ -10472,6 +10739,136 @@
           "message"
         ],
         "title": "ErrorItem"
+      },
+      "EscalationRule": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z0-9-]+$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "trigger": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KeywordTrigger"
+              },
+              {
+                "$ref": "#/components/schemas/BlurryPhotoTrigger"
+              },
+              {
+                "$ref": "#/components/schemas/ConditionTrigger"
+              },
+              {
+                "$ref": "#/components/schemas/NoReplyTrigger"
+              }
+            ],
+            "title": "Trigger",
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "blurry_photo": "#/components/schemas/BlurryPhotoTrigger",
+                "condition": "#/components/schemas/ConditionTrigger",
+                "keyword": "#/components/schemas/KeywordTrigger",
+                "no_reply": "#/components/schemas/NoReplyTrigger"
+              }
+            }
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "handover",
+              "notify"
+            ],
+            "title": "Action",
+            "default": "handover"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "urgent"
+            ],
+            "title": "Priority",
+            "default": "normal"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "trigger"
+        ],
+        "title": "EscalationRule"
+      },
+      "EscalationRules": {
+        "properties": {
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/EscalationRule"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Rules"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rules"
+        ],
+        "title": "EscalationRules"
+      },
+      "EscalationRulesOut": {
+        "properties": {
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/EscalationRule"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Rules"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "available_triggers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Available Triggers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rules",
+          "available_triggers"
+        ],
+        "title": "EscalationRulesOut"
       },
       "ExtensionWorkerDetailOut": {
         "properties": {
@@ -11784,6 +12181,34 @@
         ],
         "title": "JoinCodeOut"
       },
+      "KeywordTrigger": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "keyword",
+            "title": "Type",
+            "default": "keyword"
+          },
+          "keywords": {
+            "items": {
+              "type": "string",
+              "maxLength": 40,
+              "minLength": 2
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Keywords"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "keywords"
+        ],
+        "title": "KeywordTrigger",
+        "description": "The worker's message contains one of these words or phrases (whole words, any case)."
+      },
       "KpisOut": {
         "properties": {
           "reports_today": {
@@ -12058,6 +12483,27 @@
           "name"
         ],
         "title": "NamedRef"
+      },
+      "NoReplyTrigger": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "no_reply",
+            "title": "Type",
+            "default": "no_reply"
+          },
+          "hours": {
+            "type": "integer",
+            "maximum": 48.0,
+            "minimum": 1.0,
+            "title": "Hours",
+            "default": 3
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "NoReplyTrigger",
+        "description": "No reply this many hours after the second draft reminder (roadmap 7.1)."
       },
       "NumberStatOut": {
         "properties": {

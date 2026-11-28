@@ -17,9 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
 from app.modules.activity import service as activity
+from app.modules.agent import rules as agent_rules
 from app.modules.channels import send_limits
 from app.modules.channels.models import Channel
-from app.modules.conversations import repository
+from app.modules.conversations import escalation, repository
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.types import ConversationState
 from app.modules.conversations.models import Conversation, Message
@@ -77,8 +78,8 @@ async def schedule(db: AsyncSession, conversation: Conversation, last_inbound: d
     conversation.next_reminder_at = outside_quiet_hours(
         last_inbound + FIRST_REMINDER_AFTER, timezone, quiet
     )
-    if state.get("reminders_sent"):
-        state["reminders_sent"] = 0
+    if state.get("reminders_sent") or state.get("rule_escalated"):
+        state.update(reminders_sent=0, reminded_at=None, rule_escalated=False)
         conversation.state = state
 
 
@@ -102,6 +103,8 @@ async def send_due(db: AsyncSession) -> list[uuid.UUID]:
         if now >= last + ARCHIVE_AFTER:
             await _archive(db, conversation, state)
             continue
+        if state.reminders_sent >= MAX_REMINDERS and await _no_reply(db, conversation, state, now):
+            continue
         active = await workers.active_assignment(db, conversation.channel_id, conversation.chat_id)
         if (
             state.reminders_sent >= MAX_REMINDERS
@@ -118,9 +121,18 @@ async def send_due(db: AsyncSession) -> list[uuid.UUID]:
             continue
         to_send.append(await _remind(db, conversation, state, worker))
         state.reminders_sent += 1
+        state.reminded_at = now.isoformat()
         conversation.state = state.to_json()
         if state.reminders_sent >= MAX_REMINDERS:
             conversation.next_reminder_at = last + ARCHIVE_AFTER
+            rule = agent_rules.no_reply_rule(
+                await agent_rules.get_rules(db, conversation.workspace_id)
+            )
+            if rule is not None and rule.trigger.type == "no_reply":
+                # Aturan "tidak membalas" (6.7): look again when its hours are up.
+                conversation.next_reminder_at = min(
+                    last + ARCHIVE_AFTER, now + dt.timedelta(hours=rule.trigger.hours)
+                )
         else:
             timezone, quiet = await repository.get_reminder_settings(db, conversation.workspace_id)
             conversation.next_reminder_at = outside_quiet_hours(
@@ -128,6 +140,29 @@ async def send_due(db: AsyncSession) -> list[uuid.UUID]:
             )
     await db.commit()
     return to_send
+
+
+async def _no_reply(
+    db: AsyncSession, conversation: Conversation, state: ConversationState, now: dt.datetime
+) -> bool:
+    """Both reminders went: the "tidak membalas" rule (6.7) fires once its hours are up. True
+    when it fired (the caller moves on)."""
+    if state.rule_escalated or state.reminded_at is None:
+        return False
+    rule = agent_rules.no_reply_rule(await agent_rules.get_rules(db, conversation.workspace_id))
+    if rule is None or rule.trigger.type != "no_reply":
+        return False
+    if now < dt.datetime.fromisoformat(state.reminded_at) + dt.timedelta(hours=rule.trigger.hours):
+        return False
+    state.rule_escalated = True
+    conversation.state = state.to_json()
+    if rule.action == "handover":
+        await escalation.hand_over(db, conversation, rule, field=conversation.step)
+    else:
+        await escalation.alert(db, conversation, rule, trigger="no_reply")
+        last = conversation.last_inbound_at or conversation.updated_at
+        conversation.next_reminder_at = last + ARCHIVE_AFTER
+    return True
 
 
 async def _remind(

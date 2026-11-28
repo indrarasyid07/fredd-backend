@@ -16,6 +16,7 @@ ACTIVITY_TYPES = (
     "auto_released",
     "reminder_sent",
     "draft_archived",
+    "rule_alert",
 )
 ACTIVITY_STATUSES = ("done", "needs_review", "needs_help")
 
@@ -51,5 +52,7 @@ class ActivityEvent(UUIDPrimaryKey, WorkspaceOwned, Base):
     status: Mapped[str] = mapped_column(String(16))
     # By type: report_received {report_id, code, form_name}; needs_help {reason, field, form_name};
     # taken_over / released / auto_released {admin_name, form_name} (roadmap 6.4);
-    # reminder_sent {reminder, form_name}; draft_archived {answered, form_name} (roadmap 7.1).
+    # reminder_sent {reminder, form_name}; draft_archived {answered, form_name} (roadmap 7.1);
+    # rule_alert {rule_id, rule_name, priority, form_name, …} (roadmap 6.7; needs_help may also
+    # carry reason "rule" with the rule's id, name and priority).
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))

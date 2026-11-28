@@ -15,10 +15,13 @@ class ConversationFormOut(BaseModel):
 class ConversationHelpOut(BaseModel):
     """Why the bot handed the conversation to an admin."""
 
-    reason: Literal["failed_attempts", "asked_for_help"]
+    # rule: an escalation rule matched (roadmap 6.7; `rule_name`, `priority`).
+    reason: Literal["failed_attempts", "asked_for_help", "rule"]
     # Key and label of the field the worker was stuck on, when there was one.
     field: str | None
     field_label: str | None
+    rule_name: str | None = None
+    priority: Literal["normal", "urgent"] = "normal"
     at: datetime
 
 

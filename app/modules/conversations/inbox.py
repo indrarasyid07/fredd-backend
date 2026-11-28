@@ -50,6 +50,8 @@ def _help(event: ActivityEvent | None) -> ConversationHelpOut | None:
         reason=event.details.get("reason", "asked_for_help"),
         field=event.details.get("field"),
         field_label=event.details.get("field_label"),
+        rule_name=event.details.get("rule_name"),
+        priority="urgent" if event.details.get("priority") == "urgent" else "normal",
         at=event.occurred_at,
     )
 

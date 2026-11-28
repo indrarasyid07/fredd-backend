@@ -193,6 +193,9 @@ class ConversationState:
     media_field: str | None = None
     # Draft reminders sent since the worker's last message (roadmap 7.1, at most 2).
     reminders_sent: int = 0
+    # When the last of them went (ISO), and whether the "no reply" rule already fired (6.7).
+    reminded_at: str | None = None
+    rule_escalated: bool = False
     # Voice Lab: what the sentence that filled the report was (see SubmitReport.voice).
     voice: dict[str, Any] | None = None
 
