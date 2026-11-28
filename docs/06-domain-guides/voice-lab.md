@@ -11,7 +11,7 @@ Analis atau peneliti lab merekam hasil kerjanya dengan suara lewat bot Telegram/
 | 12.3 | Voice note di bot → isian terisi sekaligus, `reports.voice` | **Ada** |
 | 12.4 | Halaman Voice data asli: `GET /reports?voice=true`, `GET /reports/{id}.voice` | **Ada** |
 | 12.5 | Koreksi nilai (alasan wajib) & verifikasi penyelia, jejak audit | **Ada** |
-| 12.6 | Unduh CSV/Excel | Belum |
+| 12.6 | Unduh CSV/Excel | **Ada** |
 | 12.7 | Penyedia STT/LLM cloud: OpenAI | **Ada** |
 
 ## Mengubah suara jadi teks (`app/modules/ai/speech.py`)
@@ -81,4 +81,15 @@ Berlaku untuk semua laporan (bukan hanya Voice), sehingga antrean tinjauan 5.3 n
 - **Koreksi** (`POST /reports/{id}/corrections`, reviewer ke atas): penyelia mengetik nilai yang benar ("26 derajat") dan alasannya. Nilai dibaca dengan `extraction.read_value` (aturan yang sama dengan suara); satuan lain dari satuan isian ditolak ("Satuannya harus °C."). Laporan menyimpan nilai baru; `report_corrections` menyimpan nilai lama, baru, alasan, dan siapa; `audit_logs` mencatat `report.corrected`.
 - **Verifikasi** (`POST /reports/{id}/verify`): mengunci laporan (koreksi berikutnya `409`), audit `report.verified`.
 - Belum: edit transkrip (desain Alur Voice 6–7), tanda tangan PIN, tolak/minta konfirmasi analis (5.3).
+
+## Unduh hasil terverifikasi (Langkah 12.6)
+
+`GET /reports/voice-export?form_id=&format=csv|xlsx&since=&until=` (Editor Struktur ke atas) langsung mengirim berkas, bukan pekerjaan worker (B-XXX):
+
+- Isi: laporan **suara yang sudah diverifikasi** dari satu struktur, terlama dulu. Laporan yang belum diverifikasi tidak pernah ikut.
+- Kolom: Nomor, Analis, Diterima, Diverifikasi oleh, Waktu verifikasi, lalu satu kolom per isian (urutan versi terbaru, ditambah isian yang hanya ada di versi lama). Isian media (foto, video, suara, dokumen, tanda tangan) tidak ikut. Judul angka memuat satuan, mis. "Suhu (°C)".
+- Nilai: angka tetap angka (CSV bertitik, Excel bertipe angka), pilihan memakai labelnya, lokasi "lat, lng", dilewati = kosong. Nilai yang dikoreksi penyelia adalah nilai yang diekspor.
+- Waktu dalam zona workspace. CSV UTF-8 ber-BOM agar terbaca Excel; Excel ditulis `openpyxl` mode write-only di thread terpisah.
+- Lebih dari 5.000 baris → `422 export_too_large` (persempit rentang). Struktur workspace lain → `404 form_not_found`.
+- Setiap unduhan dicatat di `audit_logs` sebagai `report.voice_exported` (format, jumlah baris, rentang).
 

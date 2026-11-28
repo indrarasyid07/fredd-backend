@@ -7,9 +7,11 @@ condition and area from the fields with that role, the point from the first loca
 the region from the point, and the 50 m plot key for "unique plots".
 """
 
+import asyncio
 import hashlib
 import math
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
@@ -27,8 +29,9 @@ from app.modules.forms import service as forms
 from app.modules.forms.constants import CONDITION_VALUES
 from app.modules.forms.schemas import FieldDefinition, FormDefinition
 from app.modules.reference_data import service as reference_data
-from app.modules.reports import repository
+from app.modules.reports import exports, repository
 from app.modules.reports.errors import (
+    ExportTooLarge,
     FieldNotCorrectable,
     InvalidCorrection,
     ReportAlreadyVerified,
@@ -609,3 +612,99 @@ async def _corrections(
             )
         )
     return out
+
+
+# --- Voice Lab export (roadmap 12.6) ------------------------------------------------------------
+
+# Written in the request (B-0xx); the export job of dashboard.md takes over past this.
+MAX_VOICE_EXPORT_ROWS = 5000
+
+
+@dataclass(frozen=True)
+class ExportFile:
+    filename: str
+    media_type: str
+    content: bytes
+    row_count: int
+
+
+async def export_voice(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    *,
+    form_id: uuid.UUID,
+    fmt: exports.ExportFormat,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> ExportFile:
+    """Verified voice reports of one structure, oldest first, as a file; logged in the audit
+    trail. Unverified reports are never in it: only what a supervisor confirmed leaves Fluctuz."""
+    form = await forms.get_form(db, workspace_id, form_id)
+    rows = await repository.list_reports(
+        db,
+        workspace_id,
+        form_id=form_id,
+        extension_worker_id=None,
+        region_id=None,
+        conditions=None,
+        needs_review=None,
+        verified=True,
+        voice=True,
+        since=since,
+        until=until,
+        after=None,
+        limit=MAX_VOICE_EXPORT_ROWS,
+    )
+    if len(rows) > MAX_VOICE_EXPORT_ROWS:
+        raise ExportTooLarge()
+    rows.reverse()
+
+    version_ids = {r.report.form_version_id for r in rows}
+    if form.current_version_id is not None:
+        version_ids.add(form.current_version_id)
+    versions = [
+        await forms.get_version_definition(db, workspace_id, v, published_only=False)
+        for v in version_ids
+    ]
+    versions.sort(key=lambda v: v.version, reverse=True)
+    fields = exports.columns([v.definition for v in versions])
+
+    zone = await repository.get_timezone(db, workspace_id)
+    names = await repository.user_names(
+        db, {r.report.verified_by_user_id for r in rows if r.report.verified_by_user_id}
+    )
+    export_rows = [
+        exports.ExportRow(
+            code=r.report.code,
+            analyst=r.worker_name,
+            received_at=r.report.received_at.astimezone(zone),
+            verified_by=names.get(r.report.verified_by_user_id)
+            if r.report.verified_by_user_id
+            else None,
+            verified_at=r.report.verified_at.astimezone(zone) if r.report.verified_at else None,
+            answers=r.report.answers,
+        )
+        for r in rows
+    ]
+    content = await asyncio.to_thread(exports.write, fmt, exports.table(fields, export_rows))
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=user_id,
+        action="report.voice_exported",
+        target=str(form_id),
+        details={
+            "format": fmt,
+            "row_count": len(rows),
+            "since": since.isoformat() if since else None,
+            "until": until.isoformat() if until else None,
+        },
+    )
+    await db.commit()
+    return ExportFile(
+        filename=exports.filename(form.name, now_utc().astimezone(zone), fmt),
+        media_type=exports.MEDIA_TYPES[fmt],
+        content=content,
+        row_count=len(rows),
+    )

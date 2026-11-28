@@ -21,3 +21,9 @@ class InvalidCorrection(AppError):
     status_code = 422
     code = "invalid_correction"
     message = "Nilai koreksi tidak terbaca."
+
+
+class ExportTooLarge(AppError):
+    status_code = 422
+    code = "export_too_large"
+    message = "Data terlalu banyak untuk diunduh sekaligus. Persempit rentang tanggal."
