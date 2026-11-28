@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 class Storage(Protocol):
     async def put(self, key: str, data: bytes, content_type: str) -> None: ...
     async def signed_url(self, key: str, seconds: int) -> str | None: ...
+    async def get(self, key: str) -> bytes: ...
 
 
 class S3Storage:
@@ -57,19 +58,32 @@ class S3Storage:
             ExpiresIn=seconds,
         )
 
+    async def get(self, key: str) -> bytes:
+        """The stored file (photo checks read it back, roadmap 12.7)."""
+        response = await asyncio.to_thread(
+            self._client.get_object, Bucket=self._bucket, Key=settings.storage_key_prefix + key
+        )
+        return await asyncio.to_thread(response["Body"].read)
+
 
 class LocalStorage:
     def __init__(self, root: Path) -> None:
         self._root = root.resolve()
 
     async def put(self, key: str, data: bytes, content_type: str) -> None:
-        path = (self._root / settings.storage_key_prefix / key).resolve()
-        if not path.is_relative_to(self._root):
-            raise ValueError("storage key leaves the media folder")
-        await asyncio.to_thread(_write, path, data)
+        await asyncio.to_thread(_write, self._path(key), data)
 
     async def signed_url(self, key: str, seconds: int) -> str | None:
         return None  # local files are not served
+
+    async def get(self, key: str) -> bytes:
+        return await asyncio.to_thread(self._path(key).read_bytes)
+
+    def _path(self, key: str) -> Path:
+        path = (self._root / settings.storage_key_prefix / key).resolve()
+        if not path.is_relative_to(self._root):
+            raise ValueError("storage key leaves the media folder")
+        return path
 
 
 def _write(path: Path, data: bytes) -> None:

@@ -1,0 +1,387 @@
+{
+  "_note": "Development/staging demo: structures ready for the bot, published in \"Fluctuz Indonesia\". Matched by name; a structure whose published definition or settings differ gets a new version.",
+  "structures": [
+    {
+      "name": "Laporan Kesehatan Ternak",
+      "description": "Kunjungan kandang: lokasi, jenis dan jumlah ternak, kondisi kesehatan, gejala, foto ternak atau kandang.",
+      "settings": {
+        "sector_code": "livestock",
+        "commodities": [
+          "Sapi",
+          "Kambing",
+          "Unggas"
+        ],
+        "frequency": "event",
+        "input_mode": "chat"
+      },
+      "definition": {
+        "fields": [
+          {
+            "key": "location",
+            "type": "location",
+            "label": "Lokasi kandang",
+            "question": "Di mana lokasi kandangnya? Bagikan lokasi dari Telegram, atau tulis nama desanya.",
+            "max_accuracy_m": 100,
+            "answer_modes": [
+              "map",
+              "live",
+              "name"
+            ]
+          },
+          {
+            "key": "farmer_name",
+            "type": "short_text",
+            "label": "Nama peternak",
+            "question": "Siapa nama peternaknya?"
+          },
+          {
+            "key": "livestock",
+            "type": "single_choice",
+            "label": "Jenis ternak",
+            "question": "Ternak apa yang diperiksa?",
+            "role": "status",
+            "options": [
+              {
+                "value": "cattle",
+                "label": "Sapi"
+              },
+              {
+                "value": "goat",
+                "label": "Kambing"
+              },
+              {
+                "value": "sheep",
+                "label": "Domba"
+              },
+              {
+                "value": "poultry",
+                "label": "Unggas"
+              }
+            ],
+            "answer_modes": [
+              "choose",
+              "type"
+            ]
+          },
+          {
+            "key": "head_count",
+            "type": "number",
+            "label": "Jumlah ternak",
+            "question": "Berapa ekor ternaknya?",
+            "unit": "ekor",
+            "min": 1,
+            "max": 10000,
+            "role": "measure",
+            "answer_modes": [
+              "type"
+            ]
+          },
+          {
+            "key": "condition",
+            "type": "single_choice",
+            "label": "Kondisi kesehatan",
+            "question": "Bagaimana kondisi kesehatan ternaknya?",
+            "role": "condition",
+            "options": [
+              {
+                "value": "healthy",
+                "label": "Sehat",
+                "color": "#2E9E5B"
+              },
+              {
+                "value": "attention",
+                "label": "Perlu perhatian",
+                "color": "#E8A317"
+              },
+              {
+                "value": "infected",
+                "label": "Sakit",
+                "color": "#D64545"
+              }
+            ],
+            "answer_modes": [
+              "choose",
+              "type"
+            ]
+          },
+          {
+            "key": "symptoms",
+            "type": "multi_choice",
+            "label": "Gejala",
+            "question": "Gejala apa saja yang terlihat? Boleh pilih lebih dari satu.",
+            "required": false,
+            "min": 1,
+            "options": [
+              {
+                "value": "appetite_loss",
+                "label": "Nafsu makan turun"
+              },
+              {
+                "value": "fever",
+                "label": "Demam"
+              },
+              {
+                "value": "diarrhea",
+                "label": "Diare"
+              },
+              {
+                "value": "mouth_hoof_lesions",
+                "label": "Luka di mulut atau kuku"
+              },
+              {
+                "value": "breathing",
+                "label": "Batuk atau sesak napas"
+              },
+              {
+                "value": "sudden_death",
+                "label": "Ada yang mati mendadak"
+              }
+            ],
+            "answer_modes": [
+              "choose",
+              "type"
+            ]
+          },
+          {
+            "key": "photos",
+            "type": "photo",
+            "label": "Foto ternak/kandang",
+            "question": "Kirim 1 sampai 3 foto ternak atau kandangnya ya.",
+            "min": 1,
+            "max": 3,
+            "answer_modes": [
+              "send",
+              "camera"
+            ]
+          },
+          {
+            "key": "notes",
+            "type": "long_text",
+            "label": "Catatan",
+            "question": "Ada catatan tambahan, misalnya tindakan yang sudah diberikan?",
+            "required": false
+          }
+        ],
+        "rules": [
+          {
+            "if": {
+              "field": "condition",
+              "equals": "infected"
+            },
+            "then": {
+              "require": "symptoms"
+            }
+          },
+          {
+            "if": {
+              "field": "condition",
+              "equals": "infected"
+            },
+            "then": {
+              "needs_review": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Uji Sampel Air (Voice Lab)",
+      "description": "Lab basah: nomor sampel, pH, suhu dan volume diucapkan sekali lewat pesan suara, lalu foto sampel.",
+      "settings": {
+        "sector_code": "research",
+        "frequency": "event",
+        "input_mode": "voice"
+      },
+      "definition": {
+        "fields": [
+          {
+            "key": "nomor_sampel",
+            "type": "short_text",
+            "label": "Nomor sampel",
+            "question": "Nomor sampel?",
+            "voice_cues": [
+              "sampel",
+              "kode"
+            ],
+            "answer_modes": [
+              "type",
+              "voice"
+            ]
+          },
+          {
+            "key": "ph",
+            "type": "number",
+            "label": "pH",
+            "question": "Berapa pH?",
+            "role": "measure",
+            "answer_modes": [
+              "type",
+              "range",
+              "voice"
+            ]
+          },
+          {
+            "key": "suhu",
+            "type": "number",
+            "label": "Suhu",
+            "question": "Berapa suhu?",
+            "unit": "°C",
+            "unit_aliases": [
+              "derajat"
+            ],
+            "role": "measure",
+            "answer_modes": [
+              "type",
+              "range",
+              "voice"
+            ]
+          },
+          {
+            "key": "volume",
+            "type": "number",
+            "label": "Volume",
+            "question": "Berapa volume?",
+            "unit": "mL",
+            "required": false,
+            "answer_modes": [
+              "type",
+              "range",
+              "voice"
+            ]
+          },
+          {
+            "key": "foto_sampel",
+            "type": "photo",
+            "label": "Foto sampel",
+            "question": "Kirim 1 sampai 3 foto sampel atau layar alat ukurnya ya.",
+            "min": 1,
+            "max": 3,
+            "answer_modes": [
+              "send",
+              "camera"
+            ]
+          }
+        ],
+        "rules": []
+      }
+    },
+    {
+      "name": "Catatan Penjualan Hasil Panen",
+      "description": "Penjualan hasil panen dari nota atau struk: foto nota dibaca otomatis (tanggal, pembeli, berat, harga, total), lalu dipastikan satu per satu.",
+      "settings": {
+        "sector_code": "agriculture",
+        "commodities": [
+          "Padi",
+          "Jagung",
+          "Cabai",
+          "Kopi"
+        ],
+        "frequency": "event",
+        "input_mode": "chat"
+      },
+      "definition": {
+        "fields": [
+          {
+            "key": "receipt",
+            "type": "photo",
+            "label": "Foto nota",
+            "question": "Kirim foto nota atau struk penjualannya ya. Isinya saya baca otomatis.",
+            "min": 1,
+            "max": 2,
+            "answer_modes": [
+              "send",
+              "camera"
+            ],
+            "read_values": true
+          },
+          {
+            "key": "sale_date",
+            "type": "datetime",
+            "label": "Tanggal jual",
+            "question": "Tanggal berapa hasil panen dijual?"
+          },
+          {
+            "key": "buyer",
+            "type": "short_text",
+            "label": "Pembeli",
+            "question": "Siapa pembelinya (nama pengepul atau toko)?"
+          },
+          {
+            "key": "commodity",
+            "type": "single_choice",
+            "label": "Komoditas",
+            "question": "Komoditas apa yang dijual?",
+            "role": "status",
+            "options": [
+              {
+                "value": "rice",
+                "label": "Padi"
+              },
+              {
+                "value": "corn",
+                "label": "Jagung"
+              },
+              {
+                "value": "chili",
+                "label": "Cabai"
+              },
+              {
+                "value": "coffee",
+                "label": "Kopi"
+              }
+            ],
+            "answer_modes": [
+              "choose",
+              "type"
+            ]
+          },
+          {
+            "key": "weight",
+            "type": "number",
+            "label": "Berat",
+            "question": "Berapa kilogram yang dijual?",
+            "unit": "kg",
+            "min": 0,
+            "max": 100000,
+            "role": "measure",
+            "answer_modes": [
+              "type"
+            ]
+          },
+          {
+            "key": "price_per_kg",
+            "type": "number",
+            "label": "Harga per kg",
+            "question": "Berapa harga per kilogramnya?",
+            "unit": "Rp/kg",
+            "min": 0,
+            "required": false,
+            "answer_modes": [
+              "type"
+            ]
+          },
+          {
+            "key": "total",
+            "type": "number",
+            "label": "Total",
+            "question": "Berapa total yang diterima?",
+            "unit": "Rp",
+            "min": 0,
+            "role": "measure",
+            "answer_modes": [
+              "type"
+            ]
+          },
+          {
+            "key": "notes",
+            "type": "long_text",
+            "label": "Catatan",
+            "question": "Ada catatan tambahan?",
+            "required": false
+          }
+        ],
+        "rules": []
+      }
+    }
+  ]
+}

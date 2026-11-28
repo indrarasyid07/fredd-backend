@@ -54,6 +54,14 @@ class Inbound:
     # `text` is the transcript of a voice note (roadmap 12.3); `audio` is where it is stored.
     spoken: bool = False
     audio: str | None = None
+    # A language model's rewrite of `text` for the open question (roadmap 12.7), set by the
+    # service after `Step.unread`. Read with the same rules and always confirmed, never saved
+    # silently.
+    ai_text: str | None = None
+    # A language model's reading of a voice-mode sentence (Voice Lab, after `Step.unread_voice`)
+    # or of a photo (after `Step.read_photo`): field key → the value, rewritten for the parsers.
+    # Each value is read with the same rules and confirmed by the worker before it is kept.
+    ai_values: Mapping[str, str] | None = None
 
 
 # --- Out ----------------------------------------------------------------------------------------
@@ -123,6 +131,20 @@ class Topic:
     label: str
 
 
+AgentStyle = Literal["friendly", "formal", "brief"]
+
+
+@dataclass(frozen=True)
+class AgentVoice:
+    """How the organization's agent speaks (Pengaturan agent): its name, the greeting sent once
+    a worker has joined (None = the default for the style), and the style of the opening and
+    closing lines. The questions themselves always come from the form."""
+
+    name: str = "Fluctuz"
+    style: AgentStyle = "friendly"
+    greeting: str | None = None
+
+
 @dataclass(frozen=True)
 class EngineContext:
     """Everything the engine needs from the database, loaded by the service per message."""
@@ -138,6 +160,7 @@ class EngineContext:
     units: Mapping[str, str] = field(default_factory=dict)
     # The topic's structure is in voice mode (Voice Lab, roadmap 12.3): one message, many fields.
     voice_mode: bool = False
+    agent: AgentVoice = field(default_factory=AgentVoice)
 
 
 @dataclass
@@ -153,6 +176,9 @@ class ConversationState:
     failed_attempts: int = 0
     # A guessed value waiting for "Ya" (field, value, how it is shown).
     pending: dict[str, Any] | None = None
+    # Values a language model read from a Voice Lab sentence or a photo, by field key ({value,
+    # display}); each becomes a "Ya / Ubah" confirmation when the bot reaches its field.
+    ai_suggested: dict[str, Any] = field(default_factory=dict)
     # Back to the summary after re-answering one field.
     editing: bool = False
     # Photos sent before a topic was chosen, used once the report starts; and the album they
@@ -178,3 +204,13 @@ class Step:
     state: ConversationState
     replies: tuple[Outbound, ...] = ()
     effects: tuple[Effect, ...] = ()
+    # Key of the open field whose typed answer the parsers could not read: the service may ask
+    # a language model and run the message again with `Inbound.ai_text`.
+    unread: str | None = None
+    # Voice Lab: keys of the spoken fields a voice-mode sentence did not fill for sure. The
+    # service may ask a language model and run the message again with `Inbound.ai_values`.
+    unread_voice: tuple[str, ...] = ()
+    # "Baca struk dan foto": a photo the service may have read by a language model for the
+    # fields in `read_keys`, then run the message again with `Inbound.ai_values`.
+    read_photo: str | None = None
+    read_keys: tuple[str, ...] = ()

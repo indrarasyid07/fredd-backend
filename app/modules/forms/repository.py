@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.forms.models import Form, FormTemplate, FormTemplateSector, FormVersion
@@ -51,6 +51,13 @@ async def get_drafts(
         FormVersion.form_id.in_(form_ids), FormVersion.published_at.is_(None)
     )
     return {v.form_id: v for v in await db.scalars(query)}
+
+
+async def next_version_number(db: AsyncSession, form_id: uuid.UUID) -> int:
+    latest = await db.scalar(
+        select(func.max(FormVersion.version)).where(FormVersion.form_id == form_id)
+    )
+    return (latest or 0) + 1
 
 
 async def get_versions(

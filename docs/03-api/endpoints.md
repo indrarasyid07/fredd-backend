@@ -45,6 +45,7 @@ Rincian request, respons, dan error per endpoint: [auth.md](../06-domain-guides/
 |---|---|---|
 | GET, POST | `/forms` | reviewer / form_editor. **Ada**: daftar terbaru dulu (cursor); POST membuat form `draft` + versi 1 sebagai draf |
 | GET, PATCH | `/forms/{id}` | reviewer / form_editor (hanya draf). **Ada**: PATCH = autosave wizard (`name`, `description`, `definition`, `settings`); tanpa draf → 409 `form_not_editable` |
+| POST, DELETE | `/forms/{id}/draft` | form_editor. **Ada**: POST membuka struktur aktif untuk diubah: draf versi berikutnya, salinan versi aktif; idempoten (draf yang terbuka dikembalikan); audit `form.draft_opened`; diarsipkan → 409 `form_archived`. DELETE membuang draf itu, versi aktif tetap; audit `form.draft_discarded`; form yang belum pernah terbit → 409 `draft_is_only_version`. Lihat [forms.md](../06-domain-guides/forms.md#mengubah-struktur-yang-sudah-aktif) |
 | GET | `/form-templates` | reviewer. **Ada**: katalog template wizard per sektor |
 | GET | `/forms/{id}/versions` | reviewer |
 | POST | `/forms/{id}/validate` | form_editor (periksa otomatis). **Ada**: selalu 200 dengan `{valid, errors[], warnings[]}`; tiap masalah punya `code`, `message`, `field` bertitik (`fields.2.question`); tanpa draf → 409 |
@@ -85,7 +86,7 @@ Rancangan, belum dibangun. Rincian, skema respons, dan definisi angka: [dashboar
 | Method | Path | Peran |
 |---|---|---|
 | GET | `/dashboard/forms/{form_id}?range=today\|7d\|30d` | reviewer. **Ada (4.7)**: data widget generik satu struktur (D17): `total`, `daily` 7 hari, setiap isian pilihan (`choices`: nilai, label, jumlah, persen; pilihan tunggal berjumlah 100, pilihan ganda = bagian laporan yang menjawab) dan angka (`numbers`: count, sum, avg, min, max) menurut urutan versi terkini (nilai dari versi lama tetap dihitung), kabupaten teratas. Struktur workspace lain → `404` |
-| GET | `/dashboard/summary?range=today\|7d\|30d` | reviewer. **Ada (4.2)**: KPI, `daily` + `previous_daily` (7 + 7 hari), `channels` (persen 7 hari), kondisi + wilayah Terserang teratas (mengikuti `range`), `top_regions` (kabupaten), `setup` (`form_created`, `channel_and_worker`, `has_reports`). Cache Redis 15 dtk per (workspace, rentang); lihat [dashboard.md](../06-domain-guides/dashboard.md) |
+| GET | `/dashboard/summary?range=today\|7d\|30d` | reviewer. **Ada (4.2)**: KPI, `daily` + `previous_daily` (7 + 7 hari), `hourly` (`yesterday` dan `today`, masing-masing 24 angka per jam di zona workspace; untuk peta jam sibuk Laporan masuk), `channels` (persen 7 hari), kondisi + wilayah Terserang teratas (mengikuti `range`), `top_regions` (kabupaten), `setup` (`form_created`, `channel_and_worker`, `has_reports`). Cache Redis 15 dtk per (workspace, rentang); lihat [dashboard.md](../06-domain-guides/dashboard.md) |
 
 Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivitas di bawah.
 
@@ -93,11 +94,11 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 
 | Method | Path | Peran |
 |---|---|---|
-| GET | `/reports` | reviewer. **Ada (4.3)**: terbaru dahulu (`received_at`, cursor); filter `form_id`, `extension_worker_id`, `region_id`, `condition` (boleh berulang; `unknown` = tanpa kondisi), `needs_review`, `since` (inklusif), `until` (eksklusif), `voice` (Voice Lab 12.4: `true` hanya laporan dari pesan suara, baris membawa `transcript`). Baris: kode, struktur, penyuluh, kanal, wilayah, kondisi, `area_ha`, `photo_count`, `needs_review`, `complete`, `received_at` |
+| GET | `/reports` | reviewer. **Ada (4.3)**: terbaru dahulu (`received_at`, cursor); filter `form_id`, `extension_worker_id`, `region_id`, `condition` (boleh berulang; `unknown` = tanpa kondisi), `needs_review`, `since` (inklusif), `until` (eksklusif), `voice` (Voice Lab 12.4: `true` hanya laporan dari pesan suara, baris membawa `transcript`), `q` (≤ 100 karakter: cari di kode laporan, nama penyuluh, dan nama wilayah, tidak peka huruf besar/kecil). Baris: kode, struktur, penyuluh, kanal, wilayah, kondisi, `area_ha`, `photo_count`, `needs_review`, `complete`, `received_at` |
 | GET | `/reports/map` | reviewer (agregat per wilayah + titik; [dashboard.md](../06-domain-guides/dashboard.md#get-reportsmaprangeform_idcondition)) |
 | GET | `/reports/count` | reviewer (jumlah untuk jendela unduh) |
 | GET | `/reports/photos` | reviewer (galeri) |
-| GET | `/reports/{id}` | reviewer. **Ada (4.3)**: isian berlabel menurut **versi struktur saat laporan dibuat** (`value` mentah + `display` Bahasa Indonesia, mis. "1,5 ha", "Terserang", "Dilewati"), lokasi, wilayah, foto dengan URL bertanda tangan (`STORAGE_PRESIGN_EXPIRY_SECONDS`; `url: null` bila foto masih rujukan Telegram atau penyimpanan lokal), alasan tinjauan dalam kalimat, dan `voice` (12.4: transkrip, URL rekaman bertanda tangan, kata yang didengar + keyakinan per isian; null untuk laporan chat). Workspace lain → `404 report_not_found` |
+| GET | `/reports/{id}` | reviewer. **Ada (4.3)**: isian berlabel menurut **versi struktur saat laporan dibuat** (`value` mentah + `display` Bahasa Indonesia, mis. "1,5 ha", "Terserang", "Dilewati"), lokasi, wilayah, foto dengan URL bertanda tangan (`STORAGE_PRESIGN_EXPIRY_SECONDS`; `url: null` bila foto masih rujukan Telegram atau penyimpanan lokal), `photos[].ai_note` (catatan AI untuk peninjau, 12.7; null bila belum/tidak diperiksa), alasan tinjauan dalam kalimat, dan `voice` (12.4: transkrip, URL rekaman bertanda tangan, kata yang didengar + keyakinan per isian; null untuk laporan chat). Workspace lain → `404 report_not_found` |
 | POST | `/reports/{id}/corrections` | reviewer. **Ada (12.5)**: `{field_key, value, reason}` (alasan wajib ≥ 3 karakter). Nilai diketik dibaca dengan aturan suara/chat (angka + satuan isian, pilihan, tanggal, teks); kolom filter, `report_values`, dan kelengkapan dihitung ulang; riwayat `report_corrections` + audit `report.corrected`. Isian lokasi/media/tidak dikenal → `422 field_not_correctable`; tak terbaca atau satuan lain → `422 invalid_correction`; laporan terverifikasi → `409 report_already_verified` |
 | POST | `/reports/{id}/verify` | reviewer. **Ada (12.5)**: `verified_at` + `verified_by_user_id`, audit `report.verified`; sudah terverifikasi → `409 report_already_verified`. Detail membawa `verification` dan `corrections[]`; daftar membawa `verified` dan menerima filter `verified=true\|false` |
 | PATCH | `/reports/{id}/review` | reviewer (tandai ditinjau) |
@@ -117,6 +118,17 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 | POST | `/conversations/{id}/messages` | admin (hanya pemilik takeover) |
 | POST | `/conversations/{id}/release` | admin (kembalikan ke Fluctuz) |
 | POST | `/agent/pause`, `/agent/resume` | admin |
+
+## Pengaturan agent
+
+Satu pengaturan per organisasi, dipakai bot untuk semua struktur data. Lihat [conversation-engine.md](../06-domain-guides/conversation-engine.md#pengaturan-agent).
+
+| Method | Path | Peran |
+|---|---|---|
+| GET | `/agent/settings` | reviewer. **Ada**: `name`, `style` (`friendly`/`formal`/`brief`), `greeting` (null = sapaan bawaan gaya), `read_free_answers`, `voice_and_photos`, `updated_at`, plus `ai_available` / `voice_available` (server punya penyedia LLM / STT OpenAI). Belum pernah disimpan → nilai bawaan |
+| PUT | `/agent/settings` | admin. **Ada**: body = lima kolom di atas (`name` 1–40 karakter, `greeting` ≤ 200; spasi dirapikan; kolom lain → 422). Disimpan di `workspaces.settings["agent"]`, berlaku mulai pesan berikutnya; audit `agent.settings_updated` dengan daftar kolom yang berubah |
+| POST | `/agent/preview` | reviewer. **Ada**: body = pengaturan yang dicoba, `?topic=` opsional (judul laporan; bawaan contoh struktur). Mengembalikan `after_join`, `report_start`, `report_opening` (kalimat pembuka saja), `report_saved`. Tidak menyimpan apa pun |
+| POST | `/agent/test` | admin. **Ada**: `{form_id, settings, messages[]}` (≤ 40 pesan `{text?, button?, ai_text?}`). Server memutar ulang seluruh percakapan lewat mesin percakapan yang sama dengan pengaturan yang dicoba dan mengembalikan `turns[]` (`message`, `replies[]` dengan tombol, `events[]`, `ai_text`) dan `status`. Tidak menyimpan percakapan, laporan, atau penyuluh; bacaan AI dikembalikan agar putaran berikutnya tidak memanggil model lagi. Struktur tanpa versi terbit → 409 `form_not_testable` |
 
 ## Kanal
 

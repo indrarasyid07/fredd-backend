@@ -327,6 +327,72 @@ async def publish_form(
     return await _detail(db, form)
 
 
+async def open_draft(
+    db: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID, form_id: uuid.UUID
+) -> FormDetailOut:
+    """Reopen a published form for changes: a new draft version, starting as a copy of the active
+    one. Workers keep reporting on the active version until the draft is published; reports
+    already sent stay on the version they were made with. Idempotent: an open draft is returned."""
+    form = await repository.get_form_for_update(db, workspace_id, form_id)
+    if form is None:
+        raise errors.FormNotFound()
+    if form.status == "archived":
+        raise errors.FormArchived()
+    draft = (await repository.get_drafts(db, [form.id])).get(form.id)
+    if draft is not None:
+        return await _detail(db, form, draft)
+    if form.current_version_id is None:
+        raise errors.FormNotEditable()  # no draft and never published: should not happen
+    current = (await repository.get_versions(db, [form.current_version_id]))[
+        form.current_version_id
+    ]
+    draft = FormVersion(
+        workspace_id=workspace_id,
+        form_id=form.id,
+        version=await repository.next_version_number(db, form.id),
+        definition=dict(current.definition),
+    )
+    db.add(draft)
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=user_id,
+        action="form.draft_opened",
+        target=str(form.id),
+        details={"name": form.name, "from_version": current.version, "version": draft.version},
+    )
+    await db.commit()
+    await db.refresh(form)
+    await db.refresh(draft)
+    return await _detail(db, form, draft)
+
+
+async def discard_draft(
+    db: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID, form_id: uuid.UUID
+) -> FormDetailOut:
+    """Throw away unpublished changes to a published form; the active version stays as it was."""
+    form = await repository.get_form_for_update(db, workspace_id, form_id)
+    if form is None:
+        raise errors.FormNotFound()
+    draft = (await repository.get_drafts(db, [form.id])).get(form.id)
+    if draft is None:
+        return await _detail(db, form)
+    if form.current_version_id is None:
+        raise errors.DraftIsTheOnlyVersion()
+    await db.delete(draft)
+    await audit.record(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=user_id,
+        action="form.draft_discarded",
+        target=str(form.id),
+        details={"name": form.name, "version": draft.version},
+    )
+    await db.commit()
+    await db.refresh(form)
+    return await _detail(db, form)
+
+
 async def archive_form(
     db: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID, form_id: uuid.UUID
 ) -> FormDetailOut:

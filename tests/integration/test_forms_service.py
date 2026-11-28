@@ -81,3 +81,73 @@ async def test_one_draft_per_form(db: AsyncSession, organization: Workspace, use
     )
     with pytest.raises(IntegrityError):
         await db.flush()
+
+
+async def _published(db: AsyncSession, organization: Workspace, user: User):  # noqa: ANN202
+    definition = FormDefinition.model_validate(crop_survey())
+    form = await service.create_form(db, organization.id, user.id, "Survei", definition)
+    await service.publish_form(db, organization.id, user.id, form.id)
+    return form
+
+
+async def test_open_draft_copies_the_active_version(
+    db: AsyncSession, organization: Workspace, user: User
+) -> None:
+    form = await _published(db, organization, user)
+
+    detail = await service.open_draft(db, organization.id, user.id, form.id)
+
+    assert (detail.status, detail.current_version, detail.draft_version) == ("active", 1, 2)
+    assert detail.draft is not None and form.current_version_id is not None
+    active = await service.get_version_definition(db, organization.id, form.current_version_id)
+    assert detail.draft.definition.model_dump() == active.definition.model_dump()
+    # Opening again returns the same draft instead of a third version.
+    again = await service.open_draft(db, organization.id, user.id, form.id)
+    assert again.draft is not None and again.draft.version_id == detail.draft.version_id
+
+
+async def test_publishing_the_reopened_draft_makes_version_two_active(
+    db: AsyncSession, organization: Workspace, user: User
+) -> None:
+    form = await _published(db, organization, user)
+    first = form.current_version_id
+    assert first is not None
+    await service.open_draft(db, organization.id, user.id, form.id)
+
+    published = await service.publish_form(db, organization.id, user.id, form.id)
+
+    assert (published.current_version, published.draft_version) == (2, None)
+    assert published.current_version_id != first
+    # The old version is still readable for the reports made with it.
+    assert (await service.get_version_definition(db, organization.id, first)).version == 1
+
+
+async def test_discard_draft(db: AsyncSession, organization: Workspace, user: User) -> None:
+    form = await _published(db, organization, user)
+    await service.open_draft(db, organization.id, user.id, form.id)
+
+    detail = await service.discard_draft(db, organization.id, user.id, form.id)
+
+    assert (detail.current_version, detail.draft_version, detail.draft) == (1, None, None)
+    # The next reopen numbers on from the highest version ever used.
+    assert (await service.open_draft(db, organization.id, user.id, form.id)).draft_version == 2
+
+
+async def test_draft_of_a_never_published_form_cannot_be_discarded(
+    db: AsyncSession, organization: Workspace, user: User
+) -> None:
+    definition = FormDefinition.model_validate(crop_survey())
+    form = await service.create_form(db, organization.id, user.id, "Survei", definition)
+
+    with pytest.raises(errors.DraftIsTheOnlyVersion):
+        await service.discard_draft(db, organization.id, user.id, form.id)
+
+
+async def test_archived_form_cannot_be_reopened(
+    db: AsyncSession, organization: Workspace, user: User
+) -> None:
+    form = await _published(db, organization, user)
+    await service.archive_form(db, organization.id, user.id, form.id)
+
+    with pytest.raises(errors.FormArchived):
+        await service.open_draft(db, organization.id, user.id, form.id)

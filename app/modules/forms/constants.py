@@ -64,6 +64,9 @@ CHOICE_TYPES = ("single_choice", "multi_choice")
 # Fields a value can be read from a spoken sentence for (Voice Lab, roadmap 12).
 SPOKEN_TYPES = ("short_text", "long_text", "number", "single_choice", "multi_choice", "datetime")
 MEDIA_TYPES = ("photo", "video", "document")
+# Fields whose photo can be read for the other answers ("Baca struk dan foto": a receipt, a
+# delivery note, an instrument display), with `read_values`.
+READABLE_MEDIA_TYPES = ("photo", "document")
 # Types where `min`/`max` apply: the value itself (number) or how many answers (choices, media).
 BOUNDED_TYPES = ("number", "multi_choice", *MEDIA_TYPES)
 

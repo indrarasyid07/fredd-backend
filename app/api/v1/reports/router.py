@@ -41,6 +41,10 @@ async def list_reports(
     ] = None,
     since: Annotated[datetime | None, Query(description="Diterima sejak (inklusif).")] = None,
     until: Annotated[datetime | None, Query(description="Diterima sebelum (eksklusif).")] = None,
+    q: Annotated[
+        str | None,
+        Query(max_length=100, description="Cari kode laporan, nama penyuluh, atau nama wilayah."),
+    ] = None,
     limit: Limit = 20,
     cursor: Cursor = None,
 ):
@@ -58,6 +62,7 @@ async def list_reports(
         until=until,
         after=decode_cursor(cursor, 2),
         limit=limit,
+        q=q,
     )
     next_cursor = encode_cursor(more) if more else None
     return ok(

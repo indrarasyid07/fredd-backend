@@ -59,6 +59,23 @@ async def count_per_day(
     return {day: int(n) for day, n in rows.all()}
 
 
+async def count_per_hour(
+    db: AsyncSession, workspace_id: uuid.UUID, tz: str, start: datetime, end: datetime
+) -> dict[tuple[date, int], int]:
+    """Reports per (local day, local hour 0-23), for the busiest-hours heatmap."""
+    rows = await db.execute(
+        text(
+            "select (received_at at time zone :tz)::date as day, "
+            "extract(hour from received_at at time zone :tz)::int as hour, count(*) "
+            "from reports "
+            "where workspace_id = :ws and received_at >= :start and received_at < :end "
+            "group by day, hour"
+        ),
+        {"ws": workspace_id, "tz": tz, "start": start, "end": end},
+    )
+    return {(day, hour): int(n) for day, hour, n in rows.all()}
+
+
 async def count_per_channel(
     db: AsyncSession, workspace_id: uuid.UUID, start: datetime, end: datetime
 ) -> dict[str, int]:

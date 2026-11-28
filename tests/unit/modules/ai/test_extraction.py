@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from app.modules.ai import speech
-from app.modules.ai.extraction import CONFIDENT, extract
+from app.modules.ai.extraction import CONFIDENT, extract, read_value
 from app.modules.forms.schemas import FormDefinition
 
 LAB = FormDefinition.model_validate(
@@ -99,3 +99,33 @@ def test_unknown_provider_is_unavailable(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(speech.settings, "stt_provider", "nowhere")
     with pytest.raises(speech.SpeechUnavailable):
         speech.get_speech_to_text()
+
+
+def test_short_text_that_ran_on_is_doubtful() -> None:
+    lab = FormDefinition.model_validate(
+        {
+            "fields": [
+                {"key": "sample", "type": "short_text", "label": "Nomor sampel",
+                 "question": "?", "voice_cues": ["kode"]},
+                {"key": "ph", "type": "number", "label": "pH", "question": "?"},
+            ]
+        }
+    )  # fmt: skip
+    ran_on = extract("kode S-9 asamnya netral tujuh, panasnya dua lima derajat", lab)
+    value = ran_on.value("sample")
+    assert value is not None and value.confidence < CONFIDENT and value.doubt
+    clean = extract("kode S-9, pH 7", lab).value("sample")
+    assert clean is not None and clean.value == "S-9" and clean.confidence >= CONFIDENT
+
+
+def test_minus_sign_is_kept() -> None:
+    freezer = FormDefinition.model_validate(
+        {"fields": [{"key": "temp", "type": "number", "label": "Suhu", "question": "?",
+                     "unit": "°C", "unit_aliases": ["derajat"]}]}
+    )  # fmt: skip
+    value = extract("suhu -20 derajat", freezer).value("temp")
+    assert value is not None and value.value == "-20"
+    word = extract("suhu-nya 4 derajat", freezer).value("temp")  # "-nya" is not a sign
+    assert word is not None and word.value == "4"
+    read = read_value(freezer.fields[0], "-5")
+    assert read is not None and read.value == "-5"

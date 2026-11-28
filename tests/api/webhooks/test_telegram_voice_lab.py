@@ -1,6 +1,7 @@
 """Voice Lab on the Telegram webhook (roadmap 12.3): in a voice-mode topic a voice note is stored,
 transcribed, fills several fields at once, and the report keeps what was heard."""
 
+import json
 from typing import Any
 
 import pytest
@@ -9,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
-from app.modules.ai import speech
+from app.modules.ai import answers, speech
 from app.modules.ai.speech import fake_voice_note
 from app.modules.conversations.engine import copy
 from app.modules.forms import service as forms
@@ -17,9 +18,11 @@ from app.modules.forms.models import Form, FormVersion
 from app.modules.forms.schemas import FormDefinition
 from app.modules.join_codes import repository as join_code_repo
 from app.modules.join_codes.models import JoinCode
-from app.modules.reports.models import Report
+from app.modules.reports.models import Report, ReportPhoto
 from app.modules.workspaces.models import Workspace
+from scripts import demo_structures
 from tests.api.webhooks.test_telegram_join import _dashed
+from tests.api.webhooks.test_telegram_media import JPEG, PhotoChat
 from tests.api.webhooks.test_telegram_report_flow import Worker
 from tests.conftest import MemoryStorage
 from tests.telegram_fixtures import FakeTelegram, telegram_update
@@ -51,9 +54,11 @@ def chat(client: AsyncClient, bot: FakeTelegram) -> LabChat:
     return LabChat(client, bot)
 
 
-async def _lab_topic(db: AsyncSession, workspace: Workspace, mode: str = "voice") -> JoinCode:
+async def _lab_topic(
+    db: AsyncSession, workspace: Workspace, mode: str = "voice", definition: Any = LAB
+) -> JoinCode:
     form = await forms.create_form(
-        db, workspace.id, None, "Uji Sampel Air", FormDefinition.model_validate(LAB)
+        db, workspace.id, None, "Uji Sampel Air", FormDefinition.model_validate(definition)
     )
     row = await db.get(Form, form.id)
     version = await db.scalar(select(FormVersion).where(FormVersion.form_id == form.id))
@@ -141,3 +146,108 @@ async def test_chat_mode_topic_is_not_transcribed(
     bot.files["v1"] = fake_voice_note("S-1")
     replies = await chat.voice("v1")
     assert not any(r.startswith("Tercatat") for r in replies)
+
+
+class LabPhotoChat(LabChat, PhotoChat):
+    pass
+
+
+async def test_demo_voice_lab_asks_for_the_sample_photo_after_the_voice_note(
+    client: AsyncClient,
+    db: AsyncSession,
+    organization: Workspace,
+    bot: FakeTelegram,
+    media_store: MemoryStorage,
+) -> None:
+    """The demo's Voice Lab (fixtures/demo/structures.json): one voice note fills the values,
+    then the bot asks for the photo, and the report keeps both."""
+    fixture = json.loads((demo_structures.FIXTURES / "demo" / "structures.json").read_text())
+    lab = next(s for s in fixture["structures"] if s["settings"]["input_mode"] == "voice")
+    chat = LabPhotoChat(client, bot)
+    code = await _lab_topic(db, organization, definition=lab["definition"])
+    await chat.say(_dashed(code))
+    await chat.tap("join:keep")
+
+    bot.files["v1"] = fake_voice_note("sampel S-2041, pH 6,8, suhu 25 derajat, volume 250")
+    replies = await chat.voice("v1")
+    assert replies[0].startswith("Tercatat: Nomor sampel *S-2041*")
+    assert "foto sampel" in replies[-1].lower()  # the one thing a voice note cannot carry
+    bot.files["p1"] = JPEG
+    await chat.photo("p1")
+    await chat.tap("done")
+    await chat.tap("submit")
+
+    report = await db.scalar(select(Report))
+    assert report is not None and report.voice is not None
+    assert report.answers["suhu"] == "25" and len(report.answers["foto_sampel"]) == 1
+    photo = await db.scalar(select(ReportPhoto))
+    assert photo is not None and photo.object_key in media_store.objects
+
+
+class FakeSentenceReader:
+    name = "fake"
+
+    def __init__(self, values: dict[str, str]) -> None:
+        self.values = values
+        self.asked: list[tuple[str, ...]] = []
+
+    async def read_sentence(
+        self, definition: FormDefinition, keys: Any, said: str, *, today: Any
+    ) -> dict[str, str]:
+        self.asked.append(tuple(keys))
+        return {k: v for k, v in self.values.items() if k in keys}
+
+
+async def test_loose_voice_note_is_read_by_the_model_and_confirmed(
+    client: AsyncClient,
+    db: AsyncSession,
+    organization: Workspace,
+    bot: FakeTelegram,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ "pH-nya kira-kira enam koma delapan, suhunya dua puluh lima": the rules miss both, a
+    language model reads them, the worker confirms each, and the report keeps what it read."""
+    fixture = json.loads((demo_structures.FIXTURES / "demo" / "structures.json").read_text())
+    lab = next(s for s in fixture["structures"] if s["settings"]["input_mode"] == "voice")
+    model = FakeSentenceReader({"ph": "6,8", "suhu": "25"})
+    monkeypatch.setattr(answers, "sentence_override", model)
+    chat = LabPhotoChat(client, bot)
+    code = await _lab_topic(db, organization, definition=lab["definition"])
+    await chat.say(_dashed(code))
+    await chat.tap("join:keep")
+
+    said = "sampel S-7, pH-nya kira-kira enam koma delapan, suhunya dua puluh lima"
+    bot.files["v1"] = fake_voice_note(said)
+    heard, confirm = await chat.voice("v1")
+    assert model.asked == [("ph", "suhu", "volume")]
+    assert "Sepertinya juga: pH *6,8* · Suhu *25 °C*" in heard
+    assert confirm == copy.confirm_value("6,8")
+    assert await chat.tap("yes") == [copy.confirm_value("25 °C")]
+    (volume,) = await chat.tap("yes")
+    assert "Berapa volume?" in volume
+    (photo,) = await chat.tap("skip")
+    assert "foto sampel" in photo.lower()
+    bot.files["p1"] = JPEG
+    await chat.photo("p1")
+    await chat.tap("done")
+    await chat.tap("submit")
+
+    report = await db.scalar(select(Report))
+    assert report is not None and report.voice is not None
+    assert report.answers["ph"] == "6.8" and report.answers["suhu"] == "25"
+    assert report.voice["ai_read"] == {"ph": "6,8", "suhu": "25"}
+
+
+async def test_clear_voice_note_never_calls_the_model(
+    chat: LabChat,
+    db: AsyncSession,
+    organization: Workspace,
+    bot: FakeTelegram,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = FakeSentenceReader({})
+    monkeypatch.setattr(answers, "sentence_override", model)
+    await _join(chat, db, organization)
+    bot.files["v1"] = fake_voice_note("sampel S-2041, pH 6,8, suhu 25 derajat")
+    await chat.voice("v1")
+    assert model.asked == []

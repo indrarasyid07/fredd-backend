@@ -75,6 +75,13 @@ class ChannelShareOut(BaseModel):
     telegram: int
 
 
+class HourlyOut(BaseModel):
+    """Reports per local hour (24 entries, 0 = midnight) for yesterday and today so far."""
+
+    yesterday: list[int]
+    today: list[int]
+
+
 class SetupOut(BaseModel):
     form_created: bool
     channel_and_worker: bool
@@ -90,6 +97,8 @@ class DashboardSummaryOut(BaseModel):
     # The 7 days before `daily`, same order (the dashed comparison line).
     previous_daily: list[DayCountOut]
     channels: ChannelShareOut
+    # The busiest-hours heatmap of "Laporan masuk".
+    hourly: HourlyOut
     conditions: ConditionsOut
     top_regions: list[RegionCountOut]
     setup: SetupOut

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Select, and_, delete, func, or_, select
+from sqlalchemy import ColumnElement, Select, and_, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
@@ -86,6 +86,18 @@ def _rows_query() -> Select[Report, str, str | None, str, str, int]:
     )
 
 
+def _matches(q: str) -> ColumnElement[bool]:
+    """Code, extension worker or region name contains `q` (case-insensitive, `%`/`_` literal)."""
+    escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    pattern = f"%{escaped}%"
+    regions = select(ReferenceData.id).where(ReferenceData.value.ilike(pattern, escape="\\"))
+    return or_(
+        Report.code.ilike(pattern, escape="\\"),
+        ExtensionWorker.name.ilike(pattern, escape="\\"),
+        Report.region_id.in_(regions),
+    )
+
+
 def _row(values: Any) -> ReportRow:
     report, worker_name, telegram_user_id, form_name, region_name, photo_count = values
     return ReportRow(report, worker_name, telegram_user_id, form_name, region_name, photo_count)
@@ -106,6 +118,7 @@ async def list_reports(
     until: datetime | None,
     after: tuple[datetime, uuid.UUID] | None,
     limit: int,
+    q: str | None = None,
 ) -> list[ReportRow]:
     """Newest first. One extra row tells the caller there is a next page; `after` is the
     (received_at, id) of the previous page's last row."""
@@ -135,6 +148,8 @@ async def list_reports(
         stmt = stmt.where(Report.received_at >= since)
     if until is not None:
         stmt = stmt.where(Report.received_at < until)
+    if q:
+        stmt = stmt.where(_matches(q))
     if after is not None:
         at, last_id = after
         stmt = stmt.where(

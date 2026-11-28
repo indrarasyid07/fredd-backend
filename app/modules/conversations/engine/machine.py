@@ -17,7 +17,7 @@ from dataclasses import replace
 from decimal import Decimal
 from typing import Any
 
-from app.modules.ai.extraction import CONFIDENT, extract
+from app.modules.ai.extraction import CONFIDENT, extract, read_value
 from app.modules.conversations.engine import copy
 from app.modules.conversations.engine.parsers import (
     DEFAULT_UNITS,
@@ -84,7 +84,8 @@ def extract_join_code(text: str | None) -> str | None:
 def handle(state: ConversationState, message: Inbound, ctx: EngineContext) -> Step:
     s = replace(state, answers=dict(state.answers), required_by_rules=list(state.required_by_rules),
                 review_reasons=list(state.review_reasons),
-                held_media=list(state.held_media))  # fmt: skip
+                held_media=list(state.held_media),
+                ai_suggested=dict(state.ai_suggested))  # fmt: skip
     if s.status == "taken_over":
         return Step(s)  # the admin is answering; keep quiet
     text = normalize(message.text or "")
@@ -120,7 +121,16 @@ def handle(state: ConversationState, message: Inbound, ctx: EngineContext) -> St
         voiced = _voice(begun.state, message, ctx, ctx.definition, opening=False)
         if voiced is not None:
             return voiced
+        if message.ai_values is None:
+            # The rules read nothing: a language model may (the service runs it again), else
+            # carry on as below.
+            return replace(_after_voice(s, message, ctx), unread_voice=_spoken(ctx.definition))
+    return _after_voice(s, message, ctx)
 
+
+def _after_voice(s: ConversationState, message: Inbound, ctx: EngineContext) -> Step:
+    """`handle` past the Voice Lab sentence: albums, photos before "mulai", then by status."""
+    text = normalize(message.text or "")
     if message.media is not None:
         album = _album(s, message, ctx)
         if album is not None:
@@ -129,7 +139,7 @@ def handle(state: ConversationState, message: Inbound, ctx: EngineContext) -> St
             # A photo before "mulai" starts a report and answers its first photo field.
             s.held_media = [message.media.ref]
             s.media_group = message.media.group
-            return _begin(s, ctx)
+            return _begin(s, ctx, message)
 
     if s.status == "choosing_form":
         return _choose_topic(s, message, ctx)
@@ -140,29 +150,49 @@ def handle(state: ConversationState, message: Inbound, ctx: EngineContext) -> St
     if s.status == "confirming_summary" and ctx.definition is not None:
         return _summary_step(s, message, ctx, ctx.definition)
     # idle, identifying, submitted, joining: begin a (new) report.
-    return _begin(s, ctx)
+    return _begin(s, ctx, message)
 
 
-def start(state: ConversationState, ctx: EngineContext) -> Step:
-    """Begin a fresh report on the active topic (after joining or picking a topic)."""
+def start(state: ConversationState, ctx: EngineContext, message: Inbound | None = None) -> Step:
+    """Begin a fresh report on the active topic (after joining or picking a topic). Photos sent
+    before it answer the first photo field; one that reads its photo is read (`message` brings
+    the language model's values on the second run)."""
     s = ConversationState(status="asking", topic_id=state.topic_id)
     definition = ctx.definition
     if definition is None:
         s.held_media, s.media_group = list(state.held_media), state.media_group
         return Step(s)
     notes = _use_held_media(s, state, definition)
+    target = _first_photo_field(definition)
+    keys: tuple[str, ...] = ()
+    ref = state.held_media[0] if state.held_media else None
+    if ref is not None and target is not None and target.key in s.answers:
+        read_notes, keys = _photo_values(s, message, ctx, definition, target)
+        notes = (*notes, *read_notes)
+    step = _first_step(s, ctx, definition, notes)
+    return replace(step, read_photo=ref, read_keys=keys) if keys else step
+
+
+def _first_step(
+    s: ConversationState,
+    ctx: EngineContext,
+    definition: FormDefinition,
+    notes: tuple[Outbound, ...],
+) -> Step:
     if ctx.voice_mode and not s.answers:
         s.step = VOICE_STEP
         prompt = copy.voice_prompt(_voice_example(definition))
-        greeting = copy.greet(ctx.salutation, ctx.topic_label, prompt)
+        greeting = copy.greet(ctx.salutation, ctx.topic_label, prompt, ctx.agent.style)
         return Step(s, replies=(*notes, Outbound(greeting)))
     first = _next_field(s, definition)
     if first is None:
         summary = _show_summary(s, definition, ctx)
         return Step(summary.state, replies=(*notes, *summary.replies))
     s.step = first.key
-    question = _question(s, definition, first)
-    greeting = replace(question, text=copy.greet(ctx.salutation, ctx.topic_label, question.text))
+    question = _ask(s, definition, first)
+    greeting = replace(
+        question, text=copy.greet(ctx.salutation, ctx.topic_label, question.text, ctx.agent.style)
+    )
     return Step(s, replies=(*notes, greeting))
 
 
@@ -246,34 +276,106 @@ def _voice(
             return Step(s, replies=(Outbound(copy.VOICE_UNREAD),))
         return Step(s, replies=(Outbound(copy.voice_nothing(_voice_example(definition))),))
     result = extract(said, definition, today=ctx.today)
-    if not result.values or all(v.value is None for v in result.values):
+    sure_values = [v for v in result.values if v.confidence >= CONFIDENT and v.value is not None]
+    read = {v.field_key for v in sure_values}
+    # Spoken fields the rules did not fill for sure: what a language model may read (roadmap
+    # 12.7). Asked for only when it matters: a required one is missing or one was doubtful.
+    unread = tuple(f.key for f in definition.fields if f.type in SPOKEN_TYPES and f.key not in read)
+    worth_asking = any(
+        (f := definition.field(k)) is not None and (f.required or result.value(k) is not None)
+        for k in unread
+    )
+    ask_model = message.ai_values is None and worth_asking
+    suggested = _ai_suggestions(message, definition, unread, ctx)
+    if not sure_values and not suggested and all(v.value is None for v in result.values):
         if not opening:
             return None
         s.failed_attempts += 1
-        return Step(s, replies=(Outbound(copy.voice_nothing(_voice_example(definition))),))
+        nothing = Step(s, replies=(Outbound(copy.voice_nothing(_voice_example(definition))),))
+        return replace(nothing, unread_voice=unread) if ask_model else nothing
     sure: list[tuple[str, str]] = []
     unsure: list[tuple[str, str]] = []
     for v in result.values:
         f = definition.field(v.field_key)
         assert f is not None
-        if v.confidence >= CONFIDENT and v.value is not None:
+        if v.field_key in read:
             s.answers[f.key] = v.value
             sure.append((f.label, v.display))
-        else:
+        elif v.field_key not in suggested:
             unsure.append((f.label, v.heard))
+    s.ai_suggested = dict(suggested)  # _advance pops from it; `suggested` is shown below
     s.voice = {
         "transcript": said,
         "audio": message.audio,
         "heard": {v.field_key: v.heard for v in result.values},
         "confidence": {v.field_key: round(v.confidence, 2) for v in result.values},
     }
+    if suggested:
+        s.voice["ai_read"] = {k: message.ai_values[k] for k in suggested if message.ai_values}
     s.step = None
     s.failed_attempts = 0
     _evaluate_rules(s, definition)
     following = _advance(s, ctx, definition)
-    return Step(
-        following.state, replies=(Outbound(copy.voice_heard(sure, unsure)), *following.replies)
+    labels = {f.key: f.label for f in definition.fields}
+    shown = [(labels[k], v["display"]) for k, v in suggested.items()]
+    heard = Outbound(copy.voice_heard(sure, unsure, shown))
+    voiced = Step(following.state, replies=(heard, *following.replies))
+    return replace(voiced, unread_voice=unread) if ask_model else voiced
+
+
+def _photo_values(
+    s: ConversationState,
+    message: Inbound | None,
+    ctx: EngineContext,
+    definition: FormDefinition,
+    f: FieldDefinition,
+) -> tuple[tuple[Outbound, ...], tuple[str, ...]]:
+    """ "Baca struk dan foto" for a field that reads its photo: on the first run, the keys of
+    the answers still to give (the service reads the photo for them); on the second run, the
+    language model's values become suggestions confirmed one by one. (notes, keys to read)."""
+    is_photo = message is None or message.media is None or message.media.kind == "photo"
+    if not f.read_values or not is_photo:
+        return (), ()
+    # Not long text: a note is the worker's own words, never copied off a receipt.
+    keys = tuple(
+        x.key
+        for x in definition.fields
+        if x.type in SPOKEN_TYPES
+        and x.type != "long_text"
+        and x.key not in s.answers
+        and x.key not in s.ai_suggested
     )
+    if not keys:
+        return (), ()
+    if message is None or message.ai_values is None:
+        return (), keys
+    suggested = _ai_suggestions(message, definition, keys, ctx)
+    if not suggested:
+        return (Outbound(copy.PHOTO_VALUES_UNREAD),), ()
+    s.ai_suggested.update(suggested)
+    labels = {x.key: x.label for x in definition.fields}
+    shown = [(labels[k], v["display"]) for k, v in suggested.items()]
+    return (Outbound(copy.photo_read(shown)),), ()
+
+
+def _spoken(definition: FormDefinition) -> tuple[str, ...]:
+    return tuple(f.key for f in definition.fields if f.type in SPOKEN_TYPES)
+
+
+def _ai_suggestions(
+    message: Inbound, definition: FormDefinition, unread: tuple[str, ...], ctx: EngineContext
+) -> dict[str, Any]:
+    """The language model's values for fields the rules missed, read again with the same rules
+    (range, unit, options); {value, display} by key. Never kept without the worker's "Ya"."""
+    out: dict[str, Any] = {}
+    for key, words in (message.ai_values or {}).items():
+        f = definition.field(key)
+        if f is None or key not in unread:
+            continue
+        value = read_value(f, words, ctx.today)
+        if value is not None and value.value is not None and value.doubt is None:
+            out[key] = {"value": value.value, "display": value.display}
+    return out
 
 
 def _first_photo_field(definition: FormDefinition) -> FieldDefinition | None:
@@ -282,13 +384,13 @@ def _first_photo_field(definition: FormDefinition) -> FieldDefinition | None:
 
 def report_saved(code: str, ctx: EngineContext) -> Outbound:
     """Sent by the service once the SubmitReport effect created the report."""
-    return Outbound(copy.report_saved(code, ctx.salutation))
+    return Outbound(copy.report_saved(code, ctx.salutation, ctx.agent.style))
 
 
 # --- Topics -------------------------------------------------------------------------------------
 
 
-def _begin(s: ConversationState, ctx: EngineContext) -> Step:
+def _begin(s: ConversationState, ctx: EngineContext, message: Inbound | None = None) -> Step:
     if s.topic_id is None and len(ctx.topics) == 1:
         s.topic_id = ctx.topics[0].id
     if s.topic_id is None or len(ctx.topics) > 1 and s.status == "submitted":
@@ -299,7 +401,7 @@ def _begin(s: ConversationState, ctx: EngineContext) -> Step:
     if ctx.definition is None:
         s.status = "identifying"
         return Step(s, effects=(SelectTopic(s.topic_id),))
-    return start(s, ctx)
+    return start(s, ctx, message)
 
 
 def _choose_topic(s: ConversationState, message: Inbound, ctx: EngineContext) -> Step:
@@ -350,10 +452,24 @@ def _asking(
         buttons = (Button(copy.RESUME, "resume"), Button(copy.RESTART, "restart:yes"))
         return Step(s, replies=(Outbound(copy.DRAFT_EXISTS, buttons),))
     outcome = _read(current, message, ctx)
+    if isinstance(outcome, str) and message.ai_text:
+        # The parsers could not read it; try the language model's rewrite under the same rules.
+        rewritten = replace(message, text=message.ai_text)
+        guessed = _read(current, rewritten, ctx)
+        if not isinstance(guessed, str):
+            value, display, _ = guessed
+            s.pending = {"field": current.key, "value": value, "display": display}
+            return Step(s, replies=(_confirm_question(current, display),))
+        if not _unreadable(current, rewritten, guessed):
+            outcome = guessed  # understood, but out of range or the like: say that instead
     if isinstance(outcome, str):
-        return _failed(s, definition, current, outcome)
+        failed = _failed(s, definition, current, outcome)
+        if message.ai_text is None and _unreadable(current, message, outcome):
+            return replace(failed, unread=current.key)
+        return failed
     value, display, needs_confirm = outcome
-    if needs_confirm:
+    if needs_confirm or _heard(message):
+        # A spoken answer may be misheard: say what was understood before saving it.
         s.pending = {"field": current.key, "value": value, "display": display}
         return Step(s, replies=(_confirm_question(current, display),))
     s.answers[current.key] = value
@@ -402,13 +518,16 @@ def _media(
         files.append(message.media.ref)
         s.answers[current.key] = files
         s.failed_attempts = 0
+        notes, keys = _photo_values(s, message, ctx, definition, current)
         if high is not None and len(files) >= high:
-            return _committed(s, ctx, definition)
-        more = high is None or len(files) < high
-        reply = copy.media_received(current.type, len(files), more)
-        if len(files) >= max(low, 1):
-            return Step(s, replies=(Outbound(reply, (Button(copy.DONE, "done"),)),))
-        return Step(s, replies=(Outbound(reply),))
+            step = _committed(s, ctx, definition)
+        else:
+            more = high is None or len(files) < high
+            reply = copy.media_received(current.type, len(files), more)
+            done = (Button(copy.DONE, "done"),) if len(files) >= max(low, 1) else ()
+            step = Step(s, replies=(Outbound(reply, done),))
+        step = replace(step, replies=(*notes, *step.replies))
+        return replace(step, read_photo=message.media.ref, read_keys=keys) if keys else step
     if text in _DONE or message.button == "done":
         if len(files) >= max(low, 1):
             return _committed(s, ctx, definition)
@@ -421,7 +540,8 @@ def _media(
 def _read(f: FieldDefinition, message: Inbound, ctx: EngineContext) -> tuple[Any, str, bool] | str:
     """(value, how it is shown, needs confirmation) or the reason it was not accepted."""
     if message.media and message.media.kind == "voice" and f.type != "voice":
-        return copy.VOICE_LATER
+        if not _heard(message):
+            return copy.VOICE_LATER  # not transcribed: no speech provider, or it failed
     raw = message.text or ""
     if f.type in ("short_text", "long_text"):
         cleaned = raw.strip()
@@ -485,6 +605,30 @@ def _read(f: FieldDefinition, message: Inbound, ctx: EngineContext) -> tuple[Any
     return copy.EMPTY_TEXT
 
 
+def _heard(message: Inbound) -> bool:
+    """A voice note with its transcript, answering a question (roadmap 12.7)."""
+    media = message.media
+    return media is not None and media.kind == "voice" and bool((message.text or "").strip())
+
+
+def _unreadable(f: FieldDefinition, message: Inbound, reason: str) -> bool:
+    """The typed answer was not understood (not: understood but out of range, wrong unit, too
+    many choices). Only then can a language model help (roadmap 12.7)."""
+    if not (message.text or "").strip():
+        return False
+    if message.media is not None and not _heard(message):
+        return False
+    if f.type == "number":
+        return reason == copy.NOT_A_NUMBER
+    if f.type == "single_choice":
+        return reason == copy.NOT_A_CHOICE
+    if f.type == "multi_choice":
+        return reason != copy.choice_count(f.min, f.max)
+    if f.type == "datetime":
+        return reason == copy.NOT_A_DATE
+    return False
+
+
 def _failed(
     s: ConversationState, definition: FormDefinition, current: FieldDefinition, reason: str
 ) -> Step:
@@ -511,7 +655,17 @@ def _advance(s: ConversationState, ctx: EngineContext, definition: FormDefinitio
     if following is None:
         return _show_summary(s, definition, ctx)
     s.step = following.key
-    return Step(s, replies=(_question(s, definition, following),))
+    return Step(s, replies=(_ask(s, definition, following),))
+
+
+def _ask(s: ConversationState, definition: FormDefinition, f: FieldDefinition) -> Outbound:
+    """The field's question, or, when a language model read its value from a voice note or a
+    photo, "Dicatat *…*. Benar?" so the worker confirms it instead."""
+    suggestion = s.ai_suggested.pop(f.key, None)
+    if suggestion is None:
+        return _question(s, definition, f)
+    s.pending = {"field": f.key, **suggestion}
+    return _confirm_question(f, suggestion["display"])
 
 
 def _next_field(s: ConversationState, definition: FormDefinition) -> FieldDefinition | None:

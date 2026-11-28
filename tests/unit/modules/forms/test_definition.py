@@ -124,3 +124,13 @@ def test_shape_errors_come_from_pydantic() -> None:
         ("fields.0.colour", "validation_error"),
         ("fields.0.key", "validation_error"),
     ]
+
+
+def test_read_values_only_on_photo_and_document_fields() -> None:
+    data = crop_survey()
+    data["fields"][1]["read_values"] = True  # farmer_name: text
+    assert problems(data) == [("fields.1.read_values", "read_values_not_allowed")]
+    photo = next(i for i, f in enumerate(data["fields"]) if f["type"] == "photo")
+    data["fields"][1].pop("read_values")
+    data["fields"][photo]["read_values"] = True
+    assert FormDefinition.model_validate(data).fields[photo].read_values

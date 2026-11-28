@@ -119,6 +119,12 @@ async def update_workspace(db: AsyncSession, workspace: Workspace, values: dict[
     await db.execute(update(Workspace).where(Workspace.id == workspace.id).values(**values))
 
 
+async def get_settings(db: AsyncSession, workspace_id: uuid.UUID) -> dict[str, Any]:
+    """The workspace's `settings` JSON ({} when none)."""
+    found = await db.scalar(select(Workspace.settings).where(Workspace.id == workspace_id))
+    return dict(found or {})
+
+
 async def get_name(db: AsyncSession, workspace_id: uuid.UUID) -> str | None:
     return await db.scalar(select(Workspace.name).where(Workspace.id == workspace_id))
 

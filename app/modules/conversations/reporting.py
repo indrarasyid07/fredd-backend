@@ -12,12 +12,16 @@ reply rows commit together.
 
 import datetime as dt
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.storage import get_storage
 from app.core.time import now_utc
+from app.modules.agent import service as agent_settings
+from app.modules.agent.schemas import AgentSettings
+from app.modules.ai import answers, vision
 from app.modules.audit import service as audit
 from app.modules.conversations import joining, repository
 from app.modules.conversations.engine import copy, machine
@@ -53,6 +57,8 @@ CANCEL_YES, CANCEL_NO = "cancel:yes", "cancel:no"
 RESTART_YES, RESTART_NO = "restart:yes", "restart:no"
 RESUME = "resume"
 TOPIC_PREFIX = "topic:"
+# Session `info` key: (workspace id, report id) of reports created in this transaction.
+NEW_REPORTS = "conversations.new_reports"
 
 _STOP = {"berhenti", "/berhenti", "stop", "/stop", "keluar"}
 _CANCEL = {"batal", "/batal", "batalkan"}
@@ -77,13 +83,19 @@ class _Run:
     definition: FormDefinition | None = None
     # The structure is in voice mode (Voice Lab): one message fills many fields.
     voice_mode: bool = False
+    # The organization's Pengaturan agent (loaded with the context).
+    agent: AgentSettings = field(default_factory=AgentSettings)
 
 
 async def handle(db: AsyncSession, chat: joining.Chat, message: Message) -> list[Outbound]:
     """Replies for a message from a chat that has an active topic (joining handled the rest)."""
+    back_to = db.info.pop(joining.BACK_TO_TOPIC, None)
     run = await _load(db, chat, message)
     if run is None:
         return []
+    if back_to is not None:
+        # The code or QR of a topic this chat already has: go back to it, draft and all.
+        return await _switch(run, back_to, note=True)
     if run.conversation.status == "taken_over":
         return []  # an admin is answering
     if run.worker.confirmed_at is None:
@@ -145,6 +157,15 @@ def to_inbound(message: Message) -> Inbound | None:
         accuracy = p.get("accuracy_m")
         return Inbound(location=Location(lat, lng, float(accuracy) if accuracy else None))
     if message.kind == "voice" and p.get("transcript") is not None:
+        if p.get("transcribed_as") == "answer" and message.media_key:
+            # A spoken answer (roadmap 12.7): the words answer a typed question, the file
+            # answers a voice question; the engine confirms what it heard before saving.
+            return Inbound(
+                text=str(p["transcript"]),
+                spoken=True,
+                audio=message.media_key,
+                media=Media("voice", message.media_key),
+            )
         # A voice note of a voice-mode topic, transcribed (Voice Lab, roadmap 12.3).
         return Inbound(text=str(p["transcript"]), spoken=True, audio=message.media_key)
     if message.kind in ("photo", "video", "voice", "document") and p.get("file_id"):
@@ -248,22 +269,24 @@ async def _stop(run: _Run) -> None:
     await workers.set_active(run.db, run.chat.channel_id, run.chat.chat_id, None)
 
 
-async def _switch(run: _Run, form_id: str) -> list[Outbound]:
-    """Move the chat to another of its topics; that topic's draft (if any) carries on."""
-    target = next((a for a, _, _ in run.topics if str(a.form_id) == form_id), None)
-    if target is None:
+async def _switch(run: _Run, form_id: str, *, note: bool = False) -> list[Outbound]:
+    """Move the chat to another of its topics; that topic's draft (if any) carries on. `note`
+    first says where the chat went (when a join code, not a topic button, asked for it)."""
+    found = next(((a, o, f) for a, o, f in run.topics if str(a.form_id) == form_id), None)
+    if found is None:
         return [Outbound(copy.TOPIC_UNKNOWN, _topic_buttons(run))]
+    target = found[0]
     state = ConversationState.from_json(run.conversation.state)
     if state.status == "choosing_form":
         _save(run.conversation, ConversationState(topic_id=state.topic_id))
-    notes: list[Outbound] = []
+    notes = [Outbound(copy.back_to_topic(found[1], found[2]))] if note else []
     if target.id != run.assignment.id:
         await workers.set_active(run.db, run.chat.channel_id, run.chat.chat_id, target.id)
         switched = await _load(run.db, run.chat, run.message)
         if switched is None:
             return []
         if state.held_media:
-            notes = _carry_photos(state, run.assignment, switched)
+            notes += _carry_photos(state, run.assignment, switched)
         run = switched
     return [*notes, *await _engine(run, Inbound(text="mulai"))]
 
@@ -295,7 +318,66 @@ async def _engine(
     if closed is not None:
         return [closed]
     ctx = await _context(run)
-    return await _apply(run, machine.handle(current, inbound, ctx), ctx)
+    step = machine.handle(current, inbound, ctx)
+    if step.unread is not None and inbound.text and run.agent.read_free_answers:
+        rewrite = await _ai_reading(ctx, step.unread, inbound.text)
+        if rewrite is not None:
+            step = machine.handle(current, replace(inbound, ai_text=rewrite), ctx)
+    elif step.unread_voice and inbound.text and run.agent.read_free_answers:
+        values = await _ai_sentence(ctx, step.unread_voice, inbound.text)
+        if values:
+            step = machine.handle(current, replace(inbound, ai_values=values), ctx)
+    elif step.read_photo and run.agent.voice_and_photos:
+        photo_values = await _ai_photo(ctx, step.read_photo, step.read_keys)
+        if photo_values is not None:  # {} = read, nothing found: the engine says so
+            step = machine.handle(current, replace(inbound, ai_values=photo_values), ctx)
+    return await _apply(run, step, ctx)
+
+
+async def _ai_reading(ctx: EngineContext, field_key: str, said: str) -> str | None:
+    """A language model's reading of an answer the parsers could not read (roadmap 12.7);
+    None when it is off or could not read it either. The engine asks the worker to confirm."""
+    reader = answers.get_answer_reader()
+    f = ctx.definition.field(field_key) if ctx.definition is not None else None
+    if reader is None or f is None:
+        return None
+    return await reader.read(f, said, today=ctx.today)
+
+
+async def _ai_sentence(ctx: EngineContext, keys: tuple[str, ...], said: str) -> dict[str, str]:
+    """A language model's reading of a Voice Lab sentence for the fields the rules missed
+    (roadmap 12.7); empty when it is off or read nothing. The engine has each value confirmed."""
+    reader = answers.get_sentence_reader()
+    if reader is None or ctx.definition is None:
+        return {}
+    return await reader.read_sentence(ctx.definition, keys, said, today=ctx.today)
+
+
+async def _ai_photo(ctx: EngineContext, ref: str, keys: tuple[str, ...]) -> dict[str, str] | None:
+    """ "Baca struk dan foto": a language model reads the stored photo for the answers not given
+    yet. None when it is off, the photo is not stored (only a Telegram reference) or not an
+    image, or reading failed; the engine then asks as usual."""
+    reader = answers.get_photo_reader()
+    if reader is None or ctx.definition is None or ref.startswith("telegram:"):
+        return None
+    try:
+        image = await get_storage().get(ref)
+    except Exception:  # a missing or unreadable file: nothing to read
+        logger.warning("photo %s not readable for its values", ref, exc_info=True)
+        return None
+    content_type = vision.image_type(image)
+    if content_type is None:
+        return None
+    field = next(
+        (f for f in ctx.definition.fields if f.read_values and f.type in ("photo", "document")),
+        None,
+    )
+    context = f"Form: {ctx.topic_label}" + (
+        f"\nPhoto question: {field.question}" if field is not None else ""
+    )
+    return await reader.read_photo(
+        ctx.definition, keys, image, content_type, context=context, today=ctx.today
+    )
 
 
 async def _prepare_definition(run: _Run, state: ConversationState) -> Outbound | None:
@@ -322,6 +404,7 @@ async def _prepare_definition(run: _Run, state: ConversationState) -> Outbound |
 
 async def _context(run: _Run) -> EngineContext:
     tz = ZoneInfo(await repository.get_timezone_name(run.db, run.conversation.workspace_id))
+    run.agent = await agent_settings.get_settings(run.db, run.conversation.workspace_id)
     organization, form = _label(run, run.assignment)
     return EngineContext(
         salutation=run.worker.name.split()[0] if run.worker.name else "",
@@ -330,6 +413,7 @@ async def _context(run: _Run) -> EngineContext:
         definition=run.definition,
         topic_label=copy.topic_title(organization, form),
         voice_mode=run.voice_mode,
+        agent=agent_settings.voice_of(run.agent),
     )
 
 
@@ -353,7 +437,11 @@ async def _apply(run: _Run, step: Step, ctx: EngineContext) -> list[Outbound]:
         elif isinstance(effect, ClaimCode):
             # A bare code outside a question: joining decides (join, switch or add a topic).
             current = await workers.active_assignment(run.db, run.chat.channel_id, run.chat.chat_id)
-            replies.extend(await joining.claim(run.db, run.chat, run.message, effect.code, current))
+            claimed = await joining.claim(run.db, run.chat, run.message, effect.code, current)
+            back_to = run.db.info.pop(joining.BACK_TO_TOPIC, None)
+            if claimed is None and back_to is not None:
+                claimed = await _switch(run, back_to, note=True)  # a topic this chat already has
+            replies.extend(claimed or [])
     return replies
 
 
@@ -374,6 +462,8 @@ async def _submit(run: _Run, effect: SubmitReport, ctx: EngineContext) -> Outbou
         voice=effect.voice,
     )
     logger.info("report %s created", report.id)
+    # Jobs for the new report start once the chat's transaction commits (`process_chat`).
+    run.db.info.setdefault(NEW_REPORTS, []).append((conversation.workspace_id, report.id))
     return machine.report_saved(report.code, ctx)
 
 
