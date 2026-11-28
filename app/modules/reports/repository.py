@@ -4,8 +4,20 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import ColumnElement, Select, and_, delete, func, or_, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import (
+    ColumnElement,
+    Float,
+    Select,
+    and_,
+    case,
+    cast,
+    delete,
+    func,
+    or_,
+    select,
+    true,
+)
+from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -141,8 +153,7 @@ async def list_reports(
         is_verified = Report.verified_at.is_not(None)
         stmt = stmt.where(is_verified if verified else ~is_verified)
     if voice is not None:
-        # A JSON object, not SQL NULL nor a JSON null left by an older write.
-        is_voice = func.coalesce(func.jsonb_typeof(Report.voice), "null") == "object"
+        is_voice = _is_voice()
         stmt = stmt.where(is_voice if voice else ~is_voice)
     if since is not None:
         stmt = stmt.where(Report.received_at >= since)
@@ -225,3 +236,115 @@ async def delete_photos(db: AsyncSession, photo_ids: list[uuid.UUID]) -> None:
 async def photo_keys_in_use(db: AsyncSession, keys: list[str]) -> set[str]:
     rows = await db.scalars(select(ReportPhoto.object_key).where(ReportPhoto.object_key.in_(keys)))
     return set(rows)
+
+
+# --- Voice Lab summary (roadmap 12.4) -----------------------------------------------------------
+
+
+def _is_voice() -> ColumnElement[bool]:
+    # A JSON object, not SQL NULL nor a JSON null left by an older write.
+    return func.coalesce(func.jsonb_typeof(Report.voice), "null") == "object"
+
+
+@dataclass(frozen=True)
+class VoiceCounts:
+    total: int
+    pending: int
+    today: int
+    yesterday: int
+    today_telegram: int
+    this_month: int
+    last_month: int
+
+
+async def voice_counts(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    extension_worker_id: uuid.UUID | None,
+    *,
+    today: datetime,
+    yesterday: datetime,
+    month: datetime,
+    last_month: datetime,
+) -> VoiceCounts:
+    """Voice reports counted in one pass; each bound is the start of a period."""
+    at = Report.received_at
+    on_telegram = ExtensionWorker.telegram_user_id.is_not(None)
+    stmt = (
+        select(
+            func.count(),
+            func.count().filter(Report.verified_at.is_(None)),
+            func.count().filter(at >= today),
+            func.count().filter(at >= yesterday, at < today),
+            func.count().filter(at >= today, on_telegram),
+            func.count().filter(at >= month),
+            func.count().filter(at >= last_month, at < month),
+        )
+        .select_from(Report)
+        .join(ExtensionWorker, ExtensionWorker.id == Report.extension_worker_id)
+        .where(Report.workspace_id == workspace_id, _is_voice())
+    )
+    if extension_worker_id is not None:
+        stmt = stmt.where(Report.extension_worker_id == extension_worker_id)
+    return VoiceCounts(*(await db.execute(stmt)).one())
+
+
+async def voice_confidence(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    extension_worker_id: uuid.UUID | None,
+    since: datetime,
+) -> float | None:
+    """Mean of every per-field confidence stored with voice reports received since `since`."""
+    raw = Report.voice["confidence"]
+    obj = case((func.jsonb_typeof(raw) == "object", raw), else_=cast("{}", JSONB))
+    each = func.jsonb_each_text(obj).table_valued("key", "value").render_derived()
+    stmt = (
+        select(func.avg(cast(each.c.value, Float)))
+        .select_from(Report)
+        .join(each, true())
+        .where(Report.workspace_id == workspace_id, _is_voice(), Report.received_at >= since)
+    )
+    if extension_worker_id is not None:
+        stmt = stmt.where(Report.extension_worker_id == extension_worker_id)
+    value = await db.scalar(stmt)
+    return float(value) if value is not None else None
+
+
+@dataclass(frozen=True)
+class VoiceCorrections:
+    reports: int
+    corrected: int
+    # (form_version_id, field_key) corrected most often, or None.
+    top: tuple[uuid.UUID, str] | None
+
+
+async def voice_corrections(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    extension_worker_id: uuid.UUID | None,
+    since: datetime,
+) -> VoiceCorrections:
+    scope = [Report.workspace_id == workspace_id, _is_voice(), Report.received_at >= since]
+    if extension_worker_id is not None:
+        scope.append(Report.extension_worker_id == extension_worker_id)
+    corrected = (
+        select(ReportCorrection.id)
+        .where(ReportCorrection.report_id == Report.id)
+        .correlate(Report)
+        .exists()
+    )
+    reports, with_fix = (
+        await db.execute(select(func.count(), func.count().filter(corrected)).where(*scope))
+    ).one()
+    top = (
+        await db.execute(
+            select(Report.form_version_id, ReportCorrection.field_key)
+            .join(Report, Report.id == ReportCorrection.report_id)
+            .where(*scope)
+            .group_by(Report.form_version_id, ReportCorrection.field_key)
+            .order_by(func.count().desc(), ReportCorrection.field_key)
+            .limit(1)
+        )
+    ).one_or_none()
+    return VoiceCorrections(int(reports), int(with_fix), (top[0], top[1]) if top else None)
