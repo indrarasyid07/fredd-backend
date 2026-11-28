@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
 from app.modules.activity import service as activity
+from app.modules.agent import pause as agent_pause
 from app.modules.agent import rules as agent_rules
 from app.modules.channels import send_limits
 from app.modules.channels.models import Channel
@@ -39,6 +40,8 @@ RESUME, RESTART = "resume", "restart:yes"  # the draft buttons of reporting.py
 BATCH = 200
 # A reminder over its organization's per-minute budget waits this long (roadmap 7.3).
 BUDGET_RETRY = dt.timedelta(minutes=1)
+# While the organization's agent is paused, a due reminder is looked at again this much later.
+PAUSED_RETRY = dt.timedelta(hours=1)
 
 
 def _clock(value: str) -> dt.time:
@@ -98,6 +101,10 @@ async def send_due(db: AsyncSession) -> list[uuid.UUID]:
             or conversation.taken_over_by_user_id is not None
         ):
             conversation.next_reminder_at = None
+            continue
+        if await agent_pause.paused_since(db, conversation.workspace_id) is not None:
+            # Jeda agent (6.6): no reminders, no rules; look again later.
+            conversation.next_reminder_at = now + PAUSED_RETRY
             continue
         state = ConversationState.from_json(conversation.state)
         if now >= last + ARCHIVE_AFTER:

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query
 
 from app.api.deps import DB, AdminMember, ReviewerMember
 from app.api.responses import ApiErrorResponse, ApiResponse, ok
-from app.modules.agent import rules, service
+from app.modules.agent import pause, rules, service
 from app.modules.agent.rules_schemas import EscalationRules, EscalationRulesOut
 from app.modules.agent.schemas import (
     AgentPreviewOut,
@@ -86,3 +86,27 @@ async def get_rules(member: ReviewerMember, db: DB):
 async def save_rules(data: EscalationRules, member: AdminMember, db: DB):
     """Replace the organization's rules; the bot uses them from the next message. Admin only."""
     return ok(await rules.save_rules(db, member, data), message="Aturan ambil alih disimpan.")
+
+
+@router.get(
+    "/status", response_model=ApiResponse[pause.AgentStatusOut], responses={401: _ERR, 403: _ERR}
+)
+async def get_status(member: ReviewerMember, db: DB):
+    """Whether the organization's agent is paused (the dashboard's banner, roadmap 6.6)."""
+    return ok(await pause.status(db, member.workspace_id))
+
+
+@router.post(
+    "/pause", response_model=ApiResponse[pause.AgentStatusOut], responses={401: _ERR, 403: _ERR}
+)
+async def pause_agent(member: AdminMember, db: DB):
+    """Stop Fluctuz answering this organization's workers; messages are still stored. Admin."""
+    return ok(await pause.set_paused(db, member, True), message="Agent dijeda.")
+
+
+@router.post(
+    "/resume", response_model=ApiResponse[pause.AgentStatusOut], responses={401: _ERR, 403: _ERR}
+)
+async def resume_agent(member: AdminMember, db: DB):
+    """Fluctuz answers again from the worker's next message. Admin."""
+    return ok(await pause.set_paused(db, member, False), message="Agent aktif kembali.")

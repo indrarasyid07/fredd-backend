@@ -196,6 +196,8 @@ class ConversationState:
     # When the last of them went (ISO), and whether the "no reply" rule already fired (6.7).
     reminded_at: str | None = None
     rule_escalated: bool = False
+    # The pause (its ISO time) this worker was already told about (Jeda agent, roadmap 6.6).
+    pause_notified: str | None = None
     # Voice Lab: what the sentence that filled the report was (see SubmitReport.voice).
     voice: dict[str, Any] | None = None
 

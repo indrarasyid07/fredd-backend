@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.storage import get_storage
 from app.core.time import now_utc
 from app.modules.activity import service as activity
+from app.modules.agent import pause as agent_pause
 from app.modules.agent import rules as agent_rules
 from app.modules.agent import service as agent_settings
 from app.modules.agent.rules_schemas import EscalationRule
@@ -97,10 +98,23 @@ async def handle(db: AsyncSession, chat: joining.Chat, message: Message) -> list
     run = await _load(db, chat, message)
     if run is None:
         return []
+    paused = await agent_pause.paused_since(db, run.conversation.workspace_id)
+    if paused is not None:
+        return _paused_reply(run, paused)
     replies = await _handle(run, message, back_to)
     # The worker wrote: an open draft gets a fresh reminder, anything else none (roadmap 7.1).
     await reminders.schedule(db, run.conversation, message.channel_sent_at or now_utc())
     return replies
+
+
+def _paused_reply(run: _Run, paused_at: str) -> list[Outbound]:
+    """Jeda agent (6.6): the message is kept; one notice per worker per pause, then quiet. An
+    admin answering a taken-over chat is not interrupted."""
+    conversation = run.conversation
+    if conversation.status == "taken_over" or conversation.state.get("pause_notified") == paused_at:
+        return []
+    conversation.state = {**conversation.state, "pause_notified": paused_at}
+    return [Outbound(copy.AGENT_PAUSED)]
 
 
 async def _handle(run: _Run, message: Message, back_to: str | None) -> list[Outbound]:
