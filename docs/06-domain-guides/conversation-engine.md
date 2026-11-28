@@ -166,6 +166,10 @@ Satu pengaturan per organisasi di `workspaces.settings["agent"]` (modul `app/mod
   - `service.deliver` membaca ulang status sebelum mengirim balasan bot; balasan yang terlanjur ditulis saat takeover dimulai ditandai `failed` dan tidak dikirim.
   - Kejadian `taken_over`, `released`, `auto_released` di `activity_events`, plus audit `conversation.taken_over` / `conversation.released`.
 
+## Jeda agent (Langkah 6.6)
+
+Admin menjeda agent untuk seluruh organisasi (`POST /agent/pause`, `/agent/resume`; `app/modules/agent/pause.py`, disimpan di `workspaces.settings["agent_pause"]`, terpisah dari pengaturan agent agar menyimpan pengaturan tidak membatalkan jeda). Selama dijeda, `reporting.handle` tidak menjalankan mesin: pesan tetap disimpan dan tampil, penyuluh menerima `AGENT_PAUSED` **sekali per jeda** (`state.pause_notified` = waktu jeda), percakapan yang diambil alih tetap diam. Cron pengingat menunda draf yang jatuh tempo 1 jam (`PAUSED_RETRY`), sehingga pengingat dan aturan "tidak membalas" tidak berjalan. Setelah dilanjutkan tidak ada pesan susulan; pesan penyuluh berikutnya diproses dari pertanyaan yang terbuka (B-XXX).
+
 ## Aturan ambil alih (Langkah 6.7)
 
 Admin mengatur aturan JIKA/MAKA di Pengaturan agent › Aturan ambil alih (`GET/PUT /agent/rules`, disimpan di `workspaces.settings["agent_rules"]`; `app/modules/agent/rules.py`). Pencocokan deterministik, tanpa model bahasa. Bila belum pernah disimpan, empat aturan contoh dari desain tampil dalam keadaan **mati** (B-XXX).

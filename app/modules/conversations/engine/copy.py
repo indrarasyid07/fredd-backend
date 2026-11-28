@@ -27,6 +27,11 @@ HELP_SENT = "Baik, admin sudah diberi tahu dan akan membalas di sini. Mohon tung
 BACK_FROM_ADMIN = "Terima kasih sudah menunggu. Fluctuz melanjutkan laporan Anda."
 BACK_FROM_ADMIN_IDLE = "Terima kasih sudah menunggu. Ketik *mulai* bila ingin mengirim laporan."
 BACK_TO_SUMMARY = "Ketik *lanjut* untuk melihat ringkasan laporan Anda."
+# Jeda agent (roadmap 6.6): sent once per worker per pause.
+AGENT_PAUSED = (
+    "Fluctuz sedang dijeda oleh admin. Pesan Anda tersimpan; nanti kita lanjutkan dari "
+    "pertanyaan terakhir."
+)
 THREE_FAILS = "Sudah 3 kali jawaban belum sesuai. Mau bagaimana?"
 VOICE_LATER = "Pesan suara belum bisa saya baca untuk pertanyaan ini. Mohon ketik jawabannya."
 SUBMIT_FIRST = "Laporan siap dikirim. Tekan *Kirim sekarang* atau *Ubah jawaban*."
