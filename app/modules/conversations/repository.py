@@ -5,6 +5,7 @@ from sqlalchemy import BigInteger, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.channels.models import Channel
 from app.modules.conversations.models import Conversation, Message
 from app.modules.extension_workers.models import ExtensionWorker, FormAssignment
 from app.modules.forms.models import Form
@@ -136,3 +137,65 @@ async def get_timezone_name(db: AsyncSession, workspace_id: uuid.UUID) -> str:
     return await db.scalar(select(Workspace.timezone).where(Workspace.id == workspace_id)) or (
         "Asia/Jakarta"
     )
+
+
+ConversationRow = tuple[Conversation, str, str, str]  # conversation, worker, form, channel type
+
+
+def _conversation_rows():  # noqa: ANN202 - a Select with four columns
+    return (
+        select(Conversation, ExtensionWorker.name, Form.name, Channel.type)
+        .join(ExtensionWorker, ExtensionWorker.id == Conversation.extension_worker_id)
+        .join(Form, Form.id == Conversation.form_id)
+        .join(Channel, Channel.id == Conversation.channel_id)
+    )
+
+
+async def list_conversations(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    *,
+    status: str | None,
+    after: tuple[datetime, uuid.UUID] | None,
+    limit: int,
+) -> list[ConversationRow]:
+    """Most recently changed first."""
+    stmt = _conversation_rows().where(Conversation.workspace_id == workspace_id)
+    if status is not None:
+        stmt = stmt.where(Conversation.status == status)
+    if after is not None:
+        changed, last_id = after
+        stmt = stmt.where(
+            (Conversation.updated_at < changed)
+            | ((Conversation.updated_at == changed) & (Conversation.id < last_id))
+        )
+    rows = await db.execute(
+        stmt.order_by(Conversation.updated_at.desc(), Conversation.id.desc()).limit(limit + 1)
+    )
+    return [(r[0], r[1], r[2], r[3]) for r in rows.all()]
+
+
+async def get_conversation_row(
+    db: AsyncSession, workspace_id: uuid.UUID, conversation_id: uuid.UUID
+) -> ConversationRow | None:
+    row = (
+        await db.execute(
+            _conversation_rows().where(
+                Conversation.workspace_id == workspace_id, Conversation.id == conversation_id
+            )
+        )
+    ).first()
+    return (row[0], row[1], row[2], row[3]) if row else None
+
+
+async def latest_messages(
+    db: AsyncSession, workspace_id: uuid.UUID, conversation_id: uuid.UUID, limit: int
+) -> list[Message]:
+    """Oldest first."""
+    rows = await db.scalars(
+        select(Message)
+        .where(Message.workspace_id == workspace_id, Message.conversation_id == conversation_id)
+        .order_by(Message.created_at.desc(), Message.id.desc())
+        .limit(limit)
+    )
+    return list(reversed(list(rows)))

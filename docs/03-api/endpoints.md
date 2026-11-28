@@ -111,10 +111,10 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 
 | Method | Path | Peran |
 |---|---|---|
-| GET | `/activity` | reviewer |
+| GET | `/activity` | reviewer. **Ada (6.2)**: log Aktivitas Agent, terbaru di atas, cursor (`occurred_at`, `id`); filter `type` = `report_received` \| `needs_help`. Tiap baris: `type`, `status` (`done`, `needs_review`, `needs_help`), `channel`, `extension_worker {id, name}` (null untuk sistem), `conversation_id`, `details` (`form_name` + `report_id`/`code` atau `reason`/`field`/`field_label`) |
 | GET | `/events` | reviewer (SSE; `report.created`, `report.updated`, `worker.activity`, `conversation.needs_help`, `export.ready`; [dashboard.md](../06-domain-guides/dashboard.md#event-realtime-sse)) |
-| GET | `/conversations?status=needs_help` | reviewer |
-| GET | `/conversations/{id}` | reviewer |
+| GET | `/conversations?status=needs_help` | reviewer. **Ada (6.3)**: terakhir berubah di atas, cursor (`updated_at`, `id`); `status` opsional = `needs_help` \| `taken_over`. Tiap baris: penyuluh, struktur, kanal, `step`, `last_inbound_at`, dan `help {reason, field, field_label, at}` selama `needs_help` |
+| GET | `/conversations/{id}` | reviewer. **Ada (6.3)**: baris daftar + 50 pesan terakhir (terlama dulu; `delivery_status` hanya pesan keluar, Telegram tidak pernah `read`). Workspace lain → `404 conversation_not_found` |
 | POST | `/conversations/{id}/takeover` | admin (409 bila sudah diambil admin lain) |
 | POST | `/conversations/{id}/messages` | admin (hanya pemilik takeover) |
 | POST | `/conversations/{id}/release` | admin (kembalikan ke Fluctuz) |

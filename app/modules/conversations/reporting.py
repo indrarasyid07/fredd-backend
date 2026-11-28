@@ -19,10 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.storage import get_storage
 from app.core.time import now_utc
+from app.modules.activity import service as activity
 from app.modules.agent import service as agent_settings
 from app.modules.agent.schemas import AgentSettings
 from app.modules.ai import answers, vision
 from app.modules.audit import service as audit
+from app.modules.channels.models import Channel
 from app.modules.conversations import joining, repository
 from app.modules.conversations.engine import copy, machine
 from app.modules.conversations.engine.parsers import normalize
@@ -434,6 +436,15 @@ async def _apply(run: _Run, step: Step, ctx: EngineContext) -> list[Outbound]:
                 target=str(run.conversation.id),
                 details={"reason": effect.reason, "field": effect.field},
             )
+            field = run.definition.field(effect.field) if run.definition and effect.field else None
+            await _event(
+                run,
+                "needs_help",
+                "needs_help",
+                reason=effect.reason,
+                field=effect.field,
+                field_label=field.label if field else None,
+            )
         elif isinstance(effect, ClaimCode):
             # A bare code outside a question: joining decides (join, switch or add a topic).
             current = await workers.active_assignment(run.db, run.chat.channel_id, run.chat.chat_id)
@@ -462,9 +473,31 @@ async def _submit(run: _Run, effect: SubmitReport, ctx: EngineContext) -> Outbou
         voice=effect.voice,
     )
     logger.info("report %s created", report.id)
+    await _event(
+        run,
+        "report_received",
+        "needs_review" if effect.needs_review else "done",
+        report_id=str(report.id),
+        code=report.code,
+    )
     # Jobs for the new report start once the chat's transaction commits (`process_chat`).
     run.db.info.setdefault(NEW_REPORTS, []).append((conversation.workspace_id, report.id))
     return machine.report_saved(report.code, ctx)
+
+
+async def _event(run: _Run, type: str, status: str, **details: str | None) -> None:
+    """One line in the organization's Aktivitas Agent log (roadmap 6.2)."""
+    channel = await run.db.get(Channel, run.chat.channel_id)
+    await activity.record(
+        run.db,
+        workspace_id=run.conversation.workspace_id,
+        type=type,
+        status=status,
+        channel=channel.type if channel else None,
+        extension_worker_id=run.worker.id,
+        conversation_id=run.conversation.id,
+        details={"form_name": _label(run, run.assignment)[1], **details},
+    )
 
 
 def _save(conversation: Conversation, state: ConversationState) -> None:
