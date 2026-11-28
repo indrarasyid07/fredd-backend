@@ -138,7 +138,7 @@ def _after_voice(s: ConversationState, message: Inbound, ctx: EngineContext) -> 
         if s.status not in ("choosing_form", *_DRAFT) and message.media.kind == "photo":
             # A photo before "mulai" starts a report and answers its first photo field.
             s.held_media = [message.media.ref]
-            s.media_group = message.media.group
+            s.media_group, s.media_field = message.media.group, None
             return _begin(s, ctx, message)
 
     if s.status == "choosing_form":
@@ -217,29 +217,37 @@ def _use_held_media(
 
 
 def _album(s: ConversationState, message: Inbound, ctx: EngineContext) -> Step | None:
-    """The rest of an album whose first photo started the report; None when the message is not
-    part of it (or the open question collects photos anyway)."""
+    """The rest of an album whose first photo started the report or answered a media field;
+    None when the message is not part of it (or its question still collects photos)."""
     media = message.media
     if media is None or media.group is None or media.group != s.media_group:
         return None
-    if media.kind != "photo":
-        return Step(s)
-    if s.status not in _DRAFT:
-        s.held_media.append(media.ref)  # still choosing the topic
-        return Step(s)
     definition = ctx.definition
-    if s.status != "asking" or definition is None:
-        return Step(s)
-    current = definition.field(s.step or "")
-    if current is not None and current.type in _MEDIA_TYPES:
-        return None
-    target = _first_photo_field(definition)
+    target = definition.field(s.media_field) if definition and s.media_field else None
     if target is None:
+        if media.kind != "photo":
+            return Step(s)
+        if s.status not in _DRAFT:
+            s.held_media.append(media.ref)  # still choosing the topic
+            return Step(s)
+        if s.status != "asking" or definition is None:
+            return Step(s)
+        current = definition.field(s.step or "")
+        if current is not None and current.type in _MEDIA_TYPES:
+            return None
+        target = _first_photo_field(definition)
+        if target is None:
+            return Step(s)
+    elif s.status == "asking" and s.step == target.key:
+        return None  # the field the album answers is still open
+    elif media.kind not in _ACCEPTS[target.type]:
         return Step(s)
     files = list(s.answers.get(target.key) or [])
     high = int(target.max) if target.max else None
     if high is not None and len(files) >= high:
         return Step(s, replies=(Outbound(copy.media_extra_ignored(high)),))
+    if s.status != "asking":
+        return Step(s)
     s.answers[target.key] = [*files, media.ref]
     return Step(s)
 
@@ -518,6 +526,9 @@ def _media(
         files.append(message.media.ref)
         s.answers[current.key] = files
         s.failed_attempts = 0
+        if message.media.group is not None:
+            # The rest of this album stays with this field (3.5b).
+            s.media_group, s.media_field = message.media.group, current.key
         notes, keys = _photo_values(s, message, ctx, definition, current)
         if high is not None and len(files) >= high:
             step = _committed(s, ctx, definition)
@@ -525,7 +536,7 @@ def _media(
             more = high is None or len(files) < high
             reply = copy.media_received(current.type, len(files), more)
             done = (Button(copy.DONE, "done"),) if len(files) >= max(low, 1) else ()
-            step = Step(s, replies=(Outbound(reply, done),))
+            step = Step(s, replies=(Outbound(reply, done, progress=True),))
         step = replace(step, replies=(*notes, *step.replies))
         return replace(step, read_photo=message.media.ref, read_keys=keys) if keys else step
     if text in _DONE or message.button == "done":

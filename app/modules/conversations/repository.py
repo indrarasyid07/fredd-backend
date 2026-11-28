@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, select, update
+from sqlalchemy import BigInteger, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +20,22 @@ async def insert_inbound(db: AsyncSession, values: dict[str, object]) -> bool:
         .returning(Message.id)
     )
     return result.scalar_one_or_none() is not None
+
+
+async def album_age(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> float | None:
+    """Seconds since the newest unprocessed album photo of a chat arrived; None when there is
+    none. Database clock on both sides, so app and database clocks need not agree."""
+    newest = func.max(Message.created_at)
+    age = await db.scalar(
+        select(func.extract("epoch", func.clock_timestamp() - newest)).where(
+            Message.channel_id == channel_id,
+            Message.chat_id == chat_id,
+            Message.direction == "in",
+            Message.processed_at.is_(None),
+            Message.payload.has_key("media_group_id"),
+        )
+    )
+    return float(age) if age is not None else None
 
 
 async def list_unprocessed(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> list[Message]:
