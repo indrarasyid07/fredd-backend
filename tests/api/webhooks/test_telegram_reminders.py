@@ -151,3 +151,35 @@ async def test_help_and_takeover_get_no_reminder(
     await chat.tap("help")
     assert (await _conversation(db)).next_reminder_at is None
     assert copy.HELP_SENT  # waiting for an admin, not a reminder
+
+
+async def test_reminders_over_the_budget_wait_a_minute(
+    chat: Worker,
+    db: AsyncSession,
+    organization: Workspace,
+    bot: FakeTelegram,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.modules.channels import send_limits
+
+    conversation = await _draft(chat, db, organization)
+    await _due(db, conversation, quiet_for=timedelta(hours=25))
+    monkeypatch.setattr(send_limits, "PROACTIVE_PER_MINUTE", 0)
+    assert await _run(bot) == []
+    conversation = await _conversation(db)
+    assert conversation.state.get("reminders_sent", 0) == 0  # not used up
+    assert conversation.next_reminder_at is not None
+    assert timedelta(seconds=50) < conversation.next_reminder_at - now_utc() <= timedelta(minutes=1)
+
+    monkeypatch.setattr(send_limits, "PROACTIVE_PER_MINUTE", 30)
+    seen: list[bool] = []
+    real = send_limits.wait_for_slot
+
+    async def spy(channel: str, chat_id: str, *, proactive: bool) -> float:
+        seen.append(proactive)
+        return await real(channel, chat_id, proactive=proactive)
+
+    monkeypatch.setattr(send_limits, "wait_for_slot", spy)
+    await _due(db, conversation, quiet_for=timedelta(hours=25))
+    assert len(await _run(bot)) == 1
+    assert seen == [True]  # sent on the proactive lane

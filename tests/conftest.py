@@ -105,6 +105,30 @@ def media_store(monkeypatch: pytest.MonkeyPatch) -> MemoryStorage:
     return fake
 
 
+class SendClock:
+    """Time for the send limits (roadmap 7.3): waiting moves it on instead of sleeping."""
+
+    def __init__(self) -> None:
+        import time
+
+        self.now = time.time()
+        self.slept: list[float] = []
+
+    async def sleep(self, seconds: float) -> None:
+        self.slept.append(seconds)
+        self.now += seconds
+
+
+@pytest.fixture(autouse=True)
+def send_clock(monkeypatch: pytest.MonkeyPatch) -> SendClock:
+    from app.modules.channels import send_limits
+
+    clock = SendClock()
+    monkeypatch.setattr(send_limits, "_now", lambda: clock.now)
+    monkeypatch.setattr(send_limits, "_sleep", clock.sleep)
+    return clock
+
+
 @pytest.fixture(autouse=True)
 async def _clean_redis() -> AsyncIterator[None]:
     await redis.flushdb()

@@ -181,6 +181,14 @@ Satu bot dipakai semua organisasi, jadi batas kirim kanal (Telegram ±30 pesan/d
 
 Pekerja kirim mengambil dari jalur interaktif lebih dulu, lalu proaktif secara round-robin antar organisasi, sehingga satu organisasi yang mengirim pengumuman besar tidak menunda balasan organisasi lain. Kuota harian per paket (D12/9.1) dihitung dari jalur proaktif.
 
+**Ada (7.3)** di `app/modules/channels/send_limits.py`, dengan jendela tetap di Redis yang dipakai bersama semua worker (bukan antrean kirim terpisah):
+
+- `service.deliver` memanggil `wait_for_slot(kanal, chat, proactive=…)` sebelum setiap kirim: ≤ `BOT_PER_SECOND` (30) per detik per bot, dan pesan proaktif hanya boleh memakai `PROACTIVE_PER_SECOND` (20) di antaranya, sehingga 10 slot per detik selalu tersisa untuk balasan percakapan aktif. 1 pesan per detik per chat. Menunggu paling lama 10 detik lalu tetap mengirim (429 dari Telegram dicoba ulang, 7.2).
+- Proaktif = `payload.reminder` (pengingat draf) atau `payload.proactive` (pengumuman nanti).
+- Jatah per organisasi: `take_budget(workspace_id)` = `PROACTIVE_PER_MINUTE` (30) pengingat per menit per organisasi (`send-budget:{workspace_id}:{menit}`). Pengingat yang melewati jatah tidak dibuang dan tidak dihitung: `next_reminder_at` digeser 1 menit (tetap di luar jam tenang). Satu angka untuk semua paket sampai billing (9.1).
+- Redis mati → batas dilewati dengan peringatan di log, supaya bot tetap menjawab.
+- Round-robin antar organisasi tidak diperlukan selama jatah per organisasi berlaku; antrean terpisah dipertimbangkan lagi bila broadcast besar dibangun.
+
 ## Urutan pemrosesan
 
 **Ada (3.5):** `process_chat_job(channel_id, chat_id)` mengambil kunci Redis `chat-lock:{channel_id}:{chat_id}` (`SET NX`, 120 dtk); job lain untuk chat yang sama langsung keluar, dan pemegang kunci memeriksa ulang pesan baru setelah melepasnya. Pesan diurutkan `channel_sent_at`, lalu `update_id` Telegram (tanggal Telegram hanya sampai detik). Balasan dicatat sebagai baris keluar `pending` dalam transaksi yang sama dengan `processed_at`, lalu dikirim satu per satu: `sent` + `external_id`, `uncertain` saat timeout (tidak dikirim ulang otomatis), atau `failed` (403 → penyuluh `unreachable`). Chat tanpa ikatan hanya dibalas cara bergabung (satu kali per rombongan pesan) dan tidak membuat apa pun di organisasi mana pun; klaim kode menyusul di 3.6, alur laporan di 3.7.
