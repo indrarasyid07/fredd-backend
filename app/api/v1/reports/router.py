@@ -5,11 +5,13 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Query
+from fastapi.responses import Response
 
-from app.api.deps import DB, ReviewerMember
+from app.api.deps import DB, EditorMember, ReviewerMember
 from app.api.pagination import Cursor, Limit, decode_cursor, encode_cursor
 from app.api.responses import ApiErrorResponse, ApiResponse, Pagination, ok
 from app.modules.reports import service
+from app.modules.reports.exports import MEDIA_TYPES, ExportFormat
 from app.modules.reports.schemas import (
     ConditionFilter,
     CorrectValueRequest,
@@ -68,6 +70,47 @@ async def list_reports(
     return ok(
         items,
         pagination=Pagination(next_cursor=next_cursor, limit=limit, has_more=more is not None),
+    )
+
+
+_FILE = {"schema": {"type": "string", "format": "binary"}}
+
+
+@router.get(
+    "/voice-export",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Berkas CSV atau Excel.",
+            "content": {MEDIA_TYPES["csv"]: _FILE, MEDIA_TYPES["xlsx"]: _FILE},
+        },
+        **_GUARDS,
+        422: _ERR,
+    },
+)
+async def export_voice_reports(
+    member: EditorMember,
+    db: DB,
+    form_id: uuid.UUID,
+    format: Annotated[ExportFormat, Query(description="`csv` atau `xlsx`.")] = "csv",  # noqa: A002
+    since: Annotated[datetime | None, Query(description="Diterima sejak (inklusif).")] = None,
+    until: Annotated[datetime | None, Query(description="Diterima sebelum (eksklusif).")] = None,
+) -> Response:
+    """Verified Voice Lab results of one structure as a file (roadmap 12.6), at most 5.000
+    rows; errors before the file use the standard JSON format."""
+    file = await service.export_voice(
+        db,
+        member.workspace_id,
+        member.member.user_id,
+        form_id=form_id,
+        fmt=format,
+        since=since,
+        until=until,
+    )
+    return Response(
+        content=file.content,
+        media_type=file.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{file.filename}"'},
     )
 
 
