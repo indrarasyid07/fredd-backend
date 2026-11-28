@@ -32,7 +32,10 @@ async def telegram_webhook(
     expected = settings.telegram_webhook_secret
     if not expected:
         return _status(404)
-    if not secret or not hmac.compare_digest(secret.encode(), expected.encode()):
+    accepted = [v for v in (expected, settings.telegram_webhook_secret_previous) if v]
+    # Both values during a rotation (roadmap 7.4); compare every one so timing says nothing.
+    matches = [hmac.compare_digest((secret or "").encode(), v.encode()) for v in accepted]
+    if not secret or not any(matches):
         return _status(401)
     if int(request.headers.get("content-length") or 0) > MAX_BODY_BYTES:
         return _status(413)

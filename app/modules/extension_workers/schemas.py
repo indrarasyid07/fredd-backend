@@ -80,3 +80,9 @@ class UpdateExtensionWorkerRequest(BaseModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=200)
     region_id: uuid.UUID | None = None
+
+
+class MoveIdentityRequest(BaseModel):
+    """The record made when the worker joined again from their new phone or Telegram account."""
+
+    from_extension_worker_id: uuid.UUID

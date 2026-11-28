@@ -97,6 +97,9 @@ class MemoryStorage:
     async def get(self, key: str) -> bytes:
         return self.objects[key][0]
 
+    async def delete(self, key: str) -> None:
+        self.objects.pop(key, None)
+
 
 @pytest.fixture(autouse=True)
 def media_store(monkeypatch: pytest.MonkeyPatch) -> MemoryStorage:

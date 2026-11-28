@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     # Empty secret = the Telegram webhook is off (404). One bot per environment (roadmap 3.0).
     telegram_bot_token: str = ""
     telegram_webhook_secret: str = ""
+    # The old secret, still accepted while a rotation is under way (roadmap 7.4, runbook
+    # "Rotasi secret webhook"); empty when not rotating.
+    telegram_webhook_secret_previous: str = ""
     # Linked from the consent sentence the bot sends when someone joins (UU PDP).
     privacy_policy_url: str = ""
     whatsapp_public_number: str = ""  # digits with country code, e.g. 6281100000000

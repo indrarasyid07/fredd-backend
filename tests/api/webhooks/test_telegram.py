@@ -15,7 +15,7 @@ from app.modules.conversations.engine.types import Outbound
 from app.modules.conversations.models import Conversation, Message
 from app.modules.extension_workers.models import ExtensionWorker
 from app.modules.workspaces.models import Workspace
-from tests.telegram_fixtures import HEADERS, URL, FakeTelegram, post_update, telegram_update
+from tests.telegram_fixtures import HEADERS, SECRET, URL, FakeTelegram, post_update, telegram_update
 
 
 async def _messages(db: AsyncSession, direction: str) -> list[Message]:
@@ -148,3 +148,18 @@ async def test_send_refused_by_telegram_is_failed(
     (outbound,) = await _messages(db, "out")
     assert outbound.delivery_status == "failed"
     assert outbound.error is not None and outbound.error.startswith("403")
+
+
+async def test_both_secrets_work_while_rotating(
+    client: AsyncClient, bot: FakeTelegram, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Roadmap 7.4: the new secret is set first, the old one still accepted until Telegram's
+    setWebhook uses the new one; then the old one goes."""
+    monkeypatch.setattr(settings, "telegram_webhook_secret", "new-secret")
+    monkeypatch.setattr(settings, "telegram_webhook_secret_previous", SECRET)
+    old = {"X-Telegram-Bot-Api-Secret-Token": SECRET}
+    new = {"X-Telegram-Bot-Api-Secret-Token": "new-secret"}
+    assert await post_update(client, telegram_update("text", update_id=1), old) == 200
+    assert await post_update(client, telegram_update("text", update_id=2), new) == 200
+    monkeypatch.setattr(settings, "telegram_webhook_secret_previous", "")
+    assert await post_update(client, telegram_update("text", update_id=3), old) == 401

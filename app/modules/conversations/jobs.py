@@ -9,7 +9,7 @@ from app.core.queue import broker
 from app.core.redis import redis
 from app.db import session as db_session
 from app.modules.channels import telegram
-from app.modules.conversations import reminders, service, takeover
+from app.modules.conversations import health, reminders, retention, service, takeover
 
 logger = logging.getLogger(__name__)
 
@@ -102,3 +102,17 @@ async def retry_failed_messages_job() -> None:
         to_send = await service.retry_due(db)
     for message_id in to_send:
         await deliver_message_job.kiq(str(message_id))
+
+
+@broker.task(task_name="conversations.check_bot_health", schedule=[{"cron": "*/5 * * * *"}])
+async def check_bot_health_job() -> None:
+    """Every 5 minutes: webhook, outgoing queue and worker heartbeat (roadmap 7.4)."""
+    async with db_session.open_session() as db:
+        await health.check_and_alert(db)
+
+
+@broker.task(task_name="conversations.apply_retention", schedule=[{"cron": "30 2 * * *"}])
+async def apply_retention_job() -> None:
+    """Nightly (02:30 UTC): messages and photos past their retention (roadmap 7.4)."""
+    async with db_session.open_session() as db:
+        await retention.apply(db)
