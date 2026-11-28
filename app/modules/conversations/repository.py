@@ -5,6 +5,7 @@ from sqlalchemy import BigInteger, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.auth.models import User
 from app.modules.channels.models import Channel
 from app.modules.conversations.models import Conversation, Message
 from app.modules.extension_workers.models import ExtensionWorker, FormAssignment
@@ -139,15 +140,17 @@ async def get_timezone_name(db: AsyncSession, workspace_id: uuid.UUID) -> str:
     )
 
 
-ConversationRow = tuple[Conversation, str, str, str]  # conversation, worker, form, channel type
+# conversation, worker, form, channel type, name of the admin who took it over
+ConversationRow = tuple[Conversation, str, str, str, str | None]
 
 
-def _conversation_rows():  # noqa: ANN202 - a Select with four columns
+def _conversation_rows():  # noqa: ANN202 - a Select with five columns
     return (
-        select(Conversation, ExtensionWorker.name, Form.name, Channel.type)
+        select(Conversation, ExtensionWorker.name, Form.name, Channel.type, User.name)
         .join(ExtensionWorker, ExtensionWorker.id == Conversation.extension_worker_id)
         .join(Form, Form.id == Conversation.form_id)
         .join(Channel, Channel.id == Conversation.channel_id)
+        .outerjoin(User, User.id == Conversation.taken_over_by_user_id)
     )
 
 
@@ -172,7 +175,7 @@ async def list_conversations(
     rows = await db.execute(
         stmt.order_by(Conversation.updated_at.desc(), Conversation.id.desc()).limit(limit + 1)
     )
-    return [(r[0], r[1], r[2], r[3]) for r in rows.all()]
+    return [(r[0], r[1], r[2], r[3], r[4]) for r in rows.all()]
 
 
 async def get_conversation_row(
@@ -185,7 +188,7 @@ async def get_conversation_row(
             )
         )
     ).first()
-    return (row[0], row[1], row[2], row[3]) if row else None
+    return (row[0], row[1], row[2], row[3], row[4]) if row else None
 
 
 async def latest_messages(
@@ -199,3 +202,53 @@ async def latest_messages(
         .limit(limit)
     )
     return list(reversed(list(rows)))
+
+
+async def take_over(
+    db: AsyncSession, workspace_id: uuid.UUID, conversation_id: uuid.UUID, user_id: uuid.UUID
+) -> bool:
+    """One conditional UPDATE, so two admins cannot both win (data-model.md "Takeover")."""
+    result = await db.execute(
+        update(Conversation)
+        .where(
+            Conversation.id == conversation_id,
+            Conversation.workspace_id == workspace_id,
+            Conversation.taken_over_by_user_id.is_(None),
+        )
+        .values(status="taken_over", taken_over_by_user_id=user_id, taken_over_at=func.now())
+        .returning(Conversation.id)
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def lock_conversation(
+    db: AsyncSession, workspace_id: uuid.UUID, conversation_id: uuid.UUID
+) -> Conversation | None:
+    return await db.scalar(
+        select(Conversation)
+        .where(Conversation.id == conversation_id, Conversation.workspace_id == workspace_id)
+        .with_for_update()
+    )
+
+
+def _last_admin_reply():  # noqa: ANN202 - a scalar subquery
+    return (
+        select(func.max(Message.created_at))
+        .where(
+            Message.conversation_id == Conversation.id,
+            Message.direction == "out",
+            Message.payload.has_key("admin_user_id"),
+        )
+        .scalar_subquery()
+    )
+
+
+async def list_stale_takeovers(db: AsyncSession, before: datetime) -> list[Conversation]:
+    """Taken over, and the admin wrote nothing since `before` (every workspace: a cron job)."""
+    last = func.coalesce(_last_admin_reply(), Conversation.taken_over_at)
+    rows = await db.scalars(
+        select(Conversation)
+        .where(Conversation.taken_over_by_user_id.is_not(None), last < before)
+        .with_for_update(skip_locked=True)
+    )
+    return list(rows)

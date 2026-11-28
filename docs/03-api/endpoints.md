@@ -115,9 +115,9 @@ Peta, jumlah, ekspor, dan SSE untuk dashboard ada di bagian Laporan dan Aktivita
 | GET | `/events` | reviewer (SSE; `report.created`, `report.updated`, `worker.activity`, `conversation.needs_help`, `export.ready`; [dashboard.md](../06-domain-guides/dashboard.md#event-realtime-sse)) |
 | GET | `/conversations?status=needs_help` | reviewer. **Ada (6.3)**: terakhir berubah di atas, cursor (`updated_at`, `id`); `status` opsional = `needs_help` \| `taken_over`. Tiap baris: penyuluh, struktur, kanal, `step`, `last_inbound_at`, dan `help {reason, field, field_label, at}` selama `needs_help` |
 | GET | `/conversations/{id}` | reviewer. **Ada (6.3)**: baris daftar + 50 pesan terakhir (terlama dulu; `delivery_status` hanya pesan keluar, Telegram tidak pernah `read`). Workspace lain → `404 conversation_not_found` |
-| POST | `/conversations/{id}/takeover` | admin (409 bila sudah diambil admin lain) |
-| POST | `/conversations/{id}/messages` | admin (hanya pemilik takeover) |
-| POST | `/conversations/{id}/release` | admin (kembalikan ke Fluctuz) |
+| POST | `/conversations/{id}/takeover` | admin (409 `conversation_taken_over` bila sudah diambil admin lain). **Ada (6.4)**: mengembalikan detail percakapan; respons percakapan kini menyertakan `taken_over_by {id, name}`, `taken_over_at`, `whatsapp_window_expires_at` (null untuk Telegram) |
+| POST | `/conversations/{id}/messages` | admin (hanya pemilik takeover, selain itu 403 `not_taken_over_by_you`). **Ada (6.4)**: body `{text}` 1–2000 karakter; mengembalikan pesan (`admin_name`); WhatsApp di luar 24 jam → 409 `whatsapp_window_closed` |
+| POST | `/conversations/{id}/release` | admin (kembalikan ke Fluctuz). **Ada (6.4)**: tanpa takeover → 409 `conversation_not_taken_over`; otomatis setelah 4 jam tanpa balasan admin |
 | POST | `/agent/pause`, `/agent/resume` | admin |
 
 ## Pengaturan agent

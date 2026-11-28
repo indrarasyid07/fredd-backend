@@ -9,7 +9,7 @@ from app.core.queue import broker
 from app.core.redis import redis
 from app.db import session as db_session
 from app.modules.channels import telegram
-from app.modules.conversations import service
+from app.modules.conversations import service, takeover
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +75,12 @@ async def leave_chat_job(chat_id: str) -> None:
         await telegram.get_client().leave_chat(chat_id)
     except telegram.TelegramError as exc:
         logger.info("leaveChat failed: %s", exc.status)
+
+
+@broker.task(task_name="conversations.release_stale_takeovers", schedule=[{"cron": "*/10 * * * *"}])
+async def release_stale_takeovers_job() -> None:
+    """Every 10 minutes: takeovers idle for 4 hours come back to Fluctuz (roadmap 6.4)."""
+    async with db_session.open_session() as db:
+        to_send = await takeover.release_stale(db)
+    for message_id in to_send:
+        await deliver_message_job.kiq(str(message_id))
