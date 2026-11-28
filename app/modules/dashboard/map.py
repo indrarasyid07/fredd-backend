@@ -14,11 +14,16 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import now_utc
-from app.modules.dashboard import repository
+from app.modules.dashboard import repository, service
 from app.modules.dashboard.schemas import (
     BoundariesOut,
     BoundaryFeatureOut,
     DashboardRange,
+    FieldGroupCountsOut,
+    FieldKpisOut,
+    FieldLatestOut,
+    FieldMonitorOut,
+    FieldWorkerOut,
     MapColorFieldOut,
     MapPointOut,
     MapRegionOut,
@@ -233,4 +238,101 @@ async def region_boundaries(db: AsyncSession, ids: list[uuid.UUID]) -> Boundarie
             for rid, name, geojson in rows
             if geojson
         ]
+    )
+
+
+# --- Field monitoring (Pantauan Lapangan) -------------------------------------------------------
+
+MAX_FIELD_WORKERS = 500
+
+
+async def field_monitor(
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    range_: DashboardRange = "today",
+    *,
+    now: datetime | None = None,
+) -> FieldMonitorOut:
+    """Where each active worker last reported in the range, how they are doing, and the page's
+    headline numbers. Inactive = no report in the range."""
+    now = now or now_utc()
+    tz = ZoneInfo(await workspaces.get_timezone_name(db, workspace_id))
+    local = now.astimezone(tz)
+    today = datetime.combine(local.date(), datetime.min.time(), tz)
+    span = timedelta(days=_RANGE_DAYS[range_])
+    start = today + timedelta(days=1) - span
+
+    rows = await repository.field_workers(db, workspace_id, start, now, MAX_FIELD_WORKERS)
+    workers: list[FieldWorkerOut] = []
+    for r in rows:
+        latest = None
+        if r["report_id"] is not None:
+            latest = FieldLatestOut(
+                report_id=r["report_id"],
+                code=r["code"],
+                form_name=r["form_name"],
+                condition=r["condition"],
+                received_at=r["received_at"],
+                region=r["region"],
+                lat=r["lat"],
+                lng=r["lng"],
+                approximate=r["accuracy_m"] is None or r["accuracy_m"] > APPROXIMATE_M,
+            )
+        if latest is None:
+            tone, group = "inactive", "inactive"
+        else:
+            tone = latest.condition or "healthy"
+            group = "needs" if tone in ("attention", "infected") else "active"
+        workers.append(
+            FieldWorkerOut(
+                id=r["id"],
+                name=r["name"],
+                channel="telegram" if r["telegram"] else "whatsapp",
+                region=r["home"],
+                last_active_at=r["last_active_at"],
+                reports=int(r["reports"]),
+                tone=tone,  # type: ignore[arg-type]
+                group=group,  # type: ignore[arg-type]
+                latest=latest,
+            )
+        )
+
+    total_workers, _ = await repository.worker_counts(db, workspace_id, start, now)
+    active = await repository.workers_reporting(db, workspace_id, start, now)
+    before = await repository.workers_reporting(db, workspace_id, start - span, now - span)
+    reports = await repository.count_between(db, workspace_id, start, now)
+    reports_before = await repository.count_between(db, workspace_id, start - span, now - span)
+    channels = await repository.count_per_channel(db, workspace_id, start, now)
+    whatsapp, telegram = service.largest_remainder(
+        [channels.get("whatsapp", 0), channels.get("telegram", 0)]
+    )
+    cases, infected, districts, regencies = await repository.field_cases(
+        db, workspace_id, start, now
+    )
+    legend: dict[str, int] = {"healthy": 0, "attention": 0, "infected": 0, "inactive": 0}
+    for w in workers:
+        legend[w.tone] += 1
+    return FieldMonitorOut(
+        range=range_,
+        kpis=FieldKpisOut(
+            workers_active=active,
+            workers_total=total_workers,
+            workers_active_before=before,
+            reports=reports,
+            reports_delta_pct=service.delta_pct(reports, reports_before),
+            whatsapp_pct=whatsapp,
+            telegram_pct=telegram,
+            cases=cases,
+            infected=infected,
+            districts=districts,
+            regencies=regencies,
+        ),
+        counts=FieldGroupCountsOut(
+            all=len(workers),
+            active=sum(1 for w in workers if w.group == "active"),
+            needs=sum(1 for w in workers if w.group == "needs"),
+            inactive=sum(1 for w in workers if w.group == "inactive"),
+        ),
+        legend=legend,  # type: ignore[arg-type]
+        workers=workers,
     )

@@ -188,6 +188,11 @@ async def _compute(
     )
 
 
+def delta_pct(today: int, yesterday: int) -> float | None:
+    """(now − before) ÷ before × 100, one decimal; null when there was nothing before."""
+    return _delta(today, yesterday)
+
+
 def _delta(today: int, yesterday: int) -> float | None:
     if yesterday == 0:
         return None

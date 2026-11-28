@@ -415,3 +415,78 @@ async def map_alert_threshold(db: AsyncSession, workspace_id: uuid.UUID) -> floa
     except ValueError:
         return 0.25
     return threshold if 0 < threshold <= 1 else 0.25
+
+
+# --- Field monitoring (Pantauan Lapangan, roadmap 5.2) ------------------------------------------
+
+
+async def field_workers(
+    db: AsyncSession, workspace_id: uuid.UUID, start: datetime, end: datetime, limit: int
+) -> list[Any]:
+    """Every active worker with their report count and newest report in the window. The point
+    is left out for health structures, so a household is never placed on the map."""
+    rows = await db.execute(
+        text(
+            "with latest as ("
+            "  select distinct on (x.extension_worker_id) x.extension_worker_id as wid,"
+            "  x.id, x.code, x.condition, x.received_at, x.accuracy_m, f.name as form_name,"
+            "  x.region_id,"
+            "  case when f.settings ->> 'sector_code' = 'health' then null else x.latitude end"
+            "    as lat,"
+            "  case when f.settings ->> 'sector_code' = 'health' then null else x.longitude end"
+            "    as lng"
+            "  from reports x join forms f on f.id = x.form_id"
+            "  where x.workspace_id = :ws and x.received_at >= :start and x.received_at < :end"
+            "  order by x.extension_worker_id, x.received_at desc, x.id desc),"
+            " counts as (select extension_worker_id as wid, count(*) as n from reports"
+            "  where workspace_id = :ws and received_at >= :start and received_at < :end"
+            "  group by 1) "
+            "select w.id, w.name, w.telegram_user_id is not null as telegram, wr.value as home,"
+            " w.last_active_at, coalesce(c.n, 0) as reports,"
+            " l.id as report_id, l.code, l.form_name, l.condition, l.received_at,"
+            " lr.value as region, l.lat, l.lng, l.accuracy_m "
+            "from extension_workers w"
+            " left join latest l on l.wid = w.id"
+            " left join counts c on c.wid = w.id"
+            " left join reference_data wr on wr.id = w.region_id"
+            " left join reference_data lr on lr.id = l.region_id "
+            "where w.workspace_id = :ws and w.status = 'active' "
+            "order by l.received_at desc nulls last, w.name limit :limit"
+        ),
+        {"ws": workspace_id, "start": start, "end": end, "limit": limit},
+    )
+    return list(rows.mappings().all())
+
+
+async def field_cases(
+    db: AsyncSession, workspace_id: uuid.UUID, start: datetime, end: datetime
+) -> tuple[int, int, int, int]:
+    """(attention or infected reports, infected reports, districts, regencies) in the window."""
+    row = await db.execute(
+        text(
+            "select count(*) filter (where x.condition in ('attention', 'infected')),"
+            " count(*) filter (where x.condition = 'infected'),"
+            " count(distinct r.id) filter (where r.level = 'district'),"
+            f" count(distinct {_REGENCY_ID}) "
+            "from reports x left join reference_data r on r.id = x.region_id"
+            " left join reference_data p on p.id = r.parent_id "
+            "where x.workspace_id = :ws and x.received_at >= :start and x.received_at < :end"
+        ),
+        {"ws": workspace_id, "start": start, "end": end},
+    )
+    cases, infected, districts, regencies = row.one()
+    return int(cases), int(infected), int(districts), int(regencies)
+
+
+async def workers_reporting(
+    db: AsyncSession, workspace_id: uuid.UUID, start: datetime, end: datetime
+) -> int:
+    value = await db.scalar(
+        text(
+            "select count(distinct x.extension_worker_id) from reports x"
+            " join extension_workers w on w.id = x.extension_worker_id and w.status = 'active'"
+            " where x.workspace_id = :ws and x.received_at >= :start and x.received_at < :end"
+        ),
+        {"ws": workspace_id, "start": start, "end": end},
+    )
+    return int(value or 0)
