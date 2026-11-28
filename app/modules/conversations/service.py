@@ -52,6 +52,9 @@ class Received:
     deliver: list[uuid.UUID] = field(default_factory=list)
 
 
+# How long an album must be quiet before its photos are processed together (3.5b).
+ALBUM_QUIET_SECONDS = 1.5
+
 # Anti-spam per chat identity (roadmap 3.6): room for a 10-photo album and quick answers.
 MAX_MESSAGES_PER_MINUTE = 30
 RATE_WINDOW_SECONDS = 60
@@ -147,6 +150,7 @@ async def process_chat(
         return []
     chat = joining.Chat(channel_id, chat_id)
     replies: list[tuple[Outbound, Owner]] = []
+    album: str | None = None
     for message in messages:
         if message.kind == "button" and (callback_id := message.payload.get("callback_id")):
             try:
@@ -166,6 +170,12 @@ async def process_chat(
         owner = await _owner(db, chat)
         message.workspace_id, message.conversation_id = owner
         await workers.touch(db, channel_id, chat_id, message.channel_sent_at or now_utc())
+        group = message.payload.get("media_group_id")
+        if group is not None and group == album:
+            # The next photo of the same album: its count replaces the previous one (3.5b).
+            while replies and replies[-1][0].progress:
+                replies.pop()
+        album = group
         for reply in answer:
             # A burst of messages from a stranger gets one answer, not one per message.
             if not replies or replies[-1][0] != reply:
@@ -296,6 +306,13 @@ async def deliver(db: AsyncSession, client: BotApi, message_id: uuid.UUID) -> No
         # Telegram message ids are unique per chat, not per bot.
         message.external_id = f"message:{message.chat_id}:{external_id}"
     await db.commit()
+
+
+async def album_wait(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> float:
+    """Seconds to wait before processing a chat whose album is still arriving (3.5b): Telegram
+    sends each photo of an album as its own update, a moment apart."""
+    age = await repository.album_age(db, channel_id, chat_id)
+    return 0.0 if age is None else max(0.0, ALBUM_QUIET_SECONDS - age)
 
 
 async def has_unprocessed(db: AsyncSession, channel_id: uuid.UUID, chat_id: str) -> bool:

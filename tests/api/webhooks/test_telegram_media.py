@@ -8,7 +8,8 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.conversations import media
+from app.core.redis import redis
+from app.modules.conversations import jobs, media, service
 from app.modules.conversations.engine import copy
 from app.modules.conversations.models import Message
 from app.modules.reports.models import ReportPhoto
@@ -32,6 +33,11 @@ class PhotoChat(Worker):
         if group:
             message["media_group_id"] = group
         return await self._send(update)
+
+
+@pytest.fixture(autouse=True)
+def _no_album_pause(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(service, "ALBUM_QUIET_SECONDS", 0.0)
 
 
 @pytest.fixture
@@ -137,3 +143,70 @@ async def test_failed_download_keeps_the_telegram_reference(
 )
 def test_sniff_checks_the_real_bytes(kind: str, data: bytes, found: Any) -> None:
     assert media.sniff(kind, data) == found
+
+
+async def _album(
+    chat: PhotoChat, db: AsyncSession, bot: FakeTelegram, files: list[str]
+) -> list[str]:
+    """Send an album the way Telegram does, one update per photo, and process it in one run:
+    while a run holds the chat lock, the other photos' jobs only store them."""
+    for f in files:
+        bot.files[f] = JPEG
+    first = await db.scalar(select(Message).where(Message.direction == "in").limit(1))
+    assert first is not None
+    key = jobs._lock_key(str(first.channel_id), first.chat_id)
+    await redis.set(key, "held")
+    for f in files:
+        assert await chat.photo(f, group="album-9") == []
+    await redis.delete(key)
+    before = len(bot.sent)
+    await jobs.process_chat_job(str(first.channel_id), first.chat_id)
+    return [out.text for _, out in bot.sent[before:]]
+
+
+async def test_album_on_the_photo_question_gets_one_answer(
+    chat: PhotoChat, db: AsyncSession, organization: Workspace, bot: FakeTelegram
+) -> None:
+    await _joined(chat, db, organization)
+    await _to_photo_question(chat)
+    replies = await _album(chat, db, bot, ["p1", "p2"])
+
+    assert replies == [copy.media_received("photo", 2, True)]
+    assert len((await _conversation(db)).state["answers"]["photos"]) == 2
+
+
+async def test_album_over_the_limit_keeps_the_first_photos_quietly(
+    chat: PhotoChat, db: AsyncSession, organization: Workspace, bot: FakeTelegram
+) -> None:
+    await _joined(chat, db, organization)
+    await _to_photo_question(chat)
+    replies = await _album(chat, db, bot, ["p1", "p2", "p3", "p4"])
+
+    # The third photo fills the field and moves on; the fourth gets one note, no "draft" reply.
+    assert len(replies) == 2 and replies[-1] == copy.media_extra_ignored(3)
+    assert copy.DRAFT_EXISTS not in replies
+    conversation = await _conversation(db)
+    assert len(conversation.state["answers"]["photos"]) == 3
+    assert conversation.step != "photos"
+
+
+async def test_chat_waits_while_an_album_is_arriving(
+    chat: PhotoChat,
+    db: AsyncSession,
+    organization: Workspace,
+    bot: FakeTelegram,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _joined(chat, db, organization)
+    first = await db.scalar(select(Message).where(Message.direction == "in").limit(1))
+    assert first is not None
+    channel_id, chat_id = first.channel_id, first.chat_id
+    assert await service.album_wait(db, channel_id, chat_id) == 0.0  # no album
+
+    key = jobs._lock_key(str(channel_id), chat_id)
+    await redis.set(key, "held")  # store without processing
+    bot.files["p1"] = JPEG
+    await chat.photo("p1", group="album-7")
+    monkeypatch.setattr(service, "ALBUM_QUIET_SECONDS", 30.0)
+    assert 25.0 < await service.album_wait(db, channel_id, chat_id) <= 30.0
+    await redis.delete(key)

@@ -81,6 +81,9 @@ class Outbound:
     buttons: tuple[Button, ...] = ()
     # The channel should offer its "share location" button.
     ask_location: bool = False
+    # A running count ("2 foto diterima") that the next photo of the same album replaces, so an
+    # album gets one answer (roadmap 3.5b).
+    progress: bool = False
 
 
 @dataclass(frozen=True)
@@ -185,6 +188,9 @@ class ConversationState:
     # came in, so the rest of that album joins them (conversation-engine.md "Foto sebelum mulai").
     held_media: list[str] = field(default_factory=list)
     media_group: str | None = None
+    # The media field an album sent on its question fills; photos of that album still arriving
+    # after the field is full or answered stay with it (roadmap 3.5b).
+    media_field: str | None = None
     # Voice Lab: what the sentence that filled the report was (see SubmitReport.voice).
     voice: dict[str, Any] | None = None
 

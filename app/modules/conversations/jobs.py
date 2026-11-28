@@ -1,5 +1,6 @@
 """Chat jobs (Taskiq, B-XXX). Thin: lock, open a session, call the service."""
 
+import asyncio
 import logging
 import secrets
 import uuid
@@ -13,6 +14,8 @@ from app.modules.conversations import service
 logger = logging.getLogger(__name__)
 
 LOCK_SECONDS = 120
+# Longest a chat waits for an album that keeps growing (Telegram allows 10 photos).
+ALBUM_MAX_WAIT_SECONDS = 6.0
 
 
 def _lock_key(channel_id: str, chat_id: str) -> str:
@@ -29,6 +32,7 @@ async def process_chat_job(channel_id: str, chat_id: str) -> None:
         if not await redis.set(key, token, nx=True, ex=LOCK_SECONDS):
             return
         try:
+            await _wait_for_album(uuid.UUID(channel_id), chat_id)
             async with db_session.open_session() as db:
                 to_send = await service.process_chat(
                     db, telegram.get_client(), uuid.UUID(channel_id), chat_id
@@ -41,6 +45,20 @@ async def process_chat_job(channel_id: str, chat_id: str) -> None:
         async with db_session.open_session() as db:
             if not await service.has_unprocessed(db, uuid.UUID(channel_id), chat_id):
                 return
+
+
+async def _wait_for_album(channel_id: uuid.UUID, chat_id: str) -> None:
+    """Under the chat lock: the album's later photos are stored by their own webhooks meanwhile,
+    and their jobs return at the lock, so one run answers the whole album (3.5b)."""
+    waited = 0.0
+    while waited < ALBUM_MAX_WAIT_SECONDS:
+        async with db_session.open_session() as db:
+            pause = await service.album_wait(db, channel_id, chat_id)
+        if pause <= 0:
+            return
+        pause = min(pause, ALBUM_MAX_WAIT_SECONDS - waited)
+        await asyncio.sleep(pause)
+        waited += pause
 
 
 @broker.task(task_name="conversations.deliver", retry_on_error=True)
