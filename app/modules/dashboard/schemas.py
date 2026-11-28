@@ -239,3 +239,67 @@ class BoundariesOut(BaseModel):
 
     type: Literal["FeatureCollection"] = "FeatureCollection"
     features: list[BoundaryFeatureOut]
+
+
+# --- Field monitoring (Pantauan Lapangan, roadmap 5.2) ------------------------------------------
+
+FieldTone = Literal["healthy", "attention", "infected", "inactive"]
+FieldGroup = Literal["active", "needs", "inactive"]
+
+
+class FieldLatestOut(BaseModel):
+    """A worker's newest report in the range. No coordinates for health structures (B-XXX)."""
+
+    report_id: uuid.UUID
+    code: str
+    form_name: str
+    condition: Literal["healthy", "attention", "infected"] | None
+    received_at: datetime
+    region: str | None
+    lat: float | None
+    lng: float | None
+    approximate: bool
+
+
+class FieldWorkerOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    channel: Literal["telegram", "whatsapp"]
+    region: str | None  # where the worker is registered
+    last_active_at: datetime | None
+    reports: int  # in the range
+    # Colour of the pin: the newest report's condition (healthy without one), or inactive.
+    tone: FieldTone
+    # List tab: needs = newest report needs attention or is infected; inactive = nothing in range.
+    group: FieldGroup
+    latest: FieldLatestOut | None
+
+
+class FieldKpisOut(BaseModel):
+    workers_active: int  # active workers with a report in the range
+    workers_total: int
+    # Workers with a report in the same span just before, up to the same time of day.
+    workers_active_before: int
+    reports: int
+    reports_delta_pct: float | None
+    whatsapp_pct: int
+    telegram_pct: int
+    cases: int  # reports needing attention or infected
+    infected: int
+    districts: int  # districts with a report in the range
+    regencies: int
+
+
+class FieldGroupCountsOut(BaseModel):
+    all: int
+    active: int
+    needs: int
+    inactive: int
+
+
+class FieldMonitorOut(BaseModel):
+    range: DashboardRange
+    kpis: FieldKpisOut
+    counts: FieldGroupCountsOut
+    legend: dict[FieldTone, int]
+    workers: list[FieldWorkerOut]  # newest activity first, at most 500

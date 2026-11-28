@@ -3934,6 +3934,93 @@
         }
       }
     },
+    "/api/v1/dashboard/field-workers": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Field Workers",
+        "description": "Pantauan Lapangan (roadmap 5.2): every active worker with the place and condition of their\nnewest report in the range, list tabs, legend and the page's headline numbers. Health\nstructures never give a point.",
+        "operationId": "field_workers_api_v1_dashboard_field_workers_get",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "today",
+                "7d",
+                "30d"
+              ],
+              "type": "string",
+              "default": "today",
+              "title": "Range"
+            }
+          },
+          {
+            "name": "x-workspace-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me.",
+              "title": "X-Workspace-Id"
+            },
+            "description": "Workspace aktif; harus salah satu `memberships` dari /auth/me."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FieldMonitorOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
     "/api/v1/reference-data": {
       "get": {
         "tags": [
@@ -9325,6 +9412,54 @@
         ],
         "title": "ApiResponse[ExtensionWorkerSummaryOut]"
       },
+      "ApiResponse_FieldMonitorOut_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FieldMonitorOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorItem"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiResponse[FieldMonitorOut]"
+      },
       "ApiResponse_FormCheckOut_": {
         "properties": {
           "success": {
@@ -12854,6 +12989,243 @@
         "title": "ExtensionWorkerSummaryOut",
         "description": "Counts for the list's tabs and KPI cards (no report numbers: those come with reports)."
       },
+      "FieldGroupCountsOut": {
+        "properties": {
+          "all": {
+            "type": "integer",
+            "title": "All"
+          },
+          "active": {
+            "type": "integer",
+            "title": "Active"
+          },
+          "needs": {
+            "type": "integer",
+            "title": "Needs"
+          },
+          "inactive": {
+            "type": "integer",
+            "title": "Inactive"
+          }
+        },
+        "type": "object",
+        "required": [
+          "all",
+          "active",
+          "needs",
+          "inactive"
+        ],
+        "title": "FieldGroupCountsOut"
+      },
+      "FieldKpisOut": {
+        "properties": {
+          "workers_active": {
+            "type": "integer",
+            "title": "Workers Active"
+          },
+          "workers_total": {
+            "type": "integer",
+            "title": "Workers Total"
+          },
+          "workers_active_before": {
+            "type": "integer",
+            "title": "Workers Active Before"
+          },
+          "reports": {
+            "type": "integer",
+            "title": "Reports"
+          },
+          "reports_delta_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reports Delta Pct"
+          },
+          "whatsapp_pct": {
+            "type": "integer",
+            "title": "Whatsapp Pct"
+          },
+          "telegram_pct": {
+            "type": "integer",
+            "title": "Telegram Pct"
+          },
+          "cases": {
+            "type": "integer",
+            "title": "Cases"
+          },
+          "infected": {
+            "type": "integer",
+            "title": "Infected"
+          },
+          "districts": {
+            "type": "integer",
+            "title": "Districts"
+          },
+          "regencies": {
+            "type": "integer",
+            "title": "Regencies"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workers_active",
+          "workers_total",
+          "workers_active_before",
+          "reports",
+          "reports_delta_pct",
+          "whatsapp_pct",
+          "telegram_pct",
+          "cases",
+          "infected",
+          "districts",
+          "regencies"
+        ],
+        "title": "FieldKpisOut"
+      },
+      "FieldLatestOut": {
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Report Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "form_name": {
+            "type": "string",
+            "title": "Form Name"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "healthy",
+                  "attention",
+                  "infected"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lng": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lng"
+          },
+          "approximate": {
+            "type": "boolean",
+            "title": "Approximate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "report_id",
+          "code",
+          "form_name",
+          "condition",
+          "received_at",
+          "region",
+          "lat",
+          "lng",
+          "approximate"
+        ],
+        "title": "FieldLatestOut",
+        "description": "A worker's newest report in the range. No coordinates for health structures (B-XXX)."
+      },
+      "FieldMonitorOut": {
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "today",
+              "7d",
+              "30d"
+            ],
+            "title": "Range"
+          },
+          "kpis": {
+            "$ref": "#/components/schemas/FieldKpisOut"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/FieldGroupCountsOut"
+          },
+          "legend": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "healthy",
+                "attention",
+                "infected",
+                "inactive"
+              ]
+            },
+            "type": "object",
+            "title": "Legend"
+          },
+          "workers": {
+            "items": {
+              "$ref": "#/components/schemas/FieldWorkerOut"
+            },
+            "type": "array",
+            "title": "Workers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "range",
+          "kpis",
+          "counts",
+          "legend",
+          "workers"
+        ],
+        "title": "FieldMonitorOut"
+      },
       "FieldRefOut": {
         "properties": {
           "key": {
@@ -12953,6 +13325,96 @@
         ],
         "title": "FieldStatOut",
         "description": "One choice or number field of the structure and what its answers add up to."
+      },
+      "FieldWorkerOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "telegram",
+              "whatsapp"
+            ],
+            "title": "Channel"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          },
+          "reports": {
+            "type": "integer",
+            "title": "Reports"
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "attention",
+              "infected",
+              "inactive"
+            ],
+            "title": "Tone"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "active",
+              "needs",
+              "inactive"
+            ],
+            "title": "Group"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FieldLatestOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "channel",
+          "region",
+          "last_active_at",
+          "reports",
+          "tone",
+          "group",
+          "latest"
+        ],
+        "title": "FieldWorkerOut"
       },
       "FormCheckOut": {
         "properties": {

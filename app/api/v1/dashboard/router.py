@@ -14,6 +14,7 @@ from app.modules.dashboard.schemas import (
     BoundariesOut,
     DashboardRange,
     DashboardSummaryOut,
+    FieldMonitorOut,
     FormDashboardOut,
     ReportMapOut,
 )
@@ -84,3 +85,11 @@ async def region_boundaries(
     """Simplified outlines of regions for the map's region layer; platform data, cached a day."""
     response.headers["Cache-Control"] = "private, max-age=86400"
     return ok(await report_map.region_boundaries(db, id))
+
+
+@router.get("/field-workers", response_model=ApiResponse[FieldMonitorOut], responses=_GUARDS)
+async def field_workers(member: ReviewerMember, db: DB, range: DashboardRange = "today"):  # noqa: A002
+    """Pantauan Lapangan (roadmap 5.2): every active worker with the place and condition of their
+    newest report in the range, list tabs, legend and the page's headline numbers. Health
+    structures never give a point."""
+    return ok(await report_map.field_monitor(db, member.workspace_id, range))
