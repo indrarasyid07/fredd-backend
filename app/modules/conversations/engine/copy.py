@@ -287,6 +287,13 @@ def photo_first_saved(count: int) -> str:
     return f"{count} foto diterima." if count > 1 else "Foto diterima."
 
 
+def draft_reminder(name: str, form: str) -> str:
+    """Draft reminder (roadmap 7.1): friendly, one line, the two ways on."""
+    greeting = f"Halo {name}, " if name else "Halo, "
+    topic = f" *{form}*" if form else ""
+    return f"{greeting}laporan{topic} Anda belum selesai. Mau dilanjutkan sekarang?"
+
+
 def media_extra_ignored(high: int) -> str:
     return f"Cukup {high} foto saja; foto selebihnya tidak saya simpan."
 

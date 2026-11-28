@@ -2160,7 +2160,9 @@
                     "needs_help",
                     "taken_over",
                     "released",
-                    "auto_released"
+                    "auto_released",
+                    "reminder_sent",
+                    "draft_archived"
                   ],
                   "type": "string"
                 },
@@ -6623,7 +6625,9 @@
               "needs_help",
               "taken_over",
               "released",
-              "auto_released"
+              "auto_released",
+              "reminder_sent",
+              "draft_archived"
             ],
             "title": "Type"
           },

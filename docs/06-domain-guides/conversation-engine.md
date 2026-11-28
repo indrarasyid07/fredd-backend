@@ -115,6 +115,13 @@ Tes: tabel kasus + tes properti **hypothesis** (bilangan bulat berpemisah ribuan
 - Penyuluh berhenti di tengah → `next_reminder_at = last_inbound_at + 24 jam`, digeser ke luar `quiet_hours` dalam `workspace.timezone`.
 - Cron mengirim pengingat yang jatuh tempo. Di WhatsApp ini selalu di luar jendela 24 jam, jadi wajib template (lihat [messaging-channels.md](messaging-channels.md)).
 - Balasan "lanjut" melanjutkan dari `step` terakhir; "mulai ulang" mengosongkan draf.
+- **Ada (7.1)** di `app/modules/conversations/reminders.py`:
+  - Setiap pesan penyuluh pada draf (`asking`/`confirming_summary`) menjadwalkan `next_reminder_at = waktu pesan + 24 jam`, digeser ke akhir `quiet_hours` (boleh melewati tengah malam) di zona workspace, dan mengatur ulang hitungan `state.reminders_sent`. Status lain (terkirim, `needs_help`, `taken_over`, `idle`) → tanpa pengingat.
+  - Cron `conversations.send_draft_reminders` tiap 5 menit (batch 200, `FOR UPDATE SKIP LOCKED`): pesan "Halo <nama>, laporan *<struktur>* Anda belum selesai…" dengan tombol Lanjutkan / Mulai ulang, maksimal **2 pengingat** per draf (B-XXX), jeda 24 jam (di luar jam tenang).
+  - Draf yang tidak dilanjutkan **7 hari** sejak pesan terakhir penyuluh diarsipkan: jawaban dibuang, percakapan `idle`, tanpa pesan ke penyuluh, kejadian `draft_archived` di log Aktivitas.
+  - Tanpa pengingat untuk penyuluh `unreachable`/`left`/`blocked`, percakapan yang diambil alih, atau topik yang bukan topik aktif chat (hanya menunggu arsip).
+  - Kejadian `reminder_sent` (`details.reminder` = 1 atau 2) di log Aktivitas.
+  - Belum: templat WhatsApp untuk pengingat (8.3), kuota kirim per organisasi (7.3).
 
 ## Jawaban yang dibaca AI (Langkah 12.7)
 

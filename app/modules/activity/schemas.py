@@ -4,7 +4,15 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-ActivityType = Literal["report_received", "needs_help", "taken_over", "released", "auto_released"]
+ActivityType = Literal[
+    "report_received",
+    "needs_help",
+    "taken_over",
+    "released",
+    "auto_released",
+    "reminder_sent",
+    "draft_archived",
+]
 ActivityStatus = Literal["done", "needs_review", "needs_help"]
 
 
@@ -23,5 +31,6 @@ class ActivityEventOut(BaseModel):
     extension_worker: ActivityWorkerOut | None
     conversation_id: uuid.UUID | None
     # report_received: {report_id, code, form_name}; needs_help: {reason, field, form_name};
-    # taken_over, released, auto_released: {admin_name, form_name}.
+    # taken_over, released, auto_released: {admin_name, form_name};
+    # reminder_sent: {reminder, form_name}; draft_archived: {answered, form_name}.
     details: dict[str, Any]

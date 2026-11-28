@@ -134,6 +134,30 @@ async def list_chat_topics(db: AsyncSession, telegram_user_id: str) -> list[Topi
     return [(r[0], r[1], r[2]) for r in rows.all()]
 
 
+async def get_reminder_settings(
+    db: AsyncSession, workspace_id: uuid.UUID
+) -> tuple[str, dict[str, object] | None]:
+    """The workspace's timezone and quiet hours ({start, end}, or null)."""
+    row = (
+        await db.execute(
+            select(Workspace.timezone, Workspace.quiet_hours).where(Workspace.id == workspace_id)
+        )
+    ).first()
+    return (row[0] or "Asia/Jakarta", row[1]) if row else ("Asia/Jakarta", None)
+
+
+async def list_due_reminders(db: AsyncSession, now: datetime, limit: int) -> list[Conversation]:
+    """Every workspace (a cron job); rows locked so two runs never remind twice."""
+    rows = await db.scalars(
+        select(Conversation)
+        .where(Conversation.next_reminder_at.is_not(None), Conversation.next_reminder_at <= now)
+        .order_by(Conversation.next_reminder_at)
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+    return list(rows)
+
+
 async def get_timezone_name(db: AsyncSession, workspace_id: uuid.UUID) -> str:
     return await db.scalar(select(Workspace.timezone).where(Workspace.id == workspace_id)) or (
         "Asia/Jakarta"

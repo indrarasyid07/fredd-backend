@@ -25,7 +25,7 @@ from app.modules.agent.schemas import AgentSettings
 from app.modules.ai import answers, vision
 from app.modules.audit import service as audit
 from app.modules.channels.models import Channel
-from app.modules.conversations import joining, repository
+from app.modules.conversations import joining, reminders, repository
 from app.modules.conversations.engine import copy, machine
 from app.modules.conversations.engine.parsers import normalize
 from app.modules.conversations.engine.types import (
@@ -95,6 +95,13 @@ async def handle(db: AsyncSession, chat: joining.Chat, message: Message) -> list
     run = await _load(db, chat, message)
     if run is None:
         return []
+    replies = await _handle(run, message, back_to)
+    # The worker wrote: an open draft gets a fresh reminder, anything else none (roadmap 7.1).
+    await reminders.schedule(db, run.conversation, message.channel_sent_at or now_utc())
+    return replies
+
+
+async def _handle(run: _Run, message: Message, back_to: str | None) -> list[Outbound]:
     if back_to is not None:
         # The code or QR of a topic this chat already has: go back to it, draft and all.
         return await _switch(run, back_to, note=True)

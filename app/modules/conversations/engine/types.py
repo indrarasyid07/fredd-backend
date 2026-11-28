@@ -191,6 +191,8 @@ class ConversationState:
     # The media field an album sent on its question fills; photos of that album still arriving
     # after the field is full or answered stay with it (roadmap 3.5b).
     media_field: str | None = None
+    # Draft reminders sent since the worker's last message (roadmap 7.1, at most 2).
+    reminders_sent: int = 0
     # Voice Lab: what the sentence that filled the report was (see SubmitReport.voice).
     voice: dict[str, Any] | None = None
 

@@ -9,7 +9,7 @@ from app.core.queue import broker
 from app.core.redis import redis
 from app.db import session as db_session
 from app.modules.channels import telegram
-from app.modules.conversations import service, takeover
+from app.modules.conversations import reminders, service, takeover
 
 logger = logging.getLogger(__name__)
 
@@ -82,5 +82,14 @@ async def release_stale_takeovers_job() -> None:
     """Every 10 minutes: takeovers idle for 4 hours come back to Fluctuz (roadmap 6.4)."""
     async with db_session.open_session() as db:
         to_send = await takeover.release_stale(db)
+    for message_id in to_send:
+        await deliver_message_job.kiq(str(message_id))
+
+
+@broker.task(task_name="conversations.send_draft_reminders", schedule=[{"cron": "*/5 * * * *"}])
+async def send_draft_reminders_job() -> None:
+    """Every 5 minutes: draft reminders that are due, outside quiet hours (roadmap 7.1)."""
+    async with db_session.open_session() as db:
+        to_send = await reminders.send_due(db)
     for message_id in to_send:
         await deliver_message_job.kiq(str(message_id))
