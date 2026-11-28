@@ -133,8 +133,11 @@ Tabel **Laporan masuk** (`/app/incoming-reports`) memakai endpoint yang sama den
 
 | Method | Path | Peran | Catatan |
 |---|---|---|---|
-| POST | `/reports/exports` | form_editor | Membuat pekerjaan; `202` + `{ id, status }`; `429` bila ≥ 3 ekspor berjalan untuk workspace |
-| GET | `/reports/exports/{id}` | pembuat atau admin | `{ status, row_count, download_url?, expires_at?, error? }` |
+| POST | `/reports/exports` | form_editor | Membuat pekerjaan; `200` + `{ id, status, … }` (aturan proyek: tanpa 202); `429` bila ≥ 3 ekspor berjalan untuk workspace |
+| GET | `/reports/exports/{id}` | pembuat atau admin | `{ status, row_count, filename, expires_at, error }` |
+| GET | `/reports/exports/{id}/download` | pembuat atau admin | Berkas langsung lewat API, bukan `download_url` bertanda tangan (B-XXX): tiap unduhan bisa diaudit dan penyimpanan lokal di dev ikut bekerja |
+
+**Status implementasi (28 November 2026, Langkah 5.4):** Excel dan CSV ada; PDF (11.2), `include.map`, `anonymize_farmers` (butuh peran isian nama orang dari Domain 2), email/notifikasi > 50.000 baris, dan SSE `export.ready` (6.1) belum. Batas 50.000 baris per berkas; di atasnya ekspor gagal dengan alasan. `include.photos` di Excel = kolom "Jumlah foto". Filter wilayah kabupaten mencakup laporan yang tercatat di kecamatannya.
 
 ```json
 {
